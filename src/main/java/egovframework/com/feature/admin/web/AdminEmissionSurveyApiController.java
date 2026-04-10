@@ -69,8 +69,8 @@ public class AdminEmissionSurveyApiController {
                                                                @RequestParam(value = "status", required = false) String status,
                                                                @RequestParam(value = "datasetId", required = false) String datasetId,
                                                                @RequestParam(value = "logId", required = false) String logId,
-                                                               @RequestParam(value = "pageIndex", required = false, defaultValue = "1") int pageIndex,
-                                                               @RequestParam(value = "pageSize", required = false, defaultValue = "10") int pageSize,
+                                                               @RequestParam(value = "pageIndex", required = false) String pageIndex,
+                                                               @RequestParam(value = "pageSize", required = false) String pageSize,
                                                                HttpServletRequest request) {
         boolean isEn = adminReactRouteSupport.isEnglishRequest(request, null);
         Map<String, Object> payload = adminEmissionSurveyWorkbookService.getDataPagePayload(
@@ -81,8 +81,8 @@ public class AdminEmissionSurveyApiController {
                 status,
                 datasetId,
                 logId,
-                pageIndex,
-                pageSize,
+                parsePositiveInt(pageIndex, 1),
+                parsePositiveInt(pageSize, 10),
                 isEn
         );
         payload.put("classificationCatalog", emissionClassificationCatalogService.buildPayload(isEn));
@@ -335,6 +335,19 @@ public class AdminEmissionSurveyApiController {
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private int parsePositiveInt(String rawValue, int fallbackValue) {
+        String normalized = safe(rawValue);
+        if (normalized.isEmpty()) {
+            return fallbackValue;
+        }
+        try {
+            int parsed = Integer.parseInt(normalized);
+            return parsed > 0 ? parsed : fallbackValue;
+        } catch (NumberFormatException ignored) {
+            return fallbackValue;
+        }
     }
 
     private Path resolveTemplatePath() {

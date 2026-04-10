@@ -1,8 +1,11 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +22,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminEmissionResultController {
 
-    private final AdminMainController adminMainController;
+    private final AdminReactRouteSupport adminReactRouteSupport;
+    private final AdminEmissionResultPageModelAssembler adminEmissionResultPageModelAssembler;
+    private final AdminShellBootstrapPageService adminShellBootstrapPageService;
 
     @RequestMapping(value = "/emission/result_list", method = { RequestMethod.GET, RequestMethod.POST })
     public String emissionResultListPage(
@@ -30,14 +35,7 @@ public class AdminEmissionResultController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.emission_result_list(
-                pageIndexParam,
-                searchKeyword,
-                resultStatus,
-                verificationStatus,
-                request,
-                locale,
-                model);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-result-list");
     }
 
     @GetMapping("/emission/result_list/page-data")
@@ -49,13 +47,20 @@ public class AdminEmissionResultController {
             @RequestParam(value = "verificationStatus", required = false) String verificationStatus,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.emissionResultListPageApi(
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
+        primeCsrfToken(request);
+        ExtendedModelMap model = new ExtendedModelMap();
+        adminEmissionResultPageModelAssembler.populateEmissionResultList(
                 pageIndexParam,
                 searchKeyword,
                 resultStatus,
                 verificationStatus,
-                request,
-                locale);
+                model,
+                isEn);
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.putAll(model);
+        response.put("isEn", isEn);
+        return ResponseEntity.ok(response);
     }
 
     @RequestMapping(value = "/emission/result_detail", method = { RequestMethod.GET, RequestMethod.POST })
@@ -64,11 +69,7 @@ public class AdminEmissionResultController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.emission_result_detail(
-                resultId,
-                request,
-                locale,
-                model);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-result-detail");
     }
 
     @GetMapping("/emission/result_detail/page-data")
@@ -77,9 +78,21 @@ public class AdminEmissionResultController {
             @RequestParam(value = "resultId", required = false) String resultId,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.emissionResultDetailPageApi(
-                resultId,
-                request,
-                locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
+        primeCsrfToken(request);
+        Map<String, Object> response = adminShellBootstrapPageService.buildEmissionResultDetailPageData(resultId, isEn);
+        return Boolean.TRUE.equals(response.get("found"))
+                ? ResponseEntity.ok(response)
+                : ResponseEntity.status(javax.servlet.http.HttpServletResponse.SC_NOT_FOUND).body(response);
+    }
+
+    private void primeCsrfToken(HttpServletRequest request) {
+        if (request == null) {
+            return;
+        }
+        Object token = request.getAttribute("_csrf");
+        if (token instanceof CsrfToken) {
+            ((CsrfToken) token).getToken();
+        }
     }
 }

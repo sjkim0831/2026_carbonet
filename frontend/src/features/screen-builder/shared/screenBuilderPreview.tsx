@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ScreenBuilderNode } from "../../../lib/api/client";
+import type { ScreenBuilderNode } from "../../../lib/api/platformTypes";
 import { sortScreenBuilderNodes } from "./screenBuilderUtils";
 
 export function renderScreenBuilderNodePreview(node: ScreenBuilderNode, nodes: ScreenBuilderNode[], en: boolean): ReactNode {

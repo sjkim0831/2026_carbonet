@@ -1,5 +1,5 @@
 import { buildLocalizedPath } from "../navigation/runtime";
-import { buildAdminApiPath, buildResilientCsrfHeaders, readJsonResponse } from "./core";
+import { buildAdminApiPath, buildResilientCsrfHeaders, fetchJson, fetchJsonWithResponse, postJson } from "./core";
 import {
   readSessionStorageCache,
   removeSessionStorageCache,
@@ -21,6 +21,20 @@ let frontendSessionCache: FrontendSession | null = null;
 let frontendSessionPromise: Promise<FrontendSession> | null = null;
 let adminMenuTreeCache: AdminMenuTreePayload | null = null;
 let adminMenuTreePromise: Promise<AdminMenuTreePayload> | null = null;
+
+function buildAdminShellHeaders() {
+  return {
+    "X-Requested-With": "XMLHttpRequest"
+  };
+}
+
+function buildAdminSessionSimulatorUrl(insttId?: string) {
+  const url = new URL(buildAdminApiPath("/api/admin/dev/session-simulator"), window.location.origin);
+  if (insttId) {
+    url.searchParams.set("insttId", insttId);
+  }
+  return url.toString();
+}
 
 function readBootstrap<T>(key: string): T | null {
   if (typeof window === "undefined") {
@@ -96,13 +110,10 @@ export async function fetchFrontendSession(): Promise<FrontendSession> {
     return frontendSessionCache;
   }
   if (!frontendSessionPromise) {
-    frontendSessionPromise = fetch("/api/frontend/session", {
-      credentials: "include"
-    }).then(async (response) => {
+    frontendSessionPromise = fetchJsonWithResponse<FrontendSession>("/api/frontend/session").then(({ response, body: session }) => {
       if (!response.ok) {
         throw new Error(`Failed to load session: ${response.status}`);
       }
-      const session = await response.json() as FrontendSession;
       frontendSessionCache = session;
       writeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY, session, SESSION_CACHE_TTL_MS);
       return session;
@@ -117,62 +128,43 @@ export async function fetchFrontendSession(): Promise<FrontendSession> {
 }
 
 export async function fetchAdminSessionSimulator(insttId?: string): Promise<AdminSessionSimulationPayload> {
-  const url = new URL(buildAdminApiPath("/api/admin/dev/session-simulator"), window.location.origin);
-  if (insttId) {
-    url.searchParams.set("insttId", insttId);
-  }
-  const response = await fetch(url.toString(), {
-    credentials: "include",
-    headers: {
-      "X-Requested-With": "XMLHttpRequest"
-    }
+  return fetchJson<AdminSessionSimulationPayload>(buildAdminSessionSimulatorUrl(insttId), {
+    headers: buildAdminShellHeaders()
   });
-  return readJsonResponse<AdminSessionSimulationPayload>(response);
 }
 
 export async function applyAdminSessionSimulator(
   _session: FrontendSession,
   payload: { insttId: string; emplyrId: string; authorCode: string; }
 ): Promise<AdminSessionSimulationPayload> {
-  const headers = await buildResilientCsrfHeaders({
-    "Content-Type": "application/json",
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  const response = await fetch(buildAdminApiPath("/api/admin/dev/session-simulator"), {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: JSON.stringify(payload)
-  });
+  const response = await postJson<AdminSessionSimulationPayload>(
+    buildAdminApiPath("/api/admin/dev/session-simulator"),
+    payload,
+    {
+      headers: buildAdminShellHeaders()
+    }
+  );
   invalidateFrontendSessionCache();
-  return readJsonResponse<AdminSessionSimulationPayload>(response);
+  return response;
 }
 
 export async function resetAdminSessionSimulator(session: FrontendSession): Promise<AdminSessionSimulationPayload> {
   void session;
-  const headers = await buildResilientCsrfHeaders({
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  const response = await fetch(buildAdminApiPath("/api/admin/dev/session-simulator"), {
+  const response = await fetchJson<AdminSessionSimulationPayload>(buildAdminApiPath("/api/admin/dev/session-simulator"), {
     method: "DELETE",
-    credentials: "include",
-    headers
+    headers: await buildResilientCsrfHeaders(buildAdminShellHeaders())
   });
   invalidateFrontendSessionCache();
-  return readJsonResponse<AdminSessionSimulationPayload>(response);
+  return response;
 }
 
 export async function fetchAdminMenuTree(): Promise<AdminMenuTreePayload> {
   const cachedMenuTree = readAdminMenuTreeSnapshot();
   if (!adminMenuTreePromise) {
-    adminMenuTreePromise = fetch(buildLocalizedPath("/admin/system/menu-data", "/en/admin/system/menu-data"), {
-      credentials: "include",
+    adminMenuTreePromise = fetchJson<AdminMenuTreePayload>(buildLocalizedPath("/admin/system/menu-data", "/en/admin/system/menu-data"), {
       cache: "no-store",
-      headers: {
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    }).then((response) => readJsonResponse<AdminMenuTreePayload>(response))
-      .then((payload) => {
+      headers: buildAdminShellHeaders()
+    }).then((payload) => {
         adminMenuTreeCache = payload;
         writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, payload, SESSION_CACHE_TTL_MS);
         return payload;

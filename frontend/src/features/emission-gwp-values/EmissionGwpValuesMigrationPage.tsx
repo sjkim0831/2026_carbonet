@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchEmissionGwpValuesPage, saveEmissionGwpValue, type EmissionGwpValuesPagePayload } from "../../lib/api/client";
+import { fetchEmissionGwpValuesPage, saveEmissionGwpValue } from "../../lib/api/emission";
+import type { EmissionGwpValuesPagePayload } from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, LookupContextStrip, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

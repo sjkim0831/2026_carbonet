@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
-import { DeptRolePagePayload, FrontendSession, fetchDeptRolePage, fetchFrontendSession, readBootstrappedDeptRolePageData, saveDeptRoleMapping, saveDeptRoleMember } from "../../lib/api/client";
+import { readBootstrappedDeptRolePageData } from "../../lib/api/bootstrap";
+import { fetchDeptRolePage } from "../../lib/api/adminMember";
+import { saveDeptRoleMapping, saveDeptRoleMember } from "../../lib/api/adminActions";
+import { fetchFrontendSession } from "../../lib/api/adminShell";
+import type { FrontendSession } from "../../lib/api/adminShellTypes";
+import type { DeptRolePagePayload } from "../../lib/api/authTypes";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminAuthorityPageFrame } from "../admin-ui/pageFrames";

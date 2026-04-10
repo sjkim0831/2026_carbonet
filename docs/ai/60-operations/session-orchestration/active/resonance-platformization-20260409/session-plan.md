@@ -17,6 +17,25 @@
 
 ## Shared Contracts
 
+For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, the single live entry pair is:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Use this as supporting maintenance-contract guidance only:
+
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
+Routing note:
+
+- doc-routing rollout for this family is already in place
+- follow-up work should prefer row review progress and closeout-state updates
+- the family remains in blocker-resolution state, but row `1` now carries `DELETE_NOW`
+- row `3` now carries a stronger non-blocker note
+- the active blocker-resolution row is now `5`
+- remaining docs-only valid work is limited to watched-source change detection plus exact missing-sentence confirmation
+- canonical partial phrase is `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
+
 - API: control-plane bootstrap/page payload APIs, builder governance APIs, version-management APIs, deploy evidence APIs
 - DTO or VO: platform-owned builder, version-control, runtime-package, and control-plane DTO families
 - event map: runtime route registry versus platform route registry, deploy evidence linkage, builder publish and rebuild flow

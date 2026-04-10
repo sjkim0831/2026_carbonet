@@ -4,14 +4,12 @@ import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
   checkMemberRegisterId,
-  fetchMemberRegisterPage,
-  saveMemberRegister,
-  searchAdminCompanies,
-  type AuthorGroup,
-  type AuthorGroupSection,
-  type CompanySearchPayload,
-  type MemberRegisterPagePayload
-} from "../../lib/api/client";
+  searchAdminCompanies
+} from "../../lib/api/adminMember";
+import { saveMemberRegister } from "../../lib/api/adminActions";
+import type { AuthorGroup, AuthorGroupSection } from "../../lib/api/authTypes";
+import { fetchMemberRegisterPage } from "../../lib/api/member";
+import type { CompanySearchPayload, MemberRegisterPagePayload } from "../../lib/api/memberTypes";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";

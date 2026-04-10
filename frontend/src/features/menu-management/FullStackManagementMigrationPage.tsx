@@ -10,14 +10,15 @@ import {
   fetchFullStackGovernanceRegistry,
   fetchFullStackManagementPage,
   fetchScreenCommandPage,
-  getScreenCommandChainText,
-  getScreenCommandChainValues,
-  saveFullStackGovernanceRegistry,
-  type FullStackGovernanceRegistryEntry,
-  type MenuManagementPagePayload,
-  type ScreenCommandPagePayload
-} from "../../lib/api/client";
+  saveFullStackGovernanceRegistry
+} from "../../lib/api/platform";
 import { postFormUrlEncoded } from "../../lib/api/core";
+import { getScreenCommandChainText, getScreenCommandChainValues } from "../../lib/api/screenCommand";
+import type {
+  FullStackGovernanceRegistryEntry,
+  MenuManagementPagePayload,
+  ScreenCommandPagePayload
+} from "../../lib/api/platformTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";

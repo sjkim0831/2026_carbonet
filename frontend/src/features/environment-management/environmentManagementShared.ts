@@ -1,10 +1,12 @@
 import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../platform/screen-registry/pageManifestIndex";
-import { getScreenCommandChainValues, type FullStackGovernanceRegistryEntry, type ScreenCommandPagePayload } from "../../lib/api/client";
+import { getScreenCommandChainValues } from "../../lib/api/screenCommand";
+import type { FullStackGovernanceRegistryEntry, ScreenCommandPagePayload } from "../../lib/api/platformTypes";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 import { buildSuggestedPageCode as buildSharedSuggestedPageCode } from "../menu-management/menuTreeShared";
 import { toDisplayMenuUrl } from "../menu-management/menuUrlDisplay";
 export {
   buildCurrentRuntimeComparePath,
+  buildRepairWorkbenchPath,
   buildScreenBuilderPath,
   buildScreenRuntimePath
 } from "../screen-builder/screenBuilderPaths";

@@ -3,10 +3,9 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
   fetchEmissionSurveyAdminPage,
-  uploadEmissionSurveyWorkbook,
-  type EmissionSurveyAdminPagePayload,
-  type EmissionSurveyAdminSection
-} from "../../lib/api/client";
+  uploadEmissionSurveyWorkbook
+} from "../../lib/api/emission";
+import type { EmissionSurveyAdminPagePayload, EmissionSurveyAdminSection } from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { PageStatusNotice } from "../admin-ui/common";

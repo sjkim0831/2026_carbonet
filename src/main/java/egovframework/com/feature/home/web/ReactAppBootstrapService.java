@@ -8,6 +8,7 @@ import egovframework.com.feature.auth.dto.response.FrontendSessionResponseDTO;
 import egovframework.com.feature.auth.service.FrontendSessionService;
 import egovframework.com.feature.home.service.HomeMenuService;
 import egovframework.com.feature.home.service.HomeMypageService;
+import egovframework.com.platform.trade.service.TradeRefundListReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,28 +28,45 @@ public class ReactAppBootstrapService {
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
     private final AdminHotPathPagePayloadService adminHotPathPagePayloadService;
     private final AdminApprovalController adminApprovalController;
+    private final TradeRefundListReadPort tradeRefundListReadPort;
 
     public Map<String, Object> buildBootstrapPayload(String route, boolean en, boolean admin, HttpServletRequest request) {
-        Map<String, Object> payload = new LinkedHashMap<>();
+        Map<String, Object> payload = createBootstrapPayload();
         FrontendSessionResponseDTO frontendSession = frontendSessionService.buildSession(request);
-        payload.put("frontendSession", frontendSession);
+        putPayload(payload, "frontendSession", frontendSession);
 
         String normalizedRoute = ReactRouteSupport.normalizeBootstrapRoute(route);
         if (!admin && "home".equals(normalizedRoute)) {
-            Map<String, Object> homePayload = new LinkedHashMap<>();
-            homePayload.put("isLoggedIn", frontendSession.isAuthenticated());
-            homePayload.put("isEn", en);
-            homePayload.put("homeMenu", homeMenuService.getHomeMenu(en));
-            payload.put("homePayload", homePayload);
+            payload.put("homePayload", createHomeBootstrapPayload(en, frontendSession));
         }
         if (!admin && "mypage".equals(normalizedRoute)) {
-            payload.put("mypagePayload", homeMypageService.buildMypagePayload(en, request));
-            payload.put("mypageContext", homeMypageService.buildMypageContext(en, request));
+            appendHomeMypageBootstrapPayload(payload, en, request);
         }
         if (admin) {
             appendAdminBootstrapPayload(payload, normalizedRoute, en, request, frontendSession);
         }
         return payload;
+    }
+
+    private Map<String, Object> createBootstrapPayload() {
+        return new LinkedHashMap<>();
+    }
+
+    private Map<String, Object> createHomeBootstrapPayload(boolean en, FrontendSessionResponseDTO frontendSession) {
+        Map<String, Object> homePayload = createBootstrapPayload();
+        putPayload(homePayload, "isLoggedIn", frontendSession.isAuthenticated());
+        putPayload(homePayload, "isEn", en);
+        putPayload(homePayload, "homeMenu", homeMenuService.getHomeMenu(en));
+        return homePayload;
+    }
+
+    private void appendHomeMypageBootstrapPayload(Map<String, Object> payload, boolean en, HttpServletRequest request) {
+        payload.put("mypagePayload", homeMypageService.buildMypagePayload(en, request));
+        payload.put("mypageContext", homeMypageService.buildMypageContext(en, request));
+    }
+
+    private void putPayload(Map<String, Object> payload, String key, Object value) {
+        payload.put(key, value);
     }
 
     private void appendAdminBootstrapPayload(Map<String, Object> payload,
@@ -58,7 +76,7 @@ public class ReactAppBootstrapService {
                                              FrontendSessionResponseDTO frontendSession) {
         Locale locale = requestLocale(en);
         if (!"admin_login".equals(normalizedRoute) && frontendSession.isAuthenticated()) {
-            payload.put("adminMenuTree", adminMenuTreeService.buildAdminMenuTree(en, request));
+            putPayload(payload, "adminMenuTree", adminMenuTreeService.buildAdminMenuTree(en, request));
         }
         if (appendAdminHotPathPayload(payload, normalizedRoute, request, locale)) {
             return;
@@ -80,19 +98,19 @@ public class ReactAppBootstrapService {
         }
         switch (normalizedRoute) {
             case "admin_home":
-                payload.put("adminHomePageData", adminShellBootstrapPageService.buildAdminHomePageData(en));
+                putPayload(payload, "adminHomePageData", adminShellBootstrapPageService.buildAdminHomePageData(en));
                 break;
             case "member_stats":
-                payload.put("memberStatsPageData", adminShellBootstrapPageService.buildMemberStatsPageData(en));
+                putPayload(payload, "memberStatsPageData", adminShellBootstrapPageService.buildMemberStatsPageData(en));
                 break;
             case "security_policy":
-                payload.put("securityPolicyPageData", adminShellBootstrapPageService.buildSecurityPolicyPageData(en));
+                putPayload(payload, "securityPolicyPageData", adminShellBootstrapPageService.buildSecurityPolicyPageData(en));
                 break;
             case "external_monitoring":
-                payload.put("externalMonitoringPageData", adminShellBootstrapPageService.buildExternalMonitoringPageData(en));
+                putPayload(payload, "externalMonitoringPageData", adminShellBootstrapPageService.buildExternalMonitoringPageData(en));
                 break;
             case "security_monitoring":
-                payload.put("securityMonitoringPageData", adminShellBootstrapPageService.buildSecurityMonitoringPageData(en));
+                putPayload(payload, "securityMonitoringPageData", adminShellBootstrapPageService.buildSecurityMonitoringPageData(en));
                 break;
             default:
                 break;
@@ -108,7 +126,7 @@ public class ReactAppBootstrapService {
         }
         switch (normalizedRoute) {
             case "auth_group":
-                payload.put("authGroupPageData", adminHotPathPagePayloadService.buildAuthGroupPagePayload(
+                putPayload(payload, "authGroupPageData", adminHotPathPagePayloadService.buildAuthGroupPagePayload(
                         param(request, "authorCode"),
                         param(request, "roleCategory"),
                         param(request, "insttId"),
@@ -119,7 +137,7 @@ public class ReactAppBootstrapService {
                         locale));
                 return true;
             case "dept_role":
-                payload.put("deptRolePageData", adminHotPathPagePayloadService.buildDeptRolePagePayload(
+                putPayload(payload, "deptRolePageData", adminHotPathPagePayloadService.buildDeptRolePagePayload(
                         param(request, "updated"),
                         param(request, "insttId"),
                         param(request, "memberSearchKeyword"),
@@ -129,7 +147,7 @@ public class ReactAppBootstrapService {
                         locale));
                 return true;
             case "auth_change":
-                payload.put("authChangePageData", adminHotPathPagePayloadService.buildAuthChangePagePayload(
+                putPayload(payload, "authChangePageData", adminHotPathPagePayloadService.buildAuthChangePagePayload(
                         param(request, "updated"),
                         param(request, "targetUserId"),
                         param(request, "searchKeyword"),
@@ -139,7 +157,7 @@ public class ReactAppBootstrapService {
                         locale));
                 return true;
             case "member_edit":
-                payload.put("memberEditPageData", adminHotPathPagePayloadService.buildMemberEditPagePayload(
+                putPayload(payload, "memberEditPageData", adminHotPathPagePayloadService.buildMemberEditPagePayload(
                         param(request, "memberId"),
                         param(request, "updated"),
                         request,
@@ -156,7 +174,7 @@ public class ReactAppBootstrapService {
                                             boolean en) {
         switch (normalizedRoute) {
             case "trade_list":
-                payload.put("tradeListPageData", adminShellBootstrapPageService.buildTradeListPageData(
+                putPayload(payload, "tradeListPageData", adminShellBootstrapPageService.buildTradeListPageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "tradeStatus"),
@@ -164,7 +182,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "trade_statistics":
-                payload.put("tradeStatisticsPageData", adminShellBootstrapPageService.buildTradeStatisticsPageData(
+                putPayload(payload, "tradeStatisticsPageData", adminShellBootstrapPageService.buildTradeStatisticsPageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "periodFilter"),
@@ -173,7 +191,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "trade_duplicate":
-                payload.put("tradeDuplicatePageData", adminShellBootstrapPageService.buildTradeDuplicatePageData(
+                putPayload(payload, "tradeDuplicatePageData", adminShellBootstrapPageService.buildTradeDuplicatePageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "detectionType"),
@@ -182,7 +200,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "trade_approve":
-                payload.put("tradeApprovePageData", adminShellBootstrapPageService.buildTradeApprovePageData(
+                putPayload(payload, "tradeApprovePageData", adminShellBootstrapPageService.buildTradeApprovePageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "approvalStatus"),
@@ -190,7 +208,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "settlement_calendar":
-                payload.put("settlementCalendarPageData", adminShellBootstrapPageService.buildSettlementCalendarPageData(
+                putPayload(payload, "settlementCalendarPageData", adminShellBootstrapPageService.buildSettlementCalendarPageData(
                         param(request, "pageIndex"),
                         param(request, "selectedMonth"),
                         param(request, "searchKeyword"),
@@ -199,7 +217,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "refund_list":
-                payload.put("refundListPageData", adminShellBootstrapPageService.buildRefundListPageData(
+                putPayload(payload, "refundListPageData", tradeRefundListReadPort.buildRefundListPageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "status"),
@@ -207,7 +225,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "trade_reject":
-                payload.put("tradeRejectPageData", adminShellBootstrapPageService.buildTradeRejectPageData(
+                putPayload(payload, "tradeRejectPageData", adminShellBootstrapPageService.buildTradeRejectPageData(
                         param(request, "tradeId"),
                         param(request, "returnUrl"),
                         en));
@@ -223,7 +241,7 @@ public class ReactAppBootstrapService {
                                             boolean en) {
         switch (normalizedRoute) {
             case "security_audit":
-                payload.put("securityAuditPageData", adminShellBootstrapPageService.buildSecurityAuditPageData(
+                putPayload(payload, "securityAuditPageData", adminShellBootstrapPageService.buildSecurityAuditPageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "actionType"),
@@ -235,7 +253,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "certificate_audit_log":
-                payload.put("certificateAuditLogPageData", adminShellBootstrapPageService.buildCertificateAuditLogPageData(
+                putPayload(payload, "certificateAuditLogPageData", adminShellBootstrapPageService.buildCertificateAuditLogPageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "auditType"),
@@ -256,7 +274,7 @@ public class ReactAppBootstrapService {
                                                boolean en) {
         switch (normalizedRoute) {
             case "emission_result_list":
-                payload.put("emissionResultListPageData", adminShellBootstrapPageService.buildEmissionResultListPageData(
+                putPayload(payload, "emissionResultListPageData", adminShellBootstrapPageService.buildEmissionResultListPageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "resultStatus"),
@@ -264,12 +282,12 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "emission_result_detail":
-                payload.put("emissionResultDetailPageData", adminShellBootstrapPageService.buildEmissionResultDetailPageData(
+                putPayload(payload, "emissionResultDetailPageData", adminShellBootstrapPageService.buildEmissionResultDetailPageData(
                         param(request, "resultId"),
                         en));
                 return true;
             case "emission_data_history":
-                payload.put("emissionDataHistoryPageData", adminShellBootstrapPageService.buildEmissionDataHistoryPageData(
+                putPayload(payload, "emissionDataHistoryPageData", adminShellBootstrapPageService.buildEmissionDataHistoryPageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "changeType"),
@@ -277,7 +295,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "emission_validate":
-                payload.put("emissionValidatePageData", adminShellBootstrapPageService.buildEmissionValidatePageData(
+                putPayload(payload, "emissionValidatePageData", adminShellBootstrapPageService.buildEmissionValidatePageData(
                         param(request, "pageIndex"),
                         param(request, "resultId"),
                         param(request, "searchKeyword"),
@@ -286,7 +304,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "emission_site_management":
-                payload.put("emissionSiteManagementPageData", adminShellBootstrapPageService.buildEmissionSiteManagementPageData(en));
+                putPayload(payload, "emissionSiteManagementPageData", adminShellBootstrapPageService.buildEmissionSiteManagementPageData(en));
                 return true;
             default:
                 return false;
@@ -300,7 +318,7 @@ public class ReactAppBootstrapService {
                                                   Locale locale) {
         switch (normalizedRoute) {
             case "certificate_statistics":
-                payload.put("certificateStatisticsPageData", adminShellBootstrapPageService.buildCertificateStatisticsPageData(
+                putPayload(payload, "certificateStatisticsPageData", adminShellBootstrapPageService.buildCertificateStatisticsPageData(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "periodFilter"),
@@ -309,7 +327,7 @@ public class ReactAppBootstrapService {
                         en));
                 return true;
             case "certificate_review":
-                payload.put("certificateReviewPageData", adminApprovalController.buildCertificateReviewPagePayload(
+                putPayload(payload, "certificateReviewPageData", adminApprovalController.buildCertificateReviewPagePayload(
                         param(request, "pageIndex"),
                         param(request, "searchKeyword"),
                         param(request, "status"),
@@ -319,7 +337,7 @@ public class ReactAppBootstrapService {
                         locale));
                 return true;
             case "certificate_rec_check":
-                payload.put("certificateRecCheckPageData", adminShellBootstrapPageService.buildCertificateRecCheckPageData(en));
+                putPayload(payload, "certificateRecCheckPageData", adminShellBootstrapPageService.buildCertificateRecCheckPageData(en));
                 return true;
             default:
                 return false;
@@ -332,7 +350,7 @@ public class ReactAppBootstrapService {
                                                  boolean en) {
         switch (normalizedRoute) {
             case "scheduler_management":
-                payload.put("schedulerManagementPageData", adminShellBootstrapPageService.buildSchedulerPageData(
+                putPayload(payload, "schedulerManagementPageData", adminShellBootstrapPageService.buildSchedulerPageData(
                         param(request, "jobStatus"),
                         param(request, "executionType"),
                         en));
@@ -341,10 +359,10 @@ public class ReactAppBootstrapService {
             case "backup_execution":
             case "restore_execution":
             case "version_management":
-                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
+                putPayload(payload, "backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
                 return true;
             case "new_page":
-                payload.put("newPagePageData", adminShellBootstrapPageService.buildNewPagePageData(en));
+                putPayload(payload, "newPagePageData", adminShellBootstrapPageService.buildNewPagePageData(en));
                 return true;
             default:
                 return false;

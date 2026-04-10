@@ -13,6 +13,10 @@ Read only what you need:
 
 - Read [`/opt/projects/carbonet/docs/architecture/admin-screen-builder-architecture.md`](/opt/projects/carbonet/docs/architecture/admin-screen-builder-architecture.md) first for the canonical architecture, phased rollout, storage model, and scope boundaries.
 - Read [`/opt/projects/carbonet/docs/architecture/page-systemization-minimum-contract.md`](/opt/projects/carbonet/docs/architecture/page-systemization-minimum-contract.md) when the request asks what a page must contain before it counts as builder-ready, reusable, installable, or properly systemized.
+- Read [`/opt/projects/carbonet/docs/architecture/page-systemization-checklist.md`](/opt/projects/carbonet/docs/architecture/page-systemization-checklist.md) when the request needs a page-by-page closeout checklist instead of a high-level contract only.
+- Read [`/opt/projects/carbonet/docs/architecture/builder-install-deploy-closeout-checklist.md`](/opt/projects/carbonet/docs/architecture/builder-install-deploy-closeout-checklist.md) when the request asks whether builder output is really installable, packageable, deployable, and rollback-ready.
+- Read [`/opt/projects/carbonet/docs/architecture/authority-scope-application-checklist.md`](/opt/projects/carbonet/docs/architecture/authority-scope-application-checklist.md) when the request asks whether authority scope is actually applied across entry, query, action, approval, and audit surfaces.
+- Read [`/opt/projects/carbonet/docs/architecture/project-binding-patterns.md`](/opt/projects/carbonet/docs/architecture/project-binding-patterns.md) when the request asks how to keep one common builder definition while projects bind menus, routes, authority, theme, or executors differently.
 - Read [`/opt/projects/carbonet/docs/architecture/system-folder-structure-alignment.md`](/opt/projects/carbonet/docs/architecture/system-folder-structure-alignment.md) when the request affects where new builder, adapter, platform, frontend, or bootstrap files should live.
 - Read [`/opt/projects/carbonet/docs/architecture/builder-folder-refactor-priority-map.md`](/opt/projects/carbonet/docs/architecture/builder-folder-refactor-priority-map.md) when the request is specifically about builder-oriented folder cleanup or module cutover order.
 - Read [`/opt/projects/carbonet/docs/architecture/large-move-completion-contract.md`](/opt/projects/carbonet/docs/architecture/large-move-completion-contract.md) when the user explicitly allows a large move and wants the selected families fully closed rather than left transitional.
@@ -218,6 +222,17 @@ Before calling an existing admin page "systemized" or "builder-ready", require a
    - runtime effects and rollback expectations
 
 If one of these is missing, treat the page as partially migrated or placeholder-like, not as a governed builder asset.
+
+## Productization Closeout Rule
+
+When the user asks for the next level after structure cleanup, do not stop at route parity, page rendering, or correct folder placement.
+
+Require all of these before calling a builder page family complete:
+
+1. `page-systemization-checklist`
+2. `builder-install-deploy-closeout-checklist`
+3. `authority-scope-application-checklist`
+4. explicit common-versus-project binding classification
 
 ## Authority Scope Rule
 

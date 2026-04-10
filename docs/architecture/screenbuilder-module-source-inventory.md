@@ -23,6 +23,8 @@ For the live continuation queue after builder structure-governance closure, use:
 
 Treat those two docs as the single live entry pair for
 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
 If continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 ## Core Candidates
@@ -168,6 +170,8 @@ These still need real cutover work even though live module ownership is now esta
 - builder-owned resource paths now live under module resources, and `ops/scripts/audit-screenbuilder-legacy-root-resources.sh` fails if removed legacy builder resources are reintroduced at the root
 - `ops/scripts/audit-screenbuilder-module-jars.sh` now fails if the packaged module jars are missing core builder classes or builder-owned resources
 - `apps/carbonet-app` explicitly excludes builder-owned root resources so the executable app jar must consume them from the dedicated builder modules instead of the legacy root resource tree
+- framework contract metadata runtime lookup now resolves from `modules/carbonet-contract-metadata/src/main/resources/framework/contracts/framework-contract-metadata.json` and no longer depends on any root `framework/**` metadata copy
+- framework contract metadata packaging now depends on the dedicated contract-metadata module resource and no longer depends on any root `framework/**` metadata copy
 
 These exceptions are the primary handoff input for:
 

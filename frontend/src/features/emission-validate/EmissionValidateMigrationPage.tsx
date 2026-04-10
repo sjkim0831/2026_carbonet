@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
-  fetchEmissionValidatePage,
-  readBootstrappedEmissionValidatePageData,
-  type EmissionValidatePagePayload
-} from "../../lib/api/client";
+  readBootstrappedEmissionValidatePageData
+} from "../../lib/api/bootstrap";
+import { fetchEmissionValidatePage } from "../../lib/api/emission";
+import type { EmissionValidatePagePayload } from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, CollectionResultPanel, DiagnosticCard, GridToolbar, LookupContextStrip, MemberPagination, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

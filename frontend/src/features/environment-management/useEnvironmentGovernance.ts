@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  type FullStackGovernanceRegistryEntry,
-  type ScreenBuilderStatusSummaryItem,
-  type ScreenCommandPagePayload
-} from "../../lib/api/client";
+import type {
+  FullStackGovernanceRegistryEntry,
+  ScreenBuilderStatusSummaryItem,
+  ScreenCommandPagePayload
+} from "../../lib/api/platformTypes";
 import { fetchAuditEvents, fetchTraceEvents } from "../../platform/observability/observability";
 import { buildFullStackManagementPath, buildPlatformStudioPath } from "../../platform/routes/platformPaths";
-import { fetchScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
-import { autoCollectFullStackGovernanceRegistry, fetchFullStackGovernanceRegistry, fetchScreenCommandPage } from "../../lib/api/screenGovernance";
+import {
+  autoCollectFullStackGovernanceRegistry,
+  fetchFullStackGovernanceRegistry,
+  fetchScreenBuilderStatusSummary,
+  fetchScreenCommandPage
+} from "../../lib/api/platform";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import {
   buildGovernanceOverview,
@@ -246,7 +250,7 @@ export function useEnvironmentGovernance({
         if (cancelled) {
           return;
         }
-        const items = Array.isArray(response.items) ? response.items : [];
+        const items: ScreenBuilderStatusSummaryItem[] = Array.isArray(response.items) ? response.items : [];
         const statusMap = items.reduce<Record<string, ScreenBuilderStatus>>((accumulator, item) => {
           accumulator[item.menuCode] = mapSummaryItemToStatus(item);
           return accumulator;

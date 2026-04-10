@@ -1,4 +1,4 @@
-import type { ScreenBuilderAutoReplacePreviewItem } from "../../../../lib/api/client";
+import type { ScreenBuilderAutoReplacePreviewItem } from "../../../../lib/api/platformTypes";
 import { GridToolbar } from "../../../admin-ui/common";
 
 type Props = {

@@ -3,7 +3,9 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { UserGovernmentBar, UserLanguageToggle, UserPortalFooter, UserPortalHeader } from "../../components/user-shell/UserPortalChrome";
-import { fetchTradeListPage, readBootstrappedTradeListPageData, type TradeListPagePayload } from "../../lib/api/client";
+import { readBootstrappedTradeListPageData } from "../../lib/api/bootstrap";
+import { fetchTradeListPage } from "../../lib/api/trade";
+import type { TradeListPagePayload } from "../../lib/api/tradeTypes";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import {
   AdminInput,

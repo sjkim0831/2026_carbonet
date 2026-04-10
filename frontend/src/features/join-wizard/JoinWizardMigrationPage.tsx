@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { resetJoinSession, saveJoinStep1 } from "../../lib/api/client";
+import { resetJoinSession, saveJoinStep1 } from "../../lib/api/joinSession";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
 import {
   UserGovernmentBar,

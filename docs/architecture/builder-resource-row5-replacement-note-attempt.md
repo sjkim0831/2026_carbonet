@@ -1,0 +1,90 @@
+# Builder Resource Row 5 Replacement-Note Attempt
+
+## Purpose
+
+Use this draft only for row `5` of:
+
+- `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`
+
+This file converts the row-`5` checklists and proof questions into one direct drafting checkpoint.
+
+## Read First
+
+1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+2. `docs/architecture/builder-resource-ownership-queue-map.md`
+3. `docs/architecture/builder-resource-row5-owner-packet.md`
+4. `docs/architecture/builder-resource-row5-delete-proof-checklist.md`
+5. `docs/architecture/builder-resource-row5-delete-proof-questions.md`
+6. `docs/architecture/builder-resource-row5-delete-proof-evidence-map.md`
+7. `docs/architecture/builder-resource-row5-candidate-sentence-ledger.md`
+8. `docs/architecture/builder-resource-row5-source-sentence-search-note.md`
+9. `docs/architecture/builder-resource-row5-replacement-note-pattern.md`
+10. `docs/architecture/builder-resource-row5-explicit-shim-checklist.md`
+11. `docs/architecture/builder-resource-row5-explicit-shim-questions.md`
+12. `docs/architecture/builder-resource-row5-explicit-shim-evidence-map.md`
+13. `docs/architecture/builder-resource-row5-decision-note-template.md`
+14. `docs/architecture/builder-resource-review-executable-app-fallback.md`
+
+Treat the first two docs above as the `single live entry pair`.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
+
+## Row
+
+- row `5`
+- `executable app resource assembly fallback`
+
+## Current Attempt Result
+
+On the current docs set, both replacement branches still fail.
+
+### Delete-Proof Attempt
+
+- Q1:
+  - fail
+- Q2:
+  - partial only
+- Q3:
+  - fail
+- attempted result:
+  - no bounded `DELETE_NOW` sentence can be written yet
+
+### Explicit-Shim Attempt
+
+- Q1:
+  - fail
+- Q2:
+  - fail
+- Q3:
+  - fail
+- attempted result:
+  - no bounded `EXPLICIT_RESOURCE_SHIM` sentence can be written yet
+
+## Current Drafting Verdict
+
+Use the blocker note, not a replacement note.
+
+Working sentence:
+
+- `PARTIAL_DONE: executable app resource assembly fallback remains BLOCKS_CLOSEOUT because the current docs set still lacks one bounded clean-assembly delete-proof note and also lacks one named temporary shim reason with one explicit removal trigger.`
+
+## Candidate-Sentence Ledger Rule
+
+Before rewriting this attempt, open:
+
+- `docs/architecture/builder-resource-row5-candidate-sentence-ledger.md`
+- `docs/architecture/builder-resource-row5-source-sentence-search-note.md`
+
+Do not retry a near-proof sentence that the ledger already marks as one step short of a valid branch flip.
+Do not rerun the same docs-only source search unless the search note says the source set changed.
+
+## Immediate Rule
+
+Do not write a weaker pseudo-replacement note from:
+
+- dedicated-module consumption intent alone
+- broader runtime-closure wording alone
+- partially moved MyBatis/resource ownership wording alone
+- mixed executable-assembly wording alone
+
+If a later docs-only turn changes one branch result, rewrite this file before changing blocker count or row state.

@@ -4,10 +4,9 @@ egovframework/com/platform/observability/mapper/PlatformObservabilityQueryMapper
 egovframework/com/common/logging/AccessEventSearchVO.class
 egovframework/com/platform/observability/web/AdminObservabilityApiController.class
 egovframework/com/platform/observability/service/impl/ObservabilityQueryServiceImpl.class
-egovframework/com/common/audit/AuditEventRecordVO.class
+egovframework/com/platform/observability/service/PlatformObservabilityAuditQueryPortBridge.class
 egovframework/com/common/error/ErrorEventRecordVO.class
 egovframework/com/common/error/ErrorEventSearchVO.class
-egovframework/com/common/audit/AuditEventSearchVO.class
 egovframework/com/feature/admin/dto/response/AdminUnifiedLogRowResponse.class
 egovframework/com/common/trace/TraceEventRecordVO.class
 egovframework/com/platform/observability/service/ObservabilityQueryService.class

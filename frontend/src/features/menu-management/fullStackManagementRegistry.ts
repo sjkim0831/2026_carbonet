@@ -5,7 +5,7 @@ import {
 import {
   type FullStackGovernanceRegistryEntry,
   type ScreenCommandPagePayload
-} from "../../lib/api/client";
+} from "../../lib/api/platformTypes";
 import { stringOf } from "../admin-system/adminSystemShared";
 import { buildMenuTree, flattenMenuOrderPayload, type MenuTreeNode, updateMenuSortOrders } from "./menuTreeShared";
 import { toDisplayMenuUrl } from "./menuUrlDisplay";

@@ -7,6 +7,14 @@ Generated on 2026-03-21 for use after the `01` contract lane handoff.
 These short starters can be given to implementation lanes so they begin from
 the agreed files and constraints instead of reinterpreting the architecture.
 
+If `04` is continuing `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting maintenance-contract guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+- `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+- `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+
 For even shorter lane-ready prompts, see:
 
 - `docs/architecture/implementation-lane-short-prompts.md`
@@ -86,13 +94,15 @@ If `04` is continuing builder resource ownership instead of ordinary builder UI 
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+- `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
 
 Treat those two docs as the single live entry pair before opening the next row-specific review card.
 If prompt-guided work changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 Prompt starter:
 
-- `04 lane: continue BUILDER_RESOURCE_OWNERSHIP_CLOSURE from the current closeout and queue map, keep BUILDER_STRUCTURE_GOVERNANCE closed, and work only on the next queued row-specific review card and provisional handoff shape.`
+- `04 lane: continue BUILDER_RESOURCE_OWNERSHIP_CLOSURE from the current closeout and queue map, keep BUILDER_STRUCTURE_GOVERNANCE closed, treat row 2 as the active blocker-resolution target, and use the compressed blocker control docs before any docs-only reopen decision.`
 
 ## 03 Theme
 

@@ -15,11 +15,28 @@ This file explains which folders matter most for AI speed and which ones should 
 - `docs/architecture/builder-resource-ownership-queue-map.md`
   - shortest row-by-row execution queue for builder resource ownership closure
 - `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
-  - same-turn maintenance contract for the live builder resource ownership entry pair
+  - supporting maintenance-contract guidance for the live builder resource ownership entry pair
+- `docs/architecture/builder-resource-executable-app-evidence-checklist.md`
+  - current row-5 blocker reasoning and evidence reference for builder resource ownership continuation
 
 Treat those two docs as the single live entry pair for
 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` only as supporting guidance when continuation state changes.
 If blocker count, active row, next review target, or partial-closeout wording changes, update both docs in the same turn.
+The active continuation row is `3`.
+The family is in blocker-resolution state across rows `3` and `5`.
+Use the compressed blocker control docs before any docs-only reopen decision:
+
+- `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+- `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+
+Remaining docs-only valid work is only:
+
+- whether a watched source doc changed
+- whether that changed source adds the exact missing sentence bundle
+
+Canonical partial phrase is:
+`PARTIAL_DONE: builder resource ownership closure still counts rows 3 and 5 as blockers, rows 1 and 2 now carry bounded DELETE_NOW notes, row 4 now carries a stronger non-blocker note, and unresolved fallback blocker count is <n>.`
 - `apps/carbonet-app`
   - executable runtime assembly target
 - `modules`

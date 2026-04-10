@@ -14,6 +14,15 @@
 
 ## 운영자 빠른 지시
 
+- `BUILDER_RESOURCE_OWNERSHIP_CLOSURE` 재개 시 single live entry pair 는 아래 2개 문서로 고정하고 maintenance contract 문서는 supporting guidance 로만 둡니다
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting guidance: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+- 현재 active continuation target은 row `3`이고 family는 rows `3`, `5` 기준 blocker-resolution state입니다
+- compressed blocker control docs는 `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`, `docs/architecture/builder-resource-blocker-source-trigger-matrix.md` 입니다
+- 남은 docs-only 유효 작업은 watched source docs 변경 여부와 exact missing sentence 추가 여부 확인뿐입니다
+- canonical partial phrase는 `PARTIAL_DONE: builder resource ownership closure still counts rows 3 and 5 as blockers, rows 1 and 2 now carry bounded DELETE_NOW notes, row 4 now carries a stronger non-blocker note, and unresolved fallback blocker count is <n>.` 입니다
+
 - 운영자가 `N번에 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 기본 대상은 항상 해당 번호 세션입니다
 - 이 지시는 새 세션을 만들지 않고 해당 번호 세션에 이어 붙는 뜻으로 해석합니다
 - 붙은 뒤에는 1분 주기로 마지막 미완료 작업을 확인하고, 가능하면 이어서 진행하고 아니면 같은 범위에서 재실행합니다

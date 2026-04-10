@@ -10,7 +10,6 @@ import egovframework.com.feature.member.service.EnterpriseMemberService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
 
@@ -28,9 +27,9 @@ public class AdminListPageModelAssembler {
 
     private static final Logger log = LoggerFactory.getLogger(AdminListPageModelAssembler.class);
 
-    private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final EnterpriseMemberService entrprsManageService;
     private final AdminLoginHistoryService adminLoginHistoryService;
+    private final AdminListQuerySupportService adminListQuerySupportService;
 
     public static class LoginHistoryDataset {
         private final List<LoginHistoryVO> rows;
@@ -71,10 +70,6 @@ public class AdminListPageModelAssembler {
         public boolean isMasterAccess() { return masterAccess; }
     }
 
-    private AdminMainController adminMainController() {
-        return adminMainControllerProvider.getObject();
-    }
-
     public void populateMemberList(
             String pageIndexParam,
             String searchKeyword,
@@ -82,15 +77,14 @@ public class AdminListPageModelAssembler {
             String sbscrbSttus,
             Model model,
             HttpServletRequest request) {
-        AdminMainController controller = adminMainController();
         int pageIndex = parsePageIndex(pageIndexParam);
         int currentPage = Math.max(pageIndex, 1);
         int pageSize = 10;
-        String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        boolean canView = controller.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode);
-        boolean companyScopedAccess = controller.requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode);
-        String currentUserInsttId = controller.resolveCurrentUserInsttId(currentUserId);
+        String currentUserId = adminListQuerySupportService.extractCurrentUserId(request);
+        String currentUserAuthorCode = adminListQuerySupportService.resolveCurrentUserAuthorCode(currentUserId);
+        boolean canView = adminListQuerySupportService.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode);
+        boolean companyScopedAccess = adminListQuerySupportService.requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode);
+        String currentUserInsttId = adminListQuerySupportService.resolveCurrentUserInsttId(currentUserId);
 
         if (!canView) {
             model.addAttribute("member_listError", "회원 목록을 조회할 권한이 없습니다.");
@@ -101,9 +95,9 @@ public class AdminListPageModelAssembler {
             model.addAttribute("totalPages", 1);
             model.addAttribute("startPage", 1);
             model.addAttribute("endPage", 1);
-            model.addAttribute("searchKeyword", controller.safeString(searchKeyword).trim());
-            model.addAttribute("membershipType", controller.safeString(membershipType).trim().toUpperCase(Locale.ROOT));
-            model.addAttribute("sbscrbSttus", controller.safeString(sbscrbSttus).trim());
+            model.addAttribute("searchKeyword", adminListQuerySupportService.safeString(searchKeyword).trim());
+            model.addAttribute("membershipType", adminListQuerySupportService.safeString(membershipType).trim().toUpperCase(Locale.ROOT));
+            model.addAttribute("sbscrbSttus", adminListQuerySupportService.safeString(sbscrbSttus).trim());
             return;
         }
 
@@ -116,9 +110,9 @@ public class AdminListPageModelAssembler {
             model.addAttribute("totalPages", 1);
             model.addAttribute("startPage", 1);
             model.addAttribute("endPage", 1);
-            model.addAttribute("searchKeyword", controller.safeString(searchKeyword).trim());
-            model.addAttribute("membershipType", controller.safeString(membershipType).trim().toUpperCase(Locale.ROOT));
-            model.addAttribute("sbscrbSttus", controller.safeString(sbscrbSttus).trim());
+            model.addAttribute("searchKeyword", adminListQuerySupportService.safeString(searchKeyword).trim());
+            model.addAttribute("membershipType", adminListQuerySupportService.safeString(membershipType).trim().toUpperCase(Locale.ROOT));
+            model.addAttribute("sbscrbSttus", adminListQuerySupportService.safeString(sbscrbSttus).trim());
             return;
         }
 
@@ -126,19 +120,19 @@ public class AdminListPageModelAssembler {
         searchVO.setPageIndex(currentPage);
         searchVO.setRecordCountPerPage(pageSize);
 
-        String keyword = controller.safeString(searchKeyword).trim();
+        String keyword = adminListQuerySupportService.safeString(searchKeyword).trim();
         searchVO.setSearchKeyword(keyword);
         searchVO.setSearchCondition("all");
 
-        String memberType = controller.safeString(membershipType).trim().toUpperCase(Locale.ROOT);
+        String memberType = adminListQuerySupportService.safeString(membershipType).trim().toUpperCase(Locale.ROOT);
         if (!memberType.isEmpty()) {
-            String dbTypeCode = controller.normalizeMembershipCode(memberType);
+            String dbTypeCode = adminListQuerySupportService.normalizeMembershipCode(memberType);
             if (!dbTypeCode.isEmpty()) {
                 searchVO.setEntrprsSeCode(dbTypeCode);
             }
         }
 
-        String status = controller.safeString(sbscrbSttus).trim();
+        String status = adminListQuerySupportService.safeString(sbscrbSttus).trim();
         if (!status.isEmpty()) {
             searchVO.setSbscrbSttus(status);
         }
@@ -175,7 +169,7 @@ public class AdminListPageModelAssembler {
 
         List<Map<String, Object>> memberRows = new java.util.ArrayList<>();
         for (EntrprsManageVO member : memberList) {
-            memberRows.add(toMemberListRow(controller, member));
+            memberRows.add(toMemberListRow(member));
         }
 
         model.addAttribute("member_list", memberRows);
@@ -190,14 +184,14 @@ public class AdminListPageModelAssembler {
         model.addAttribute("sbscrbSttus", status);
     }
 
-    private Map<String, Object> toMemberListRow(AdminMainController controller, EntrprsManageVO member) {
+    private Map<String, Object> toMemberListRow(EntrprsManageVO member) {
         Map<String, Object> row = new LinkedHashMap<>();
-        row.put("entrprsmberId", controller.safeString(member.getEntrprsmberId()));
-        row.put("applcntNm", controller.safeString(member.getApplcntNm()));
-        row.put("entrprsSeCode", controller.safeString(member.getEntrprsSeCode()));
-        row.put("cmpnyNm", controller.safeString(member.getCmpnyNm()));
-        row.put("sbscrbDe", controller.safeString(member.getSbscrbDe()));
-        row.put("entrprsMberSttus", controller.safeString(member.getEntrprsMberSttus()));
+        row.put("entrprsmberId", adminListQuerySupportService.safeString(member.getEntrprsmberId()));
+        row.put("applcntNm", adminListQuerySupportService.safeString(member.getApplcntNm()));
+        row.put("entrprsSeCode", adminListQuerySupportService.safeString(member.getEntrprsSeCode()));
+        row.put("cmpnyNm", adminListQuerySupportService.safeString(member.getCmpnyNm()));
+        row.put("sbscrbDe", adminListQuerySupportService.safeString(member.getSbscrbDe()));
+        row.put("entrprsMberSttus", adminListQuerySupportService.safeString(member.getEntrprsMberSttus()));
         return row;
     }
 
@@ -207,16 +201,15 @@ public class AdminListPageModelAssembler {
             String sbscrbSttus,
             Model model,
             HttpServletRequest request) {
-        AdminMainController controller = adminMainController();
         int pageIndex = parsePageIndex(pageIndexParam);
         int currentPage = Math.max(pageIndex, 1);
         int pageSize = 10;
 
-        String keyword = controller.safeString(searchKeyword);
-        String status = controller.safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        boolean canView = controller.hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode);
+        String keyword = adminListQuerySupportService.safeString(searchKeyword);
+        String status = adminListQuerySupportService.safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
+        String currentUserId = adminListQuerySupportService.extractCurrentUserId(request);
+        String currentUserAuthorCode = adminListQuerySupportService.resolveCurrentUserAuthorCode(currentUserId);
+        boolean canView = adminListQuerySupportService.hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode);
         if (!canView) {
             model.addAttribute("member_listError", "관리자 목록을 조회할 권한이 없습니다.");
             model.addAttribute("member_list", Collections.emptyList());
@@ -234,7 +227,7 @@ public class AdminListPageModelAssembler {
 
         List<EmplyrInfo> visibleAdmins;
         try {
-            visibleAdmins = controller.selectVisibleAdminMembers(currentUserId, currentUserAuthorCode, keyword, status);
+            visibleAdmins = adminListQuerySupportService.selectVisibleAdminMembers(currentUserId, currentUserAuthorCode, keyword, status);
         } catch (Exception e) {
             log.error("Failed to load admin member list.", e);
             model.addAttribute("member_listError", e.getMessage());
@@ -278,7 +271,7 @@ public class AdminListPageModelAssembler {
         model.addAttribute("nextPage", nextPage);
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("sbscrbSttus", status);
-        model.addAttribute("canUseAdminListActions", controller.canCreateAdminAccounts(currentUserId, currentUserAuthorCode));
+        model.addAttribute("canUseAdminListActions", adminListQuerySupportService.canCreateAdminAccounts(currentUserId, currentUserAuthorCode));
     }
 
     public void populateCompanyList(
@@ -287,17 +280,16 @@ public class AdminListPageModelAssembler {
             String sbscrbSttus,
             Model model,
             HttpServletRequest request) {
-        AdminMainController controller = adminMainController();
         int pageIndex = parsePageIndex(pageIndexParam);
         int currentPage = Math.max(pageIndex, 1);
         int pageSize = 10;
 
-        String keyword = controller.safeString(searchKeyword);
-        String status = controller.safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        String scopedInsttId = controller.requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode)
-                ? controller.resolveCurrentUserInsttId(currentUserId)
+        String keyword = adminListQuerySupportService.safeString(searchKeyword);
+        String status = adminListQuerySupportService.safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
+        String currentUserId = adminListQuerySupportService.extractCurrentUserId(request);
+        String currentUserAuthorCode = adminListQuerySupportService.resolveCurrentUserAuthorCode(currentUserId);
+        String scopedInsttId = adminListQuerySupportService.requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode)
+                ? adminListQuerySupportService.resolveCurrentUserInsttId(currentUserId)
                 : "";
 
         List<CompanyListItemVO> companyList;
@@ -356,22 +348,21 @@ public class AdminListPageModelAssembler {
             String requestedInsttId,
             Model model,
             HttpServletRequest request) {
-        AdminMainController controller = adminMainController();
         int pageIndex = parsePageIndex(pageIndexParam);
         int currentPage = Math.max(pageIndex, 1);
         int pageSize = 10;
-        String keyword = controller.safeString(searchKeyword);
-        String normalizedUserSe = controller.safeString(userSe).toUpperCase(Locale.ROOT);
-        String normalizedLoginResult = controller.safeString(loginResult).toUpperCase(Locale.ROOT);
-        String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        boolean masterAccess = controller.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
-        String currentUserInsttId = controller.resolveCurrentUserInsttId(currentUserId);
+        String keyword = adminListQuerySupportService.safeString(searchKeyword);
+        String normalizedUserSe = adminListQuerySupportService.safeString(userSe).toUpperCase(Locale.ROOT);
+        String normalizedLoginResult = adminListQuerySupportService.safeString(loginResult).toUpperCase(Locale.ROOT);
+        String currentUserId = adminListQuerySupportService.extractCurrentUserId(request);
+        String currentUserAuthorCode = adminListQuerySupportService.resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = adminListQuerySupportService.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        String currentUserInsttId = adminListQuerySupportService.resolveCurrentUserInsttId(currentUserId);
         List<Map<String, String>> companyOptions = masterAccess
-                ? controller.loadAccessHistoryCompanyOptions()
-                : controller.buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+                ? adminListQuerySupportService.loadAccessHistoryCompanyOptions()
+                : adminListQuerySupportService.buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
         String selectedInsttId = masterAccess
-                ? controller.resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                ? adminListQuerySupportService.resolveSelectedInsttId(requestedInsttId, companyOptions, true)
                 : currentUserInsttId;
 
         LoginHistorySearchVO searchVO = new LoginHistorySearchVO();
@@ -431,19 +422,18 @@ public class AdminListPageModelAssembler {
             String userSe,
             String requestedInsttId,
             HttpServletRequest request) {
-        AdminMainController controller = adminMainController();
-        String keyword = controller.safeString(searchKeyword);
-        String normalizedUserSe = controller.safeString(userSe).toUpperCase(Locale.ROOT);
+        String keyword = adminListQuerySupportService.safeString(searchKeyword);
+        String normalizedUserSe = adminListQuerySupportService.safeString(userSe).toUpperCase(Locale.ROOT);
         String normalizedLoginResult = "FAIL";
-        String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        boolean masterAccess = controller.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
-        String currentUserInsttId = controller.resolveCurrentUserInsttId(currentUserId);
+        String currentUserId = adminListQuerySupportService.extractCurrentUserId(request);
+        String currentUserAuthorCode = adminListQuerySupportService.resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = adminListQuerySupportService.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        String currentUserInsttId = adminListQuerySupportService.resolveCurrentUserInsttId(currentUserId);
         List<Map<String, String>> companyOptions = masterAccess
-                ? controller.loadAccessHistoryCompanyOptions()
-                : controller.buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+                ? adminListQuerySupportService.loadAccessHistoryCompanyOptions()
+                : adminListQuerySupportService.buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
         String selectedInsttId = masterAccess
-                ? controller.resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                ? adminListQuerySupportService.resolveSelectedInsttId(requestedInsttId, companyOptions, true)
                 : currentUserInsttId;
 
         LoginHistorySearchVO searchVO = new LoginHistorySearchVO();

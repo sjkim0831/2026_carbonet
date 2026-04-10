@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
+import { fetchAdminListPage } from "../../lib/api/adminMember";
+import type { AdminListPagePayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
-import { AdminListPagePayload, fetchAdminListPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberPagination, MemberSectionToolbar, PageStatusNotice } from "../member/common";
 import { CollectionResultPanel, SummaryMetricCard } from "../admin-ui/common";

@@ -1,12 +1,8 @@
 import { FormEvent, Fragment, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { resolveAuthorityScope } from "../../app/policy/authorityScope";
 import { logGovernanceScope } from "../../app/policy/debug";
-import {
-  fetchFunctionManagementPage,
-  fetchMenuManagementPage,
-  type FunctionManagementPagePayload,
-  type MenuManagementPagePayload,
-} from "../../lib/api/client";
 import {
   deleteEnvironmentManagedPage,
   deleteEnvironmentFeature,
@@ -14,7 +10,9 @@ import {
   fetchEnvironmentManagedPageImpact,
   updateEnvironmentFeature,
   updateEnvironmentManagedPage
-} from "../../lib/api/environmentManagement";
+} from "../../lib/api/platform";
+import { fetchFunctionManagementPage, fetchMenuManagementPage } from "../../lib/api/platform";
+import type { FunctionManagementPagePayload, MenuManagementPagePayload } from "../../lib/api/platformTypes";
 import { postFormUrlEncoded } from "../../lib/api/core";
 import { resolveResonanceProjectId } from "../../lib/api/resonanceControlPlane";
 import { fetchAuditEvents } from "../../platform/observability/observability";
@@ -28,14 +26,16 @@ import {
   buildObservabilityPath,
   buildPlatformStudioPath
 } from "../../platform/routes/platformPaths";
-import { rebuildScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
+import { rebuildScreenBuilderStatusSummary } from "../../lib/api/platform";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
+import { getCurrentRuntimePathname, getCurrentRuntimeSearch } from "../../app/routes/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf, submitFormRequest } from "../admin-system/adminSystemShared";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
-import { BinaryStatusCard, CollectionResultPanel, DiagnosticCard, GridToolbar, KeyValueGridPanel, MemberButton, MemberLinkButton, MetaListPanel, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
+import { BinaryStatusCard, CollectionResultPanel, DiagnosticCard, GridToolbar, KeyValueGridPanel, MemberButton, MemberLinkButton, MemberPermissionButton, MetaListPanel, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { MemberStateCard } from "../member/sections";
 import {
   BUILDER_INSTALL_ARTIFACTS,
   BUILDER_INSTALL_REQUIRED_BINDINGS,
@@ -49,6 +49,7 @@ import {
 import {
   buildSuggestedPageCode,
   buildCurrentRuntimeComparePath,
+  buildRepairWorkbenchPath,
   buildScreenBuilderPath,
   buildScreenRuntimePath,
   createEmptyFeatureDraft,
@@ -89,19 +90,31 @@ function renderMetaList(items: string[], emptyLabel: string) {
   );
 }
 
+function getEnvironmentRoutePath() {
+  return getCurrentRuntimePathname();
+}
+
+function getEnvironmentSearchParams() {
+  return new URLSearchParams(getCurrentRuntimeSearch());
+}
+
+function getEnvironmentSearchParam(name: string) {
+  return getEnvironmentSearchParams().get(name) || "";
+}
+
 export function EnvironmentManagementHubPage() {
   const en = isEnglish();
-  const searchParams = new URLSearchParams(window.location.search);
-  const resonanceProjectId = useMemo(() => resolveResonanceProjectId(searchParams.get("projectId") || ""), [searchParams]);
-  const initialMenuType = searchParams.get("menuType") || "ADMIN";
+  const sessionState = useFrontendSession();
+  const resonanceProjectId = useMemo(() => resolveResonanceProjectId(getEnvironmentSearchParam("projectId")), []);
+  const initialMenuType = getEnvironmentSearchParam("menuType") || "ADMIN";
   const [menuType, setMenuType] = useState(initialMenuType);
-  const [menuSearch, setMenuSearch] = useState(searchParams.get("keyword") || "");
+  const [menuSearch, setMenuSearch] = useState(getEnvironmentSearchParam("keyword"));
   const [screenBuilderFilter, setScreenBuilderFilter] = useState<"ALL" | "PUBLISHED_ONLY" | "DRAFT_ONLY" | "READY_ONLY" | "BLOCKED_ONLY" | "ISSUE_ONLY" | "STALE_PUBLISH_ONLY" | "PARITY_DRIFT_ONLY" | "PARITY_GAP_ONLY">("ALL");
   const [screenBuilderIssueReasonFilter, setScreenBuilderIssueReasonFilter] = useState<"ALL" | "UNREGISTERED" | "MISSING" | "DEPRECATED">("ALL");
   const [featureSearch, setFeatureSearch] = useState("");
   const [featureLinkFilter, setFeatureLinkFilter] = useState<"ALL" | "UNASSIGNED" | "LINKED">("ALL");
   const [selectedMenuCode, setSelectedMenuCode] = useState(
-    resolveDefaultSelectedMenuCode(initialMenuType, searchParams.get("menuCode") || "")
+    resolveDefaultSelectedMenuCode(initialMenuType, getEnvironmentSearchParam("menuCode"))
   );
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
@@ -267,6 +280,22 @@ export function EnvironmentManagementHubPage() {
     selectedMenuCode,
     selectedMenuIsPage
   });
+  const environmentAuthority = useMemo(() => resolveAuthorityScope({
+    scopeName: "environment-management",
+    routePath: getEnvironmentRoutePath(),
+    session: sessionState.value,
+    menuCode: governancePage?.page?.menuPermission?.menuCode || ENVIRONMENT_MANAGEMENT_MENU_CODE,
+    requiredViewFeatureCode: governancePage?.page?.menuPermission?.requiredViewFeatureCode || `${ENVIRONMENT_MANAGEMENT_MENU_CODE}_VIEW`,
+    featureCodes: governancePage?.page?.menuPermission?.featureCodes,
+    featureRows: governancePage?.page?.menuPermission?.featureRows
+  }), [
+    governancePage?.page?.menuPermission?.featureCodes,
+    governancePage?.page?.menuPermission?.featureRows,
+    governancePage?.page?.menuPermission?.menuCode,
+    governancePage?.page?.menuPermission?.requiredViewFeatureCode,
+    sessionState.value
+  ]);
+  const pagePermissionDenied = !sessionState.loading && !governanceLoading && !environmentAuthority.entryAllowed;
 
   const filteredMenus = useMemo(() => {
     const keyword = menuSearch.trim().toLowerCase();
@@ -436,11 +465,20 @@ export function EnvironmentManagementHubPage() {
     });
   }, [sameIssueIndex, sameIssueMenus, screenBuilderPublishedMap]);
   useEffect(() => {
+    if (!pagePermissionDenied) {
+      return;
+    }
+    environmentAuthority.logAuthorityDenied("view", {
+      component: "environment-management-hub",
+      menuCode: ENVIRONMENT_MANAGEMENT_MENU_CODE
+    });
+  }, [environmentAuthority, pagePermissionDenied]);
+  useEffect(() => {
     if (!menuPage && !featurePage) {
       return;
     }
     logGovernanceScope("PAGE", "environment-management-hub", {
-      route: window.location.pathname,
+      route: getEnvironmentRoutePath(),
       menuType,
       selectedMenuCode,
       menuRowCount: menuRows.length,
@@ -752,6 +790,52 @@ export function EnvironmentManagementHubPage() {
     validatorPassCount: installValidatorPassCount,
     validatorTotalCount: BUILDER_INSTALL_VALIDATOR_CHECKS.length
   }), [governancePageId, installValidatorPassCount, selectedBuilderStatus?.deployTraceId, selectedBuilderStatus?.parityTraceId, selectedBuilderStatus?.publishedVersionId, selectedBuilderStatus?.releaseUnitId, selectedBuilderStatus?.runtimePackageId, selectedMenu?.code, selectedMenu?.menuUrl, selectedMenuBuilderIssueCount, selectedMenuPublishReady]);
+  const selectedInstallFlowQuery = useMemo(() => ({
+    menuCode: selectedMenu?.code || "",
+    pageId: governancePageId || selectedMenu?.code?.toLowerCase() || "",
+    menuTitle: selectedMenu?.label || "",
+    menuUrl: selectedMenu?.menuUrl || "",
+    snapshotVersionId: String(selectedBuilderStatus?.publishedVersionId || ""),
+    projectId: resonanceProjectId
+  }), [governancePageId, resonanceProjectId, selectedBuilderStatus?.publishedVersionId, selectedMenu?.code, selectedMenu?.label, selectedMenu?.menuUrl]);
+  const selectedInstallFlowSteps = useMemo(() => [
+    {
+      key: "draft",
+      title: en ? "1. Draft" : "1. 초안",
+      state: selectedBuilderStatus?.versionCount ? (en ? "READY" : "준비됨") : (en ? "MISSING" : "없음"),
+      tone: selectedBuilderStatus?.versionCount ? "text-emerald-700 bg-emerald-50" : "text-amber-700 bg-amber-50",
+      detail: selectedBuilderStatus?.publishedSavedAt || String(latestSelectedMenuBuilderAudit?.createdAt || (en ? "Save a builder draft first." : "먼저 빌더 초안을 저장하세요."))
+    },
+    {
+      key: "publish",
+      title: en ? "2. Publish" : "2. 발행",
+      state: selectedBuilderStatus?.publishedVersionId ? (en ? "READY" : "준비됨") : (selectedMenuPublishReady ? (en ? "WAITING" : "대기") : (en ? "BLOCKED" : "차단")),
+      tone: selectedBuilderStatus?.publishedVersionId
+        ? "text-emerald-700 bg-emerald-50"
+        : (selectedMenuPublishReady ? "text-blue-700 bg-blue-50" : "text-red-700 bg-red-50"),
+      detail: selectedBuilderStatus?.publishedVersionId || summarizeBuilderBlockingReason(selectedMenuBuilderIssueCount, en)
+    },
+    {
+      key: "binding",
+      title: en ? "3. Project Binding" : "3. 프로젝트 바인딩",
+      state: installManifestBindingStatuses.every((item) => item.ready) ? (en ? "READY" : "준비됨") : (en ? "BLOCKED" : "차단"),
+      tone: installManifestBindingStatuses.every((item) => item.ready) ? "text-emerald-700 bg-emerald-50" : "text-red-700 bg-red-50",
+      detail: installManifestBindingStatuses.filter((item) => !item.ready).map((item) => describeBuilderInstallBinding(item.key, en)).join(", ") || `${selectedMenu?.code || "-"} / ${governancePageId || "-"}`
+    },
+    {
+      key: "install",
+      title: en ? "4. Install" : "4. 설치",
+      state: selectedInstallQueueSummary.releaseUnitId !== "-" && selectedInstallQueueSummary.runtimePackageId !== "-"
+        ? (en ? "READY" : "준비됨")
+        : (en ? "PIPELINE" : "파이프라인 필요"),
+      tone: selectedInstallQueueSummary.releaseUnitId !== "-" && selectedInstallQueueSummary.runtimePackageId !== "-"
+        ? "text-emerald-700 bg-emerald-50"
+        : "text-violet-700 bg-violet-50",
+      detail: selectedInstallQueueSummary.releaseUnitId !== "-" && selectedInstallQueueSummary.runtimePackageId !== "-"
+        ? `${selectedInstallQueueSummary.releaseUnitId} / ${selectedInstallQueueSummary.runtimePackageId}`
+        : (en ? "Open compare or repair to promote installable product." : "compare 또는 repair를 열어 설치형 프로덕트로 승격하세요.")
+    }
+  ], [en, governancePageId, installManifestBindingStatuses, latestSelectedMenuBuilderAudit, selectedBuilderStatus?.publishedSavedAt, selectedBuilderStatus?.publishedVersionId, selectedBuilderStatus?.versionCount, selectedInstallQueueSummary.releaseUnitId, selectedInstallQueueSummary.runtimePackageId, selectedMenu?.code, selectedMenuBuilderIssueCount, selectedMenuPublishReady]);
   const installBindingNextActions = useMemo(() => {
     const actions: string[] = [];
     if (!selectedMenu || !selectedMenuIsPage) {
@@ -897,6 +981,10 @@ export function EnvironmentManagementHubPage() {
   }, [menuRows, selectedMenuCode]);
 
   async function createPageMenu() {
+    if (!environmentAuthority.allowsAction("create")) {
+      environmentAuthority.logAuthorityDenied("create", { component: "environment-management-create-menu" });
+      throw new Error(environmentAuthority.getActionReason("create", en));
+    }
     setActionError("");
     setActionMessage("");
     const body = new URLSearchParams();
@@ -932,6 +1020,11 @@ export function EnvironmentManagementHubPage() {
 
   async function handleFeatureSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!environmentAuthority.allowsAction("create")) {
+      environmentAuthority.logAuthorityDenied("create", { component: "environment-management-feature-create" });
+      setActionError(environmentAuthority.getActionReason("create", en));
+      return;
+    }
     setActionError("");
     setActionMessage("");
     try {
@@ -946,6 +1039,11 @@ export function EnvironmentManagementHubPage() {
 
   async function handleSelectedMenuSave() {
     if (!selectedMenu) {
+      return;
+    }
+    if (!environmentAuthority.allowsAction("update")) {
+      environmentAuthority.logAuthorityDenied("update", { component: "environment-management-selected-menu-save", menuCode: selectedMenu.code });
+      setActionError(environmentAuthority.getActionReason("update", en));
       return;
     }
     setActionError("");
@@ -971,6 +1069,11 @@ export function EnvironmentManagementHubPage() {
   }
 
   async function prepareFeatureDelete(featureCode: string) {
+    if (!environmentAuthority.allowsAction("delete")) {
+      environmentAuthority.logAuthorityDenied("delete", { component: "environment-management-feature-delete-impact", featureCode });
+      setActionError(environmentAuthority.getActionReason("delete", en));
+      return;
+    }
     setActionError("");
     setActionMessage("");
     setDeleteImpactLoading(true);
@@ -992,6 +1095,11 @@ export function EnvironmentManagementHubPage() {
 
   async function preparePageDelete() {
     if (!selectedMenu) {
+      return;
+    }
+    if (!environmentAuthority.allowsAction("delete")) {
+      environmentAuthority.logAuthorityDenied("delete", { component: "environment-management-page-delete-impact", menuCode: selectedMenu.code });
+      setActionError(environmentAuthority.getActionReason("delete", en));
       return;
     }
     setActionError("");
@@ -1020,6 +1128,11 @@ export function EnvironmentManagementHubPage() {
     if (!selectedMenu || !pendingPageDeleteImpact || pendingPageDeleteImpact.blocked) {
       return;
     }
+    if (!environmentAuthority.allowsAction("delete")) {
+      environmentAuthority.logAuthorityDenied("delete", { component: "environment-management-page-delete-confirm", menuCode: selectedMenu.code });
+      setActionError(environmentAuthority.getActionReason("delete", en));
+      return;
+    }
     setActionError("");
     setActionMessage("");
     setPageDeleting(true);
@@ -1039,6 +1152,11 @@ export function EnvironmentManagementHubPage() {
 
   async function confirmFeatureDelete() {
     if (!pendingDeleteImpact) {
+      return;
+    }
+    if (!environmentAuthority.allowsAction("delete")) {
+      environmentAuthority.logAuthorityDenied("delete", { component: "environment-management-feature-delete-confirm", featureCode: pendingDeleteImpact.featureCode });
+      setActionError(environmentAuthority.getActionReason("delete", en));
       return;
     }
     setActionError("");
@@ -1062,6 +1180,11 @@ export function EnvironmentManagementHubPage() {
 
   async function handleFeatureUpdate() {
     if (!selectedMenu || !editingFeatureCode) {
+      return;
+    }
+    if (!environmentAuthority.allowsAction("update")) {
+      environmentAuthority.logAuthorityDenied("update", { component: "environment-management-feature-update", menuCode: selectedMenu.code, featureCode: editingFeatureCode });
+      setActionError(environmentAuthority.getActionReason("update", en));
       return;
     }
     setActionError("");
@@ -1091,6 +1214,11 @@ export function EnvironmentManagementHubPage() {
     if (!selectedMenu || !selectedMenuIsPage) {
       return;
     }
+    if (!environmentAuthority.allowsAction("execute")) {
+      environmentAuthority.logAuthorityDenied("execute", { component: "environment-management-rebuild-selected-summary", menuCode: selectedMenu.code });
+      setActionError(environmentAuthority.getActionReason("execute", en));
+      return;
+    }
     setActionError("");
     setActionMessage("");
     setSelectedSummaryRebuildBusy(true);
@@ -1106,6 +1234,11 @@ export function EnvironmentManagementHubPage() {
   }
 
   async function handleRebuildAllSummaries() {
+    if (!environmentAuthority.allowsAction("execute")) {
+      environmentAuthority.logAuthorityDenied("execute", { component: "environment-management-rebuild-all-summaries" });
+      setActionError(environmentAuthority.getActionReason("execute", en));
+      return;
+    }
     setActionError("");
     setActionMessage("");
     setAllSummaryRebuildBusy(true);
@@ -1222,6 +1355,18 @@ export function EnvironmentManagementHubPage() {
       }
     >
       <AdminWorkspacePageFrame>
+      {pagePermissionDenied ? (
+        <MemberStateCard
+          description={en
+            ? `You need ${environmentAuthority.requiredViewFeatureCode || `${ENVIRONMENT_MANAGEMENT_MENU_CODE}_VIEW`} permission to open the builder install/bind console.`
+            : `빌더 설치/바인딩 콘솔을 열려면 ${environmentAuthority.requiredViewFeatureCode || `${ENVIRONMENT_MANAGEMENT_MENU_CODE}_VIEW`} 권한이 필요합니다.`}
+          icon="lock"
+          title={en ? "Permission denied." : "권한이 없습니다."}
+          tone="danger"
+        />
+      ) : null}
+      {pagePermissionDenied ? null : (
+      <>
       {actionMessage ? (
         <PageStatusNotice tone="success">
           {actionMessage}
@@ -1432,9 +1577,16 @@ export function EnvironmentManagementHubPage() {
               </div>
             </div>
             <div className="mt-4 flex justify-end">
-              <MemberButton disabled={createUrlValidation.tone !== "success"} onClick={() => { void createPageMenu().catch((error: Error) => setActionError(error.message)); }} type="button" variant="primary">
+              <MemberPermissionButton
+                allowed={environmentAuthority.allowsAction("create")}
+                disabled={createUrlValidation.tone !== "success"}
+                onClick={() => { void createPageMenu().catch((error: Error) => setActionError(error.message)); }}
+                reason={environmentAuthority.getActionReason("create", en)}
+                type="button"
+                variant="primary"
+              >
                 {en ? "Create Menu + Default Permission" : "메뉴 등록 + 기본 권한 생성"}
-              </MemberButton>
+              </MemberPermissionButton>
             </div>
           </section>
 
@@ -2040,9 +2192,11 @@ export function EnvironmentManagementHubPage() {
                   <MemberLinkButton href={buildFeatureManagementPath({ menuType, searchMenuCode: selectedMenu.code })} size="sm" variant="secondary">
                     {en ? "Open Feature Binding" : "기능 바인딩 열기"}
                   </MemberLinkButton>
-                    <MemberButton
+                    <MemberPermissionButton
+                      allowed={environmentAuthority.allowsAction("execute")}
                       disabled={allSummaryRebuildBusy}
                       onClick={() => { void handleRebuildAllSummaries(); }}
+                      reason={environmentAuthority.getActionReason("execute", en)}
                       size="sm"
                       type="button"
                       variant="secondary"
@@ -2050,12 +2204,14 @@ export function EnvironmentManagementHubPage() {
                       {allSummaryRebuildBusy
                       ? (en ? "Refreshing All Gates..." : "전체 게이트 갱신 중...")
                       : (en ? "Refresh All Install Gates" : "전체 설치 게이트 갱신")}
-                    </MemberButton>
+                    </MemberPermissionButton>
                   {selectedMenuIsPage ? (
                     <>
-                      <MemberButton
+                      <MemberPermissionButton
+                        allowed={environmentAuthority.allowsAction("execute")}
                         disabled={selectedSummaryRebuildBusy}
                         onClick={() => { void handleRebuildSelectedSummary(); }}
+                        reason={environmentAuthority.getActionReason("execute", en)}
                         size="sm"
                         type="button"
                         variant="secondary"
@@ -2063,7 +2219,7 @@ export function EnvironmentManagementHubPage() {
                         {selectedSummaryRebuildBusy
                           ? (en ? "Rebuilding Summary..." : "요약 재생성 중...")
                           : (en ? "Rebuild This Summary" : "이 메뉴 요약 재생성")}
-                      </MemberButton>
+                      </MemberPermissionButton>
                       <MemberLinkButton
                         href={buildScreenBuilderPath({
                           menuCode: selectedMenu.code,
@@ -2811,9 +2967,9 @@ export function EnvironmentManagementHubPage() {
                   )}
                 </div>
                 <div className="flex justify-end">
-                  <button className="gov-btn gov-btn-primary" disabled={menuSaving || selectedUrlValidation.tone !== "success"} onClick={() => { void handleSelectedMenuSave(); }} type="button">
+                  <MemberPermissionButton allowed={environmentAuthority.allowsAction("update")} disabled={menuSaving || selectedUrlValidation.tone !== "success"} onClick={() => { void handleSelectedMenuSave(); }} reason={environmentAuthority.getActionReason("update", en)} type="button" variant="primary">
                     {menuSaving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Menu Changes" : "메뉴 변경 저장")}
-                  </button>
+                  </MemberPermissionButton>
                 </div>
                 {selectedMenuIsPage ? (
                   <div className="rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-4">
@@ -2826,9 +2982,9 @@ export function EnvironmentManagementHubPage() {
                             : "선택한 페이지 메뉴를 삭제하기 전에 연결 기능과 기본 VIEW 권한 정리 영향을 먼저 확인합니다."}
                         </p>
                       </div>
-                      <button className="gov-btn gov-btn-danger" disabled={pageDeleteImpactLoading || pageDeleting} onClick={() => { void preparePageDelete(); }} type="button">
+                      <MemberPermissionButton allowed={environmentAuthority.allowsAction("delete")} disabled={pageDeleteImpactLoading || pageDeleting} onClick={() => { void preparePageDelete(); }} reason={environmentAuthority.getActionReason("delete", en)} type="button" variant="danger">
                         {pageDeleteImpactLoading ? (en ? "Checking..." : "확인 중...") : (en ? "Review Delete Impact" : "삭제 영향 확인")}
-                      </button>
+                      </MemberPermissionButton>
                     </div>
                     {pendingPageDeleteImpact ? (
                       <div className="mt-4 space-y-3 rounded-[var(--kr-gov-radius)] border border-white/80 bg-white/70 px-4 py-4 text-sm">
@@ -2881,9 +3037,9 @@ export function EnvironmentManagementHubPage() {
                           <button className="gov-btn gov-btn-outline-blue" onClick={() => setPendingPageDeleteImpact(null)} type="button">
                             {en ? "Close" : "닫기"}
                           </button>
-                          <button className="gov-btn gov-btn-danger" disabled={pageDeleting || pendingPageDeleteImpact.blocked} onClick={() => { void confirmPageDelete(); }} type="button">
+                          <MemberPermissionButton allowed={environmentAuthority.allowsAction("delete")} disabled={pageDeleting || pendingPageDeleteImpact.blocked} onClick={() => { void confirmPageDelete(); }} reason={environmentAuthority.getActionReason("delete", en)} type="button" variant="danger">
                             {pageDeleting ? (en ? "Deleting..." : "삭제 중...") : (en ? "Delete Page Menu" : "페이지 메뉴 삭제")}
-                          </button>
+                          </MemberPermissionButton>
                         </div>
                       </div>
                     ) : null}
@@ -2962,7 +3118,9 @@ export function EnvironmentManagementHubPage() {
                     </select>
                   </div>
                   <div className="flex justify-end">
-                    <button className="gov-btn gov-btn-primary" type="submit">{en ? "Add Feature" : "기능 추가"}</button>
+                    <MemberPermissionButton allowed={environmentAuthority.allowsAction("create")} reason={environmentAuthority.getActionReason("create", en)} type="submit" variant="primary">
+                      {en ? "Add Feature" : "기능 추가"}
+                    </MemberPermissionButton>
                   </div>
                 </form>
 
@@ -2983,9 +3141,9 @@ export function EnvironmentManagementHubPage() {
                       <button className="gov-btn gov-btn-outline-blue" onClick={() => { setPendingDeleteImpact(null); setDeleteImpactFeatureCode(""); }} type="button">
                         {en ? "Cancel" : "취소"}
                       </button>
-                      <button className="gov-btn gov-btn-danger" disabled={featureDeleting} onClick={() => { void confirmFeatureDelete(); }} type="button">
+                      <MemberPermissionButton allowed={environmentAuthority.allowsAction("delete")} disabled={featureDeleting} onClick={() => { void confirmFeatureDelete(); }} reason={environmentAuthority.getActionReason("delete", en)} type="button" variant="danger">
                         {featureDeleting ? (en ? "Deleting..." : "삭제 중...") : (en ? "Confirm Delete" : "영향 확인 후 삭제")}
-                      </button>
+                      </MemberPermissionButton>
                     </div>
                   </div>
                 ) : null}
@@ -3024,9 +3182,9 @@ export function EnvironmentManagementHubPage() {
                       </div>
                     </div>
                     <div className="mt-4 flex justify-end">
-                      <button className="gov-btn gov-btn-primary" disabled={featureSaving} onClick={() => { void handleFeatureUpdate(); }} type="button">
+                      <MemberPermissionButton allowed={environmentAuthority.allowsAction("update")} disabled={featureSaving} onClick={() => { void handleFeatureUpdate(); }} reason={environmentAuthority.getActionReason("update", en)} type="button" variant="primary">
                         {featureSaving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Feature Changes" : "기능 변경 저장")}
-                      </button>
+                      </MemberPermissionButton>
                     </div>
                   </div>
                 ) : null}
@@ -3097,9 +3255,9 @@ export function EnvironmentManagementHubPage() {
                               </button>
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <button className="gov-btn gov-btn-danger" disabled={deleteImpactLoading && deleteImpactFeatureCode === featureCode} onClick={() => { void prepareFeatureDelete(featureCode); }} type="button">
+                              <MemberPermissionButton allowed={environmentAuthority.allowsAction("delete")} disabled={deleteImpactLoading && deleteImpactFeatureCode === featureCode} onClick={() => { void prepareFeatureDelete(featureCode); }} reason={environmentAuthority.getActionReason("delete", en)} type="button" variant="danger">
                                 {deleteImpactLoading && deleteImpactFeatureCode === featureCode ? (en ? "Checking..." : "확인 중...") : (en ? "Delete" : "삭제")}
-                              </button>
+                              </MemberPermissionButton>
                             </td>
                           </tr>
                         );
@@ -3235,6 +3393,38 @@ export function EnvironmentManagementHubPage() {
                 <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
                   {en ? "Install, validate, and rollback should all use these records as governed evidence." : "설치, 검증, 롤백 모두 이 기록들을 거버넌스 증거로 사용해야 합니다."}
                 </p>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? "Governed Install Flow" : "Governed 설치 흐름"}</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedMenu && selectedMenuIsPage ? (
+                    <MemberLinkButton href={buildScreenBuilderPath(selectedInstallFlowQuery)} size="xs" variant="secondary">
+                      {en ? "Draft Builder" : "초안 빌더"}
+                    </MemberLinkButton>
+                  ) : null}
+                  {selectedMenu && selectedMenuIsPage && selectedBuilderStatus?.publishedVersionId ? (
+                    <MemberLinkButton href={buildCurrentRuntimeComparePath(selectedInstallFlowQuery)} size="xs" variant="secondary">
+                      {en ? "Install Compare" : "설치 Compare"}
+                    </MemberLinkButton>
+                  ) : null}
+                  {selectedMenu && selectedMenuIsPage && selectedBuilderStatus?.publishedVersionId ? (
+                    <MemberLinkButton href={buildRepairWorkbenchPath(selectedInstallFlowQuery)} size="xs" variant="secondary">
+                      {en ? "Install Repair" : "설치 Repair"}
+                    </MemberLinkButton>
+                  ) : null}
+                </div>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm">
+                {selectedInstallFlowSteps.map((step) => (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-3" key={step.key}>
+                    <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{step.title}</p>
+                    <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${step.tone}`}>{step.state}</p>
+                    <p className="mt-2 text-[12px] text-[var(--kr-gov-text-primary)] break-all">{step.detail}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -3900,6 +4090,8 @@ export function EnvironmentManagementHubPage() {
           </section>
         </div>
       </section>
+      </>
+      )}
       </AdminWorkspacePageFrame>
     </AdminPageShell>
   );

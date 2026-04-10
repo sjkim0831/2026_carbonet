@@ -1,6 +1,6 @@
 import { FormEvent, SyntheticEvent, useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { readBootstrappedAdminHomePageData } from "../../lib/api/client";
+import { readBootstrappedAdminHomePageData } from "../../lib/api/bootstrap";
 import { postJson } from "../../lib/api/core";
 import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "./AdminPageShell";

@@ -16,6 +16,14 @@ This document provides direct start briefs for:
 These lanes should start after the first implementation wave has already opened
 real code boundaries.
 
+If `04` is continuing `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting maintenance-contract guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+- `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+- `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+
 ## 07 DB SQL Migration Rollback
 
 ### Start After
@@ -110,6 +118,11 @@ If `04` is in builder resource-ownership mode, treat these as the single live en
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Use the compressed blocker control docs before any docs-only reopen decision:
+
+- `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+- `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+
 If start-instruction-driven work changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 ### First Targets
@@ -124,6 +137,7 @@ If start-instruction-driven work changes blocker count, active row, next review 
 - screen family rules stay visible and locked where required
 - missing-asset and repair loops remain reachable
 - if the work is builder resource ownership continuation, do not reopen structure-governance; continue from the queued row instead
+- if the work is builder resource ownership continuation, treat row `2` as the active blocker-resolution target unless the live entry pair changes
 
 ### End Of First Hour
 

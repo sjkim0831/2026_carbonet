@@ -1,6 +1,7 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.service.AdminSummaryCommandService;
+import egovframework.com.platform.read.AdminSummaryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -28,15 +29,26 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AdminSystemBuilderController {
 
-    private final AdminMainController adminMainController;
+    private final AdminSystemBuilderAccessService adminSystemBuilderAccessService;
     private final AdminSummaryCommandService adminSummaryCommandService;
+    private final AdminSummaryReadPort adminSummaryReadPort;
+    private final AdminMenuShellService adminMenuShellService;
 
     @GetMapping("/api/admin/system/menu-permission-diagnostics")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> menuPermissionDiagnosticsApi(
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.menuPermissionDiagnosticsApi(request, locale);
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "Only global administrators can view menu permission diagnostics."
+                    : "메뉴 권한 진단은 전체 관리자만 조회할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
+        return ResponseEntity.ok(adminSummaryReadPort.buildMenuPermissionDiagnosticSummary(isEn));
     }
 
     @PostMapping("/api/admin/system/menu-permission-diagnostics/auto-cleanup")
@@ -45,11 +57,9 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
-        String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-        if (!adminMainController.isWebmaster(currentUserId)
-                && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", isEn
@@ -70,8 +80,8 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
         return ResponseEntity.ok(adminSummaryCommandService.updateSecurityInsightState(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
@@ -81,8 +91,8 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
         return ResponseEntity.ok(adminSummaryCommandService.updateSecurityMonitoringState(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
@@ -92,11 +102,9 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
-        String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-        if (!adminMainController.isWebmaster(currentUserId)
-                && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", isEn
@@ -113,11 +121,9 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
-        String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-        if (!adminMainController.isWebmaster(currentUserId)
-                && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", isEn
@@ -134,11 +140,9 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
-        String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-        if (!adminMainController.isWebmaster(currentUserId)
-                && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", isEn
@@ -155,8 +159,8 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
         if (currentUserId == null || currentUserId.trim().isEmpty()) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
@@ -167,19 +171,15 @@ public class AdminSystemBuilderController {
         }
         Map<String, Object> safePayload = payload == null ? Map.of() : payload;
         Object actionValue = safePayload.get("action");
-        String action = adminMainController.safeString(actionValue == null ? null : String.valueOf(actionValue)).toUpperCase(Locale.ROOT);
+        String action = safeString(actionValue == null ? null : String.valueOf(actionValue)).toUpperCase(Locale.ROOT);
         boolean requiresGlobalSecurityOperator = Set.of("UNBLOCK_USER", "REGISTER_EXCEPTION", "ESCALATE_BLOCK_IP").contains(action);
-        if (requiresGlobalSecurityOperator) {
-            String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-            if (!adminMainController.isWebmaster(currentUserId)
-                    && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (requiresGlobalSecurityOperator && !adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
                 Map<String, Object> response = new LinkedHashMap<>();
                 response.put("success", false);
                 response.put("message", isEn
                         ? "Only global administrators can run this security action."
                         : "이 보안 조치는 전체 관리자만 수행할 수 있습니다.");
                 return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
-            }
         }
         return ResponseEntity.ok(adminSummaryCommandService.executeSecurityHistoryAction(currentUserId, isEn, safePayload));
     }
@@ -189,8 +189,8 @@ public class AdminSystemBuilderController {
     public ResponseEntity<Map<String, Object>> clearSecurityPolicySuppressionsApi(
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
         return ResponseEntity.ok(adminSummaryCommandService.clearSecurityInsightSuppressions(currentUserId, isEn));
     }
 
@@ -200,11 +200,9 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
-        String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-        if (!adminMainController.isWebmaster(currentUserId)
-                && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", isEn
@@ -221,11 +219,9 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
-        String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-        if (!adminMainController.isWebmaster(currentUserId)
-                && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", isEn
@@ -258,11 +254,9 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
-        String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-        if (!adminMainController.isWebmaster(currentUserId)
-                && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", isEn
@@ -279,11 +273,9 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
-        String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-        if (!adminMainController.isWebmaster(currentUserId)
-                && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", isEn
@@ -300,11 +292,9 @@ public class AdminSystemBuilderController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = adminMainController.isEnglishRequest(request, locale);
-        String currentUserId = adminMainController.extractCurrentUserId(request);
-        String currentUserAuthorCode = adminMainController.resolveCurrentUserAuthorCode(currentUserId);
-        if (!adminMainController.isWebmaster(currentUserId)
-                && !adminMainController.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        boolean isEn = adminSystemBuilderAccessService.isEnglishRequest(request, locale);
+        String currentUserId = adminSystemBuilderAccessService.extractCurrentUserId(request);
+        if (!adminSystemBuilderAccessService.hasGlobalAdminAccess(request)) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", isEn
@@ -321,12 +311,12 @@ public class AdminSystemBuilderController {
             @RequestParam(value = "requestPath", required = false) String requestPath,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.adminMenuPlaceholderApi(requestPath, request, locale);
+        return ResponseEntity.ok(adminMenuShellService.buildMenuPlaceholderPayload(requestPath, request, locale));
     }
 
     @RequestMapping(value = "/**", method = { RequestMethod.GET })
     public String adminFallback(HttpServletRequest request, Locale locale, Model model) {
-        return adminMainController.adminFallback(request, locale, model);
+        return adminMenuShellService.renderAdminFallback(request, locale, model);
     }
 
     private List<String> toStringList(Object value) {
@@ -341,5 +331,9 @@ public class AdminSystemBuilderController {
             }
         }
         return result;
+    }
+
+    private String safeString(String value) {
+        return value == null ? "" : value.trim();
     }
 }

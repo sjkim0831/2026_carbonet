@@ -1,4 +1,5 @@
-import { AuthGroupPagePayload, FrontendSession } from "../api/client";
+import type { FrontendSession } from "../api/adminShellTypes";
+import type { AuthGroupPagePayload } from "../api/authTypes";
 
 export type UiPermissions = {
   canViewGeneralAuthGroupSection: boolean;

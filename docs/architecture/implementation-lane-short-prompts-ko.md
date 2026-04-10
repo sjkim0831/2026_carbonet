@@ -12,6 +12,12 @@ Generated on 2026-03-21 for immediate execution after the `01` handoff.
 - 시작 지시문 문서 확인 완료
 - 현재 저장소 상태 확인 완료
 
+`04`가 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`를 이어갈 때는 아래 2개 문서를 single live entry pair 로 다시 열고 maintenance contract 문서는 supporting guidance 로만 봅니다:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting guidance: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
 ## 05 프런트엔드
 
 - `05 레인: 승인된 프로토타입 기준으로 governed React 운영 셸과 context-key strip을 먼저 만들고, 그 다음 project-runtime과 current-runtime-compare를 구현하되 guidedStateId, templateLineId, screenFamilyRuleId, ownerLane 이름은 절대 바꾸지 마세요.`

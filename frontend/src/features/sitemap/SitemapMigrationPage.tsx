@@ -6,8 +6,9 @@ import {
 } from "../../components/user-shell/UserPortalChrome";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
+import { fetchSitemapPage } from "../../lib/api/appBootstrap";
+import type { SitemapNode, SitemapPagePayload } from "../../lib/api/appBootstrapTypes";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
-import { fetchSitemapPage, type SitemapNode, type SitemapPagePayload } from "../../lib/api/client";
 import { useEffect } from "react";
 
 function stringOf(value: unknown) {

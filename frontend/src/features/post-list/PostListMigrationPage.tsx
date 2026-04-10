@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchPostManagementPage, type PostManagementPagePayload } from "../../lib/api/client";
+import { fetchPostManagementPage } from "../../lib/api/content";
+import type { PostManagementPagePayload } from "../../lib/api/contentTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

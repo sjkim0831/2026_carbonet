@@ -29,6 +29,15 @@ Confirm that the current question is still about:
 
 If the question is really about resource movement, shim removal, or control-plane composition, do not pretend this same family is still being closed.
 
+For the next-family continuation after structure-governance is already closed, reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Treat those two docs as the single live entry pair for the continuation family.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
+
 ## 2. Confirm The Canonical Path
 
 Use `builder-source-of-truth-matrix.md`.

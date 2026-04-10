@@ -5,10 +5,10 @@ import { logGovernanceScope } from "../../app/policy/debug";
 import {
   dispatchSecurityPolicyNotifications,
   fetchNotificationPage,
-  readBootstrappedNotificationPageData,
-  saveSecurityPolicyNotificationConfig,
-  type SecurityPolicyPagePayload
-} from "../../lib/api/client";
+  saveSecurityPolicyNotificationConfig
+} from "../../lib/api/security";
+import { readBootstrappedNotificationPageData } from "../../lib/api/bootstrap";
+import type { SecurityPolicyPagePayload } from "../../lib/api/securityTypes";
 import { buildLocalizedPath, isEnglish, replace } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";

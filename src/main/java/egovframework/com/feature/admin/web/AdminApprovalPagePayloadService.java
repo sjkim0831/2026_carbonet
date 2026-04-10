@@ -1,7 +1,6 @@
 package egovframework.com.feature.admin.web;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.ExtendedModelMap;
 
@@ -14,13 +13,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminApprovalPagePayloadService {
 
-    private final ObjectProvider<AdminMainController> adminMainControllerProvider;
+    private final AdminRequestContextSupport adminRequestContextSupport;
+    private final AdminApprovalPageModelAssembler adminApprovalPageModelAssembler;
     private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
     private final AdminCertificateApprovalService certificateApprovalService;
-
-    private AdminMainController adminMainController() {
-        return adminMainControllerProvider.getObject();
-    }
 
     public Map<String, Object> buildMemberApprovePagePayload(
             String pageIndexParam,
@@ -30,11 +26,10 @@ public class AdminApprovalPagePayloadService {
             String result,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        controller.primeCsrfToken(request);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        adminRequestContextSupport.primeCsrfToken(request);
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.populateMemberApprovalList(
+        adminApprovalPageModelAssembler.populateMemberApprovalList(
                 pageIndexParam,
                 searchKeyword,
                 membershipType,
@@ -46,7 +41,7 @@ public class AdminApprovalPagePayloadService {
                 locale);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
-        String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         boolean canView = authorityPagePayloadSupport.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode);
         response.put("canViewMemberApprove", canView);
@@ -61,11 +56,10 @@ public class AdminApprovalPagePayloadService {
             String result,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        controller.primeCsrfToken(request);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        adminRequestContextSupport.primeCsrfToken(request);
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.populateCompanyApprovalList(
+        adminApprovalPageModelAssembler.populateCompanyApprovalList(
                 pageIndexParam,
                 searchKeyword,
                 sbscrbSttus,
@@ -76,7 +70,7 @@ public class AdminApprovalPagePayloadService {
                 locale);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
-        String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         boolean canManage = authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
         response.put("canViewCompanyApprove", canManage);
@@ -92,9 +86,8 @@ public class AdminApprovalPagePayloadService {
             String result,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        controller.primeCsrfToken(request);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        adminRequestContextSupport.primeCsrfToken(request);
         Map<String, Object> response = new LinkedHashMap<>(certificateApprovalService.buildPagePayload(
                 pageIndexParam,
                 searchKeyword,
@@ -102,7 +95,7 @@ public class AdminApprovalPagePayloadService {
                 status,
                 result,
                 isEn));
-        String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         boolean canManage = authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
         response.put("canViewCertificateApprove", canManage);

@@ -44,7 +44,7 @@ For the shortest operator-facing summary, see:
 - `docs/architecture/session-implementation-handoff-map.md`
 - `docs/architecture/lane-start-instructions-05-06-08-09.md`
 - `docs/architecture/lane-start-instructions-07-10-04-03-02.md`
-- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md` when the next family is builder resource ownership closure
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md` when the active builder family is builder resource ownership closure
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when builder resource ownership closure should resume from the current provisional state
 - `docs/architecture/builder-resource-ownership-queue-map.md` for the shortest row-by-row builder resource ownership queue
 
@@ -52,7 +52,22 @@ For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, treat these as the single live entry p
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Use this as supporting maintenance-contract guidance only:
+
 - `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
+Current active continuation target:
+
+- row `5`
+- `executable app resource assembly fallback`
+- blocker-resolution state with row `5` as the remaining blocker
+- `docs/architecture/builder-resource-row5-owner-packet.md`
+- compressed blocker control docs:
+  - `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+  - `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+- canonical partial phrase:
+  - `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
 
 If blocker count, active row, next review target, or partial-closeout wording changes, update both entry-pair docs in the same turn before handing off to row-specific material.
 

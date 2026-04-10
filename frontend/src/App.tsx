@@ -12,14 +12,13 @@ import { ErrorBoundary } from "./components/error/ErrorBoundary";
 import { getRuntimeLocale, navigate } from "./lib/navigation/runtime";
 import type { PageHelpContent } from "./platform/screen-registry/helpContent";
 import type { PageManifest } from "./platform/screen-registry/types";
+import { addSrWorkbenchStackItem, quickExecuteSrTicket } from "./lib/api/platform";
+import { getScreenCommandChainValues } from "./lib/api/screenCommand";
 import {
-  addSrWorkbenchStackItem,
-  getScreenCommandChainValues,
-  quickExecuteSrTicket,
-  ScreenCommandApi,
-  ScreenCommandChangeTarget,
-  ScreenCommandPagePayload,
-} from "./lib/api/client";
+  type ScreenCommandApi,
+  type ScreenCommandChangeTarget,
+  type ScreenCommandPagePayload
+} from "./lib/api/platformTypes";
 
 const HelpOverlay = lazy(() => import("./components/help/HelpOverlay").then((module) => ({ default: module.HelpOverlay })));
 

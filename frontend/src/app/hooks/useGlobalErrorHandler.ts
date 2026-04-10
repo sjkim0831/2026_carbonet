@@ -1,5 +1,11 @@
 import { useEffect } from "react";
 import { publishTelemetryEvent } from "../../platform/telemetry/events";
+import {
+  getCurrentBootstrappedRouteId,
+  getCurrentRuntimeHref,
+  getCurrentRuntimeRequestPath,
+  reloadCurrentRuntime
+} from "../routes/runtime";
 
 interface ErrorReportPayload {
   errorType: "WINDOW_ERROR" | "UNHANDLED_REJECTION" | "REACT_ERROR_BOUNDARY";
@@ -44,15 +50,14 @@ function tryRecoverChunkLoad(reason: { message: string; url: string; pageId: str
     return false;
   }
 
-  const currentPath = `${window.location.pathname}${window.location.search}`;
-  const recoveryKey = `${currentPath}|${reason.pageId}`;
+  const recoveryKey = `${getCurrentRuntimeRequestPath()}|${reason.pageId}`;
   const previousRecoveryKey = window.sessionStorage.getItem(CHUNK_RECOVERY_STORAGE_KEY) || "";
   if (previousRecoveryKey === recoveryKey) {
     return false;
   }
 
   window.sessionStorage.setItem(CHUNK_RECOVERY_STORAGE_KEY, recoveryKey);
-  window.location.reload();
+  reloadCurrentRuntime();
   return true;
 }
 
@@ -81,8 +86,8 @@ async function reportErrorToBackend(payload: ErrorReportPayload) {
 
 export function useGlobalErrorHandler() {
   useEffect(() => {
-    const pageId = window.__CARBONET_REACT_MIGRATION__?.route || "unknown";
-    const currentPath = `${window.location.pathname}${window.location.search}`;
+    const pageId = getCurrentBootstrappedRouteId() || "unknown";
+    const currentPath = getCurrentRuntimeRequestPath();
 
     function handleWindowError(event: ErrorEvent) {
       const fingerprint = generateFingerprint(event.message, event.filename, event.lineno);
@@ -119,7 +124,8 @@ export function useGlobalErrorHandler() {
       const reason = event.reason;
       const message = reason instanceof Error ? reason.message : String(reason);
       const stack = reason instanceof Error ? reason.stack : undefined;
-      const fingerprint = generateFingerprint(message, window.location.href);
+      const currentHref = getCurrentRuntimeHref();
+      const fingerprint = generateFingerprint(message, currentHref);
 
       const payload: ErrorReportPayload = {
         errorType: "UNHANDLED_REJECTION",
@@ -129,7 +135,7 @@ export function useGlobalErrorHandler() {
         pageId,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
-        url: window.location.href
+        url: currentHref
       };
 
       console.error("[GlobalErrorHandler] Unhandled rejection:", payload);
@@ -140,7 +146,7 @@ export function useGlobalErrorHandler() {
         payloadSummary: { ...payload } as Record<string, unknown>
       });
 
-      if (tryRecoverChunkLoad({ message, url: window.location.href, pageId })) {
+      if (tryRecoverChunkLoad({ message, url: currentHref, pageId })) {
         return;
       }
 
@@ -152,15 +158,16 @@ export function useGlobalErrorHandler() {
       const message = customEvent.payload instanceof Error
         ? customEvent.payload.message
         : "vite:preloadError";
+      const currentHref = getCurrentRuntimeHref();
       const payload: ErrorReportPayload = {
         errorType: "UNHANDLED_REJECTION",
-        fingerprint: generateFingerprint(message, window.location.href),
+        fingerprint: generateFingerprint(message, currentHref),
         message,
         stack: customEvent.payload instanceof Error ? customEvent.payload.stack : undefined,
         pageId,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
-        url: window.location.href
+        url: currentHref
       };
 
       publishTelemetryEvent({
@@ -169,7 +176,7 @@ export function useGlobalErrorHandler() {
         payloadSummary: { ...payload, routePath: currentPath } as Record<string, unknown>
       });
 
-      if (tryRecoverChunkLoad({ message, url: window.location.href, pageId })) {
+      if (tryRecoverChunkLoad({ message, url: currentHref, pageId })) {
         event.preventDefault();
         return;
       }

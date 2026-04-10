@@ -1,9 +1,11 @@
 import {
   buildAdminApiPath,
+  buildFormUrlEncoded,
   buildJsonHeaders,
-  buildResilientCsrfHeaders,
   invalidateAdminPageCaches,
-  readJsonResponse
+  postAdminJson,
+  postFormData,
+  postFormUrlEncoded
 } from "./core";
 
 type FrontendSessionLike = {
@@ -38,6 +40,20 @@ type SaveCompanyAccountResponse = {
   insttId: string;
 };
 
+async function postAdminAction<T extends { success?: boolean; message?: string }>(
+  path: string,
+  payload: unknown,
+  fallbackMessage: string,
+  headers?: Record<string, string>
+): Promise<T> {
+  const body = await postAdminJson<T>(path, payload, headers ? { headers } : undefined);
+  if (!body.success) {
+    throw new Error(String(body.message || fallbackMessage));
+  }
+  invalidateAdminPageCaches();
+  return body;
+}
+
 export async function createAuthGroup(
   session: FrontendSessionLike,
   payload: {
@@ -48,18 +64,12 @@ export async function createAuthGroup(
     insttId?: string;
   }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/auth-groups"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<CreateAuthGroupResponse>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to create auth group: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<CreateAuthGroupResponse>(
+    "/api/admin/auth-groups",
+    payload,
+    "Failed to create auth group",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function saveAuthGroupFeatures(
@@ -70,18 +80,12 @@ export async function saveAuthGroupFeatures(
     featureCodes: string[];
   }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/auth-groups/features"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to save auth-group features: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/admin/auth-groups/features",
+    payload,
+    "Failed to save auth-group features",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function saveAdminAuthChange(
@@ -91,18 +95,12 @@ export async function saveAdminAuthChange(
     authorCode: string;
   }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/auth-change/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to save auth change: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/admin/auth-change/save",
+    payload,
+    "Failed to save auth change",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function saveAuthorRoleProfile(
@@ -121,23 +119,17 @@ export async function saveAuthorRoleProfile(
     defaultMemberTypes?: string[];
   }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/auth-groups/profile-save"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{
+  return postAdminAction<{
     success?: boolean;
     message?: string;
     authorCode: string;
     profile: AuthorRoleProfile;
-  }>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to save author role profile: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  }>(
+    "/api/admin/auth-groups/profile-save",
+    payload,
+    "Failed to save author role profile",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function saveDeptRoleMapping(
@@ -149,18 +141,12 @@ export async function saveDeptRoleMapping(
     authorCode: string;
   }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/dept-role-mapping/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to save dept mapping: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/admin/dept-role-mapping/save",
+    payload,
+    "Failed to save dept mapping",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function saveDeptRoleMember(
@@ -171,18 +157,12 @@ export async function saveDeptRoleMember(
     authorCode: string;
   }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/dept-role-mapping/member-save"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to save dept member role: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/admin/dept-role-mapping/member-save",
+    payload,
+    "Failed to save dept member role",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function saveMemberEdit(
@@ -203,18 +183,17 @@ export async function saveMemberEdit(
     deptNm: string;
   }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/edit"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; errors?: string[] } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : `Failed to save member edit: ${response.status}`)));
+  const body = await postAdminJson<{ success?: boolean; message?: string; errors?: string[] } & Record<string, unknown>>(
+    "/api/admin/member/edit",
+    payload,
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
+  if (!body.success) {
+    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : "Failed to save member edit")));
   }
   invalidateAdminPageCaches();
   return body;
@@ -238,37 +217,35 @@ export async function saveMemberRegister(
     detailAdres: string;
   }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/register"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; errors?: string[] } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : `Failed to save member register: ${response.status}`)));
+  const body = await postAdminJson<{ success?: boolean; message?: string; errors?: string[] } & Record<string, unknown>>(
+    "/api/admin/member/register",
+    payload,
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
+  if (!body.success) {
+    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : "Failed to save member register")));
   }
   invalidateAdminPageCaches();
   return body;
 }
 
 export async function resetMemberPasswordAction(session: FrontendSessionLike, memberId: string) {
-  const form = new URLSearchParams();
-  form.set("memberId", memberId);
+  const form = buildFormUrlEncoded({ memberId });
   const headers = buildJsonHeaders(session);
   delete headers["Content-Type"];
-  const response = await fetch("/admin/member/reset_password", {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: form
-  });
-  const body = await readJsonResponse<{ status?: string; errors?: string } & Record<string, unknown>>(response);
-  if (!response.ok || body.status !== "success") {
-    throw new Error(String(body.errors || `Failed to reset password: ${response.status}`));
+  const body = await postFormUrlEncoded<{ status?: string; errors?: string } & Record<string, unknown>>(
+    "/admin/member/reset_password",
+    form,
+    {
+      headers
+    }
+  );
+  if (body.status !== "success") {
+    throw new Error(String(body.errors || "Failed to reset password"));
   }
   invalidateAdminPageCaches();
   return body;
@@ -278,18 +255,17 @@ export async function saveAdminPermission(
   _session: FrontendSessionLike,
   payload: { emplyrId: string; authorCode: string; featureCodes: string[]; }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/admin-account/permissions"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; errors?: string[] } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : `Failed to save admin permission: ${response.status}`)));
+  const body = await postAdminJson<{ success?: boolean; message?: string; errors?: string[] } & Record<string, unknown>>(
+    "/api/admin/member/admin-account/permissions",
+    payload,
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
+  if (!body.success) {
+    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : "Failed to save admin permission")));
   }
   invalidateAdminPageCaches();
   return body;
@@ -315,18 +291,17 @@ export async function createAdminAccount(
     featureCodes: string[];
   }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/admin-account"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; errors?: string[] } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : `Failed to create admin account: ${response.status}`)));
+  const body = await postAdminJson<{ success?: boolean; message?: string; errors?: string[] } & Record<string, unknown>>(
+    "/api/admin/member/admin-account",
+    payload,
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
+  if (!body.success) {
+    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : "Failed to create admin account")));
   }
   invalidateAdminPageCaches();
   return body;
@@ -363,19 +338,17 @@ export async function saveCompanyAccount(
   form.set("chargerTel", payload.chargerTel);
   payload.fileUploads.forEach((file) => form.append("fileUploads", file));
 
-  const headers = await buildResilientCsrfHeaders({
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  delete headers["Content-Type"];
-  const response = await fetch(buildAdminApiPath("/api/admin/member/company-account"), {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: form
-  });
-  const body = await readJsonResponse<SaveCompanyAccountResponse>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : `Failed to save company account: ${response.status}`)));
+  const body = await postFormData<SaveCompanyAccountResponse>(
+    buildAdminApiPath("/api/admin/member/company-account"),
+    form,
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
+  if (!body.success) {
+    throw new Error(String(body.message || (body.errors ? body.errors.join(", ") : "Failed to save company account")));
   }
   invalidateAdminPageCaches();
   return body;
@@ -385,88 +358,58 @@ export async function submitMemberApproveAction(
   session: FrontendSessionLike,
   payload: { action: string; memberId?: string; selectedIds?: string[]; rejectReason?: string; }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/approve/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to approve member: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/admin/member/approve/action",
+    payload,
+    "Failed to approve member",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function submitCompanyApproveAction(
   session: FrontendSessionLike,
   payload: { action: string; insttId?: string; selectedIds?: string[]; rejectReason?: string; }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/company-approve/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to approve company: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/admin/member/company-approve/action",
+    payload,
+    "Failed to approve company",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function submitCertificateApproveAction(
   session: FrontendSessionLike,
   payload: { action: string; certificateId?: string; selectedIds?: string[]; rejectReason?: string; }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/certificate/approve/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to approve certificate: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/admin/certificate/approve/action",
+    payload,
+    "Failed to approve certificate",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function submitTradeRejectAction(
   session: FrontendSessionLike,
   payload: { tradeId?: string; rejectReason?: string; operatorNote?: string; }
 ) {
-  const response = await fetch(buildAdminApiPath("/trade/reject/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to submit trade reject action: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/trade/reject/action",
+    payload,
+    "Failed to submit trade reject action",
+    buildJsonHeaders(session)
+  );
 }
 
 export async function submitTradeApproveAction(
   session: FrontendSessionLike,
   payload: { action: string; tradeId?: string; selectedIds?: string[]; rejectReason?: string; }
 ) {
-  const response = await fetch(buildAdminApiPath("/api/admin/trade/approve/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to approve trade: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
+  return postAdminAction<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/admin/trade/approve/action",
+    payload,
+    "Failed to approve trade",
+    buildJsonHeaders(session)
+  );
 }

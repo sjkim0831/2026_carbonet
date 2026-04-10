@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchRefundListPage, readBootstrappedRefundListPageData, type RefundListPagePayload } from "../../lib/api/client";
+import { readBootstrappedRefundListPageData } from "../../lib/api/bootstrap";
+import { fetchRefundListPage } from "../../lib/api/trade";
+import type { RefundListPagePayload } from "../../lib/api/tradeTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, CollectionResultPanel, GridToolbar, MemberPagination, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

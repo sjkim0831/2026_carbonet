@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { resolveAuthorityScope } from "../../app/policy/authorityScope";
+import { getCurrentRuntimePathname, getCurrentRuntimeSearch } from "../../app/routes/runtime";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchAuditEvents } from "../../platform/observability/observability";
 import { buildObservabilityPath } from "../../platform/routes/platformPaths";
@@ -11,14 +14,17 @@ import {
   type ResonanceParityCompareRow,
   type ResonanceProjectPipelineResponse
 } from "../../lib/api/resonanceControlPlane";
-import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
-import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
+import { fetchScreenBuilderPage, fetchScreenBuilderPreview, fetchScreenCommandPage } from "../../lib/api/platform";
+import type { ScreenCommandPagePayload } from "../../lib/api/platformTypes";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
-import { GridToolbar, KeyValueGridPanel, MemberButton, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { CopyableCodeBlock, GridToolbar, KeyValueGridPanel, MemberLinkButton, MemberPermissionButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { resolveRuntimeCompareContextKeys } from "../admin-ui/contextKeyPresets";
+import { MemberStateCard } from "../member/sections";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
+import { buildScreenBuilderOperatorFlowPaths, buildScreenBuilderOperatorFlowSteps, buildScreenBuilderRouteVerifyCommands } from "./operatorFlow";
 import { buildRepairWorkbenchPath, buildScreenBuilderPath, buildScreenRuntimePath } from "./screenBuilderPaths";
 
 type CompareRow = {
@@ -55,6 +61,14 @@ type LoopStatusItem = {
   label: string;
   value: string;
 };
+
+function getCurrentRuntimeCompareRoutePath() {
+  return getCurrentRuntimePathname();
+}
+
+function getCurrentRuntimeCompareSearchParam(name: string) {
+  return new URLSearchParams(getCurrentRuntimeSearch()).get(name);
+}
 
 function stringifyValue(value: unknown, empty = "-") {
   const normalized = String(value || "").trim();
@@ -253,11 +267,36 @@ function buildCompareContextStripItems(
 
 export function CurrentRuntimeCompareMigrationPage() {
   const en = isEnglish();
-  const query = useMemo(() => resolveScreenBuilderQuery({ get: getSearchParam }), []);
-  const snapshotVersionId = getSearchParam("snapshotVersionId") || "";
+  const sessionState = useFrontendSession();
+  const query = useMemo(() => resolveScreenBuilderQuery({ get: getCurrentRuntimeCompareSearchParam }), []);
+  const commandState = useAsyncValue<ScreenCommandPagePayload>(
+    () => (query.pageId ? fetchScreenCommandPage(query.pageId) : Promise.resolve({ selectedPageId: "", pages: [], page: {} as ScreenCommandPagePayload["page"] })),
+    [query.pageId],
+    { enabled: Boolean(query.pageId) }
+  );
+  const runtimeCompareAuthority = useMemo(() => resolveAuthorityScope({
+    scopeName: "current-runtime-compare",
+    routePath: getCurrentRuntimeCompareRoutePath(),
+    session: sessionState.value,
+    menuCode: commandState.value?.page?.menuPermission?.menuCode || query.menuCode,
+    requiredViewFeatureCode: commandState.value?.page?.menuPermission?.requiredViewFeatureCode,
+    featureCodes: commandState.value?.page?.menuPermission?.featureCodes,
+    featureRows: commandState.value?.page?.menuPermission?.featureRows
+  }), [
+    commandState.value?.page?.menuPermission?.featureCodes,
+    commandState.value?.page?.menuPermission?.featureRows,
+    commandState.value?.page?.menuPermission?.menuCode,
+    commandState.value?.page?.menuPermission?.requiredViewFeatureCode,
+    query.menuCode,
+    sessionState.value
+  ]);
+  const pagePermissionDenied = !sessionState.loading && !commandState.loading && !runtimeCompareAuthority.entryAllowed;
+  const pageQueryEnabled = (!query.pageId || !commandState.loading) && runtimeCompareAuthority.entryAllowed;
+  const snapshotVersionId = getCurrentRuntimeCompareSearchParam("snapshotVersionId") || "";
   const pageState = useAsyncValue(
     () => fetchScreenBuilderPage(query),
-    [query.menuCode, query.pageId, query.menuTitle, query.menuUrl]
+    [query.menuCode, query.pageId, query.menuTitle, query.menuUrl],
+    { enabled: pageQueryEnabled }
   );
   const page = pageState.value;
   const focusedSnapshot = useMemo(
@@ -269,17 +308,17 @@ export function CurrentRuntimeCompareMigrationPage() {
   const publishedPreviewState = useAsyncValue(
     () => fetchScreenBuilderPreview({ ...query, versionStatus: "PUBLISHED" }),
     [query.menuCode, query.pageId, query.menuTitle, query.menuUrl, page?.publishedVersionId || ""],
-    { enabled: Boolean(page?.publishedVersionId) }
+    { enabled: pageQueryEnabled && Boolean(page?.publishedVersionId) }
   );
   const currentPreviewState = useAsyncValue(
     () => fetchScreenBuilderPreview(query),
     [query.menuCode, query.pageId, query.menuTitle, query.menuUrl, page?.versionId || ""],
-    { enabled: Boolean(query.menuCode || query.pageId) }
+    { enabled: pageQueryEnabled && Boolean(query.menuCode || query.pageId) }
   );
   const auditState = useAsyncValue(
     () => fetchAuditEvents({ menuCode: query.menuCode, pageId: query.pageId, pageSize: 8 }),
     [query.menuCode, query.pageId],
-    { enabled: Boolean(query.menuCode || query.pageId) }
+    { enabled: pageQueryEnabled && Boolean(query.menuCode || query.pageId) }
   );
 
   const currentPreview = currentPreviewState.value;
@@ -296,7 +335,7 @@ export function CurrentRuntimeCompareMigrationPage() {
     menuUrl: page?.menuUrl || query.menuUrl,
     templateType: currentPreview?.templateType || publishedPreview?.templateType || page?.templateType
   }), [currentPreview?.templateType, page?.menuUrl, page?.templateType, publishedPreview?.templateType, query.menuUrl]);
-  const resonanceProjectId = useMemo(() => resolveResonanceProjectId(getSearchParam("projectId") || ""), []);
+  const resonanceProjectId = useMemo(() => resolveResonanceProjectId(getCurrentRuntimeCompareSearchParam("projectId") || ""), []);
   const templateLineId = findContextKeyValue(compareContextKeys, "Template Line");
   const screenFamilyRuleId = findContextKeyValue(compareContextKeys, "Screen Family Rule");
   const guidedStateId = findContextKeyValue(compareContextKeys, "Guided State");
@@ -315,6 +354,17 @@ export function CurrentRuntimeCompareMigrationPage() {
     }),
     [artifactEvidence, ownerLane, previewRuntimeEvidence, releaseUnitId, selectedScreenId]
   );
+  const operatorFlowQuery = useMemo(() => ({
+    menuCode: page?.menuCode || query.menuCode,
+    pageId: page?.pageId || query.pageId,
+    menuTitle: page?.menuTitle || query.menuTitle,
+    menuUrl: page?.menuUrl || query.menuUrl,
+    snapshotVersionId,
+    projectId: resonanceProjectId
+  }), [page?.menuCode, page?.menuTitle, page?.menuUrl, page?.pageId, query.menuCode, query.menuTitle, query.menuUrl, query.pageId, resonanceProjectId, snapshotVersionId]);
+  const operatorFlowPaths = useMemo(() => buildScreenBuilderOperatorFlowPaths(operatorFlowQuery), [operatorFlowQuery]);
+  const operatorFlowSteps = useMemo(() => buildScreenBuilderOperatorFlowSteps(operatorFlowQuery), [operatorFlowQuery]);
+  const routeVerifyCommands = useMemo(() => buildScreenBuilderRouteVerifyCommands(operatorFlowQuery), [operatorFlowQuery]);
   const fallbackCompareRows = useMemo(() => buildCompareRows({
     currentTemplateLine: templateLineId,
     currentFamilyRule: screenFamilyRuleId,
@@ -360,7 +410,7 @@ export function CurrentRuntimeCompareMigrationPage() {
       selectedScreenId,
       templateLineId
     ],
-    { enabled: Boolean(selectedScreenId && guidedStateId && templateLineId && screenFamilyRuleId && ownerLane) }
+    { enabled: pageQueryEnabled && Boolean(selectedScreenId && guidedStateId && templateLineId && screenFamilyRuleId && ownerLane) }
   );
   const [projectPipeline, setProjectPipeline] = useState<ResonanceProjectPipelineResponse | null>(null);
   const [pipelineRunLoading, setPipelineRunLoading] = useState(false);
@@ -421,7 +471,7 @@ export function CurrentRuntimeCompareMigrationPage() {
       return;
     }
     logGovernanceScope("PAGE", "current-runtime-compare", {
-      route: window.location.pathname,
+      route: getCurrentRuntimeCompareRoutePath(),
       pageId: page.pageId || "",
       menuCode: page.menuCode || "",
       compareRowCount: compareRows.length,
@@ -570,8 +620,12 @@ export function CurrentRuntimeCompareMigrationPage() {
     () => pipelineDeploymentRoutes.find((item) => normalizePipelineRole(toRecord(item).serverRole) === "PRIMARY"),
     [pipelineDeploymentRoutes]
   );
-
   async function handleRunProjectPipeline() {
+    if (!runtimeCompareAuthority.allowsAction("execute")) {
+      runtimeCompareAuthority.logAuthorityDenied("execute", { component: "current-runtime-compare-run-pipeline", menuCode: page?.menuCode || query.menuCode });
+      setPipelineRunError(runtimeCompareAuthority.getActionReason("execute", en));
+      return;
+    }
     setPipelineRunLoading(true);
     setPipelineRunError("");
     setPipelineRunSuccess("");
@@ -603,6 +657,11 @@ export function CurrentRuntimeCompareMigrationPage() {
   }
 
   async function handleRefreshProjectPipeline() {
+    if (!runtimeCompareAuthority.allowsAction("query")) {
+      runtimeCompareAuthority.logAuthorityDenied("query", { component: "current-runtime-compare-refresh-pipeline", menuCode: page?.menuCode || query.menuCode });
+      setPipelineRunError(runtimeCompareAuthority.getActionReason("query", en));
+      return;
+    }
     setPipelineRunSuccess("");
     await pipelineStatusState.reload();
   }
@@ -618,12 +677,12 @@ export function CurrentRuntimeCompareMigrationPage() {
       title={en ? "Repair Validator Console" : "복구 검증 콘솔"}
       subtitle={en ? "Validate repair readiness by comparing the published runtime against the current generated snapshot and governed baseline." : "발행 런타임을 현재 생성 스냅샷 및 governed baseline과 비교해 복구 준비 상태를 검증합니다."}
       contextStrip={<ContextKeyStrip items={compareContextStripItems} />}
-      loading={(pageState.loading && !page) || (currentPreviewState.loading && !currentPreview)}
+      loading={(commandState.loading && !commandState.value) || (pageState.loading && !page) || (currentPreviewState.loading && !currentPreview)}
       loadingLabel={en ? "Loading runtime compare..." : "런타임 비교를 불러오는 중입니다."}
     >
-      {pageState.error || currentPreviewState.error || publishedPreviewState.error || parityCompareState.error ? (
+      {commandState.error || pageState.error || currentPreviewState.error || publishedPreviewState.error || parityCompareState.error ? (
         <PageStatusNotice tone="error">
-          {pageState.error || currentPreviewState.error || publishedPreviewState.error || parityCompareState.error}
+          {commandState.error || pageState.error || currentPreviewState.error || publishedPreviewState.error || parityCompareState.error}
         </PageStatusNotice>
       ) : null}
       {pipelineRunError ? <PageStatusNotice tone="error">{pipelineRunError}</PageStatusNotice> : null}
@@ -657,6 +716,18 @@ export function CurrentRuntimeCompareMigrationPage() {
       ) : null}
 
       <AdminWorkspacePageFrame>
+        {pagePermissionDenied ? (
+          <MemberStateCard
+            description={en
+              ? `You need ${runtimeCompareAuthority.requiredViewFeatureCode || `${commandState.value?.page?.menuPermission?.menuCode || page?.menuCode || query.menuCode}_VIEW`} permission to open current runtime compare for this page.`
+              : `이 페이지의 현재 런타임 비교 화면을 열려면 ${runtimeCompareAuthority.requiredViewFeatureCode || `${commandState.value?.page?.menuPermission?.menuCode || page?.menuCode || query.menuCode}_VIEW`} 권한이 필요합니다.`}
+            icon="lock"
+            title={en ? "Permission denied." : "권한이 없습니다."}
+            tone="danger"
+          />
+        ) : null}
+        {pagePermissionDenied ? null : (
+        <>
         {snapshotVersionId ? (
           <section className="grid grid-cols-1 gap-4 md:grid-cols-4" data-help-id="runtime-compare-snapshot-focus">
             <SummaryMetricCard
@@ -738,12 +809,12 @@ export function CurrentRuntimeCompareMigrationPage() {
               : "현재 compare 범위에서 projectId 기준 scaffold, validator, package, deploy, rollback 증거를 고정합니다."}
             actions={(
               <div className="flex flex-wrap gap-2">
-                <MemberButton disabled={pipelineRunLoading} onClick={handleRefreshProjectPipeline} size="sm" type="button" variant="secondary">
+                <MemberPermissionButton allowed={runtimeCompareAuthority.allowsAction("query")} disabled={pipelineRunLoading} onClick={handleRefreshProjectPipeline} reason={runtimeCompareAuthority.getActionReason("query", en)} size="sm" type="button" variant="secondary">
                   {pipelineStatusState.loading ? (en ? "Loading..." : "불러오는 중...") : (en ? "Load Latest" : "최신 실행 조회")}
-                </MemberButton>
-                <MemberButton disabled={pipelineRunLoading} onClick={handleRunProjectPipeline} size="sm" type="button">
+                </MemberPermissionButton>
+                <MemberPermissionButton allowed={runtimeCompareAuthority.allowsAction("execute")} disabled={pipelineRunLoading} onClick={handleRunProjectPipeline} reason={runtimeCompareAuthority.getActionReason("execute", en)} size="sm" type="button" variant="primary">
                   {pipelineRunLoading ? (en ? "Running..." : "실행 중...") : (en ? "Run Pipeline" : "파이프라인 실행")}
-                </MemberButton>
+                </MemberPermissionButton>
               </div>
             )}
           />
@@ -959,6 +1030,35 @@ export function CurrentRuntimeCompareMigrationPage() {
             title={en ? "Install Deploy Evidence" : "설치 배포 증거"}
           />
         </div>
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2" data-help-id="runtime-compare-operator-flow">
+          <KeyValueGridPanel
+            title={en ? "Operator Flow Closure" : "운영자 플로우 종료 기준"}
+            description={en ? "Current runtime compare closes deploy freshness into a governed compare handoff for the screen-builder pilot family." : "current runtime compare는 screen-builder pilot family에서 deploy freshness를 governed compare handoff로 닫습니다."}
+            items={[
+              { label: "pageFamily", value: "screen-builder" },
+              { label: "installScope", value: "COMMON_DEF_PROJECT_BIND" },
+              { label: en ? "Runtime Target" : "런타임 대상", value: operatorFlowPaths.runtime },
+              { label: en ? "Compare Target" : "비교 대상", value: operatorFlowPaths.compare },
+              { label: en ? "Repair Target" : "복구 대상", value: operatorFlowPaths.repair },
+              { label: en ? "Release Evidence" : "릴리즈 증거", value: `${deployEvidence.releaseUnitId} / ${deployEvidence.runtimePackageId} / ${deployEvidence.deployTraceId}` },
+              { label: en ? "Rollback Anchor" : "롤백 앵커", value: deployEvidence.rollbackAnchorYn },
+              { label: en ? "Compare Trace" : "비교 추적", value: parityCompareState.value?.traceId || "-" }
+            ]}
+          />
+          <KeyValueGridPanel
+            title={en ? "Deploy / Freshness / Route Verify Commands" : "배포 / freshness / 라우트 검증 명령"}
+            description={en ? "Run this sequence before opening repair so install/deploy closeout and runtime verification remain explicit." : "repair를 열기 전에 이 순서를 사용해 install/deploy closeout과 runtime verification을 명시 상태로 유지합니다."}
+            items={operatorFlowSteps.map((step) => ({
+              label: step.label,
+              value: `${step.command} -> ${step.evidence}`
+            }))}
+          >
+            <div className="grid grid-cols-1 gap-3">
+              <CopyableCodeBlock title={en ? "Build / Package / Restart" : "빌드 / 패키지 / 재시작"} value={operatorFlowSteps[0]?.command || ""} />
+              <CopyableCodeBlock title={en ? "Freshness / Compare / Repair Verify" : "freshness / compare / repair 검증"} value={`${operatorFlowSteps[1]?.command || ""}\n${routeVerifyCommands.runtime}\n${routeVerifyCommands.compare}\n${routeVerifyCommands.repair}`} />
+            </div>
+          </KeyValueGridPanel>
+        </section>
 
         <div data-help-id="runtime-compare-smoke-readiness">
           <KeyValueGridPanel
@@ -1205,6 +1305,8 @@ export function CurrentRuntimeCompareMigrationPage() {
             </div>
           </section>
         </section>
+        </>
+        )}
       </AdminWorkspacePageFrame>
     </AdminPageShell>
   );

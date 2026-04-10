@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -27,7 +28,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminAuthorityController {
 
-    private final AdminMainController adminMainController;
+    private final AdminReactRouteSupport adminReactRouteSupport;
+    private final AdminAuthorityPagePayloadService adminAuthorityPagePayloadService;
+    private final AdminAuthorityApiCommandService adminAuthorityApiCommandService;
+    private final AdminAuthorityFormCommandService adminAuthorityFormCommandService;
 
     @RequestMapping(value = { "/member/auth-group", "/auth/group", "/system/role" }, method = RequestMethod.GET)
     public String authGroupPage(
@@ -38,7 +42,7 @@ public class AdminAuthorityController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.auth_group(authorCode, roleCategory, insttId, userSearchKeyword, request, locale, model);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "auth-group");
     }
 
     @GetMapping("/api/admin/auth-groups/page")
@@ -52,7 +56,15 @@ public class AdminAuthorityController {
             @RequestParam(value = "userSearchKeyword", required = false) String userSearchKeyword,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.authGroupPageApi(authorCode, roleCategory, insttId, menuCode, featureCode, userSearchKeyword, request, locale);
+        return ResponseEntity.ok(adminAuthorityPagePayloadService.buildAuthGroupPagePayload(
+                authorCode,
+                roleCategory,
+                insttId,
+                menuCode,
+                featureCode,
+                userSearchKeyword,
+                request,
+                locale));
     }
 
     @PostMapping("/api/admin/auth-groups/profile-save")
@@ -61,7 +73,7 @@ public class AdminAuthorityController {
             @RequestBody AdminAuthorRoleProfileSaveRequestDTO payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.saveAuthGroupProfileApi(payload, request, locale);
+        return adminAuthorityApiCommandService.saveAuthGroupProfile(payload, request, locale);
     }
 
     @PostMapping("/api/admin/auth-groups")
@@ -70,7 +82,7 @@ public class AdminAuthorityController {
             @RequestBody AdminAuthGroupCreateRequestDTO payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.createAuthGroupApi(payload, request, locale);
+        return adminAuthorityApiCommandService.createAuthGroup(payload, request, locale);
     }
 
     @PostMapping("/api/admin/auth-groups/features")
@@ -79,7 +91,7 @@ public class AdminAuthorityController {
             @RequestBody AdminAuthGroupFeatureSaveRequestDTO payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.saveAuthGroupFeaturesApi(payload, request, locale);
+        return adminAuthorityApiCommandService.saveAuthGroupFeatures(payload, request, locale);
     }
 
     @RequestMapping(value = { "/member/auth-change", "/system/auth-change" }, method = RequestMethod.GET)
@@ -90,7 +102,7 @@ public class AdminAuthorityController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.auth_change(updated, targetUserId, error, request, locale, model);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "auth-change");
     }
 
     @GetMapping("/api/admin/auth-change/page")
@@ -103,7 +115,14 @@ public class AdminAuthorityController {
             @RequestParam(value = "error", required = false) String error,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.authChangePageApi(updated, targetUserId, searchKeyword, pageIndex, error, request, locale);
+        return ResponseEntity.ok(adminAuthorityPagePayloadService.buildAuthChangePagePayload(
+                updated,
+                targetUserId,
+                searchKeyword,
+                pageIndex,
+                error,
+                request,
+                locale));
     }
 
     @GetMapping("/api/admin/auth-change/history")
@@ -111,7 +130,7 @@ public class AdminAuthorityController {
     public ResponseEntity<Map<String, Object>> authChangeHistoryApi(
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.authChangeHistoryApi(request, locale);
+        return ResponseEntity.ok(adminAuthorityPagePayloadService.buildAuthChangeHistoryPayload(request, locale));
     }
 
     @PostMapping("/api/admin/auth-change/save")
@@ -120,7 +139,7 @@ public class AdminAuthorityController {
             @RequestBody AdminAuthChangeSaveRequestDTO payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.saveAuthChangeApi(payload, request, locale);
+        return adminAuthorityApiCommandService.saveAuthChange(payload, request, locale);
     }
 
     @RequestMapping(value = { "/member/dept-role-mapping", "/system/dept-role-mapping" }, method = RequestMethod.GET)
@@ -131,7 +150,7 @@ public class AdminAuthorityController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.dept_role_mapping(updated, insttId, error, request, locale, model);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "dept-role");
     }
 
     @GetMapping("/api/admin/dept-role-mapping/page")
@@ -144,7 +163,14 @@ public class AdminAuthorityController {
             @RequestParam(value = "error", required = false) String error,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.deptRoleMappingPageApi(updated, insttId, memberSearchKeyword, memberPageIndex, error, request, locale);
+        return ResponseEntity.ok(adminAuthorityPagePayloadService.buildDeptRolePagePayload(
+                updated,
+                insttId,
+                memberSearchKeyword,
+                memberPageIndex,
+                error,
+                request,
+                locale));
     }
 
     @PostMapping("/api/admin/dept-role-mapping/save")
@@ -153,7 +179,7 @@ public class AdminAuthorityController {
             @RequestBody AdminDeptRoleMappingSaveRequestDTO payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.saveDeptRoleMappingApi(payload, request, locale);
+        return adminAuthorityApiCommandService.saveDeptRoleMapping(payload, request, locale);
     }
 
     @PostMapping("/api/admin/dept-role-mapping/member-save")
@@ -162,6 +188,63 @@ public class AdminAuthorityController {
             @RequestBody AdminDeptRoleMemberSaveRequestDTO payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.saveDeptRoleMemberApi(payload, request, locale);
+        return adminAuthorityApiCommandService.saveDeptRoleMember(payload, request, locale);
+    }
+
+    @RequestMapping(value = { "/member/auth-change/save", "/system/auth-change/save" }, method = RequestMethod.POST)
+    public String saveAuthChange(
+            @RequestParam(value = "emplyrId", required = false) String emplyrId,
+            @RequestParam(value = "authorCode", required = false) String authorCode,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return adminAuthorityFormCommandService.saveAuthChange(emplyrId, authorCode, request, locale, model);
+    }
+
+    @RequestMapping(value = { "/member/dept-role-mapping/save", "/system/dept-role-mapping/save" }, method = RequestMethod.POST)
+    public String saveDeptRoleMapping(
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "cmpnyNm", required = false) String cmpnyNm,
+            @RequestParam(value = "deptNm", required = false) String deptNm,
+            @RequestParam(value = "authorCode", required = false) String authorCode,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return adminAuthorityFormCommandService.saveDeptRoleMapping(insttId, cmpnyNm, deptNm, authorCode, request, locale, model);
+    }
+
+    @RequestMapping(value = { "/member/dept-role-mapping/member-save", "/system/dept-role-mapping/member-save" }, method = RequestMethod.POST)
+    public String saveDeptRoleMember(
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "entrprsMberId", required = false) String entrprsMberId,
+            @RequestParam(value = "authorCode", required = false) String authorCode,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return adminAuthorityFormCommandService.saveDeptRoleMember(insttId, entrprsMberId, authorCode, request, locale, model);
+    }
+
+    @RequestMapping(value = { "/member/auth-group/create", "/auth/group/create", "/system/role/create" }, method = RequestMethod.POST)
+    public String createAuthGroup(
+            @RequestParam(value = "authorCode", required = false) String authorCode,
+            @RequestParam(value = "authorNm", required = false) String authorNm,
+            @RequestParam(value = "authorDc", required = false) String authorDc,
+            @RequestParam(value = "roleCategory", required = false) String roleCategory,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return adminAuthorityFormCommandService.createAuthGroup(authorCode, authorNm, authorDc, roleCategory, insttId, request, locale, model);
+    }
+
+    @RequestMapping(value = { "/member/auth-group/save-features", "/auth/group/save-features", "/system/role/save-features" }, method = RequestMethod.POST)
+    public String saveAuthGroupFeatures(
+            @RequestParam(value = "authorCode", required = false) String authorCode,
+            @RequestParam(value = "featureCodes", required = false) List<String> featureCodes,
+            @RequestParam(value = "roleCategory", required = false) String roleCategory,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return adminAuthorityFormCommandService.saveAuthGroupFeatures(authorCode, featureCodes, roleCategory, request, locale, model);
     }
 }

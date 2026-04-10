@@ -10,10 +10,9 @@ import {
 } from "../../components/user-shell/UserPortalChrome";
 import {
   fetchMypageSection,
-  MypageSectionItem,
-  MypageSectionPayload,
   saveMypageMarketing
-} from "../../lib/api/client";
+} from "../../lib/api/portal";
+import type { MypageSectionItem, MypageSectionPayload } from "../../lib/api/portalTypes";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { HomeButton, HomeLinkButton } from "../home-ui/common";
 

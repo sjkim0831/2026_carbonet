@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { buildSecurityAuditExportUrl, fetchSecurityAuditPage, readBootstrappedSecurityAuditPageData, type SecurityAuditPagePayload } from "../../lib/api/client";
+import { fetchSecurityAuditPage } from "../../lib/api/security";
+import { buildSecurityAuditExportUrl } from "../../lib/api/ops";
+import { readBootstrappedSecurityAuditPageData } from "../../lib/api/bootstrap";
+import type { SecurityAuditPagePayload } from "../../lib/api/securityTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, SummaryMetricCard } from "../admin-ui/common";

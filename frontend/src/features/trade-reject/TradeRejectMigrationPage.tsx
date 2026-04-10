@@ -2,12 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
-import {
-  fetchTradeRejectPage,
-  readBootstrappedTradeRejectPageData,
-  submitTradeRejectAction,
-  type TradeRejectPagePayload
-} from "../../lib/api/client";
+import { submitTradeRejectAction } from "../../lib/api/adminActions";
+import { readBootstrappedTradeRejectPageData } from "../../lib/api/bootstrap";
+import { fetchTradeRejectPage } from "../../lib/api/trade";
+import type { TradeRejectPagePayload } from "../../lib/api/tradeTypes";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import {

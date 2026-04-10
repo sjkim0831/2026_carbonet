@@ -381,3 +381,25 @@ The safe bias is:
 - for route work, verify the exact changed URL after runtime freshness is proven
 
 Never collapse those steps just to save one command if freshness would become ambiguous.
+
+## Deploy Version Governance Rule
+
+When deploy/version governance is the active owner lane, keep these evidence anchors aligned with runtime freshness proof:
+
+- `releaseUnitId`
+- `runtimePackageId`
+- `deployTraceId`
+- rollback-anchor evidence
+- packaged app jar: `apps/carbonet-app/target/carbonet.jar`
+- runtime jar: `var/run/carbonet-18000.jar`
+
+For that lane, local closeout is incomplete unless both commands pass in order:
+
+1. `bash ops/scripts/build-restart-18000.sh`
+2. `VERIFY_WAIT_SECONDS=20 bash ops/scripts/codex-verify-18000-freshness.sh`
+
+Do not claim deploy/version closeout from any weaker proof such as:
+
+- process restart only
+- packaged jar presence without runtime-jar parity
+- route probing before the runtime freshness check passes

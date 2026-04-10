@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
-import type { MemberEditPagePayload } from "../../lib/api/client";
+import type { MemberEditPagePayload } from "../../lib/api/memberTypes";
 import { AdminCheckbox, AdminInput, AdminSelect, AdminTextarea } from "../admin-ui/common";
 import { MemberLinkButton, MEMBER_BUTTON_LABELS } from "../member/common";
 import { MemberInsetNotice, MemberSectionCard } from "../member/sections";

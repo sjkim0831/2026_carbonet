@@ -8,14 +8,14 @@ import {
   createSrTicket,
   directExecuteSrTicket,
   executeSrTicket,
-  fetchScreenCommandPage,
   fetchSrWorkbenchPage,
-  getScreenCommandChainText,
-  getScreenCommandChainValues,
   prepareSrExecution,
   planSrTicket,
   quickExecuteSrTicket,
-  skipPlanExecuteSrTicket,
+  skipPlanExecuteSrTicket
+} from "../../lib/api/platform";
+import { getScreenCommandChainText, getScreenCommandChainValues } from "../../lib/api/screenCommand";
+import type {
   ScreenCommandApi,
   ScreenCommandChangeTarget,
   ScreenCommandEvent,
@@ -25,7 +25,8 @@ import {
   SrTicketRow,
   SrWorkbenchStackItem,
   SrWorkbenchPagePayload
-} from "../../lib/api/client";
+} from "../../lib/api/platformTypes";
+import { fetchScreenCommandPage } from "../../lib/api/platform";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { DiagnosticCard, GridToolbar, MemberButton } from "../admin-ui/common";

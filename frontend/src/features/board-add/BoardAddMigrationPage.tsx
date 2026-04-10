@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { fetchBoardDistributionPage, saveBoardDistributionPage, type BoardDistributionPagePayload } from "../../lib/api/client";
+import { fetchBoardDistributionPage, saveBoardDistributionPage } from "../../lib/api/content";
+import type { BoardDistributionPagePayload } from "../../lib/api/contentTypes";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, LookupContextStrip, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

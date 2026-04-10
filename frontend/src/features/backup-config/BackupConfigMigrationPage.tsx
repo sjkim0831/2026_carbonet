@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchBackupConfigPage, readBootstrappedBackupConfigPageData, restoreBackupConfigVersion, runBackupExecution, saveBackupConfig, type BackupConfigPagePayload } from "../../lib/api/client";
+import { fetchBackupConfigPage, restoreBackupConfigVersion, runBackupExecution, saveBackupConfig } from "../../lib/api/ops";
+import { readBootstrappedBackupConfigPageData } from "../../lib/api/bootstrap";
+import type { BackupConfigPagePayload } from "../../lib/api/opsTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel } from "../admin-ui/common";

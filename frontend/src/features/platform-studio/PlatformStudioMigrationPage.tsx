@@ -7,16 +7,17 @@ import {
   createSrTicket,
   fetchFullStackGovernanceRegistry,
   fetchFullStackManagementPage,
-  fetchScreenCommandPage,
   fetchSrWorkbenchPage,
-  getScreenCommandChainText,
-  getScreenCommandChainValues,
-  saveFullStackGovernanceRegistry,
-  type FullStackGovernanceRegistryEntry,
-  type MenuManagementPagePayload,
-  type ScreenCommandPagePayload,
-  type SrWorkbenchPagePayload
-} from "../../lib/api/client";
+  saveFullStackGovernanceRegistry
+} from "../../lib/api/platform";
+import { fetchScreenCommandPage } from "../../lib/api/platform";
+import { getScreenCommandChainText, getScreenCommandChainValues } from "../../lib/api/screenCommand";
+import type {
+  FullStackGovernanceRegistryEntry,
+  MenuManagementPagePayload,
+  ScreenCommandPagePayload,
+  SrWorkbenchPagePayload
+} from "../../lib/api/platformTypes";
 import { postFormUrlEncoded } from "../../lib/api/core";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";

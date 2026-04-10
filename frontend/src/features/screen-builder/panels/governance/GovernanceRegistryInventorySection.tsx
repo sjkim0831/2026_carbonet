@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { buildLocalizedPath } from "../../../../lib/navigation/runtime";
 import { GridToolbar, MemberButton, MemberButtonGroup, MemberLinkButton } from "../../../admin-ui/common";
 import { resolveButtonVariant, resolveCatalogInventoryTitle, renderSystemCatalogPreview } from "../../shared/screenBuilderShared";
-import type { ScreenBuilderComponentRegistryItem } from "../../../../lib/api/client";
+import type { ScreenBuilderComponentRegistryItem } from "../../../../lib/api/platformTypes";
 import type { SystemCatalogInstance, VirtualWindow } from "./shared";
 
 type Props = {

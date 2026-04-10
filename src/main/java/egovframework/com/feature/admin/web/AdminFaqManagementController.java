@@ -1,12 +1,9 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.service.AdminFaqManagementService;
-import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
@@ -22,16 +20,16 @@ import java.util.Map;
 public class AdminFaqManagementController {
 
     private final AdminFaqManagementService adminFaqManagementService;
-    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final AdminReactRouteSupport adminReactRouteSupport;
 
     @RequestMapping(value = {"/admin/content/faq_list"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String faqManagement(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "faq-management", false, true);
+    public String faqManagement(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "faq-management");
     }
 
     @RequestMapping(value = {"/en/admin/content/faq_list"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String faqManagementEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "faq-management", true, true);
+    public String faqManagementEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "faq-management");
     }
 
     @GetMapping("/admin/api/admin/content/faq")

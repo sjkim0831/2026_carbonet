@@ -1,4 +1,4 @@
 export type {
   AuditEventSearchPayload,
   TraceEventSearchPayload
-} from "../../lib/api/client";
+} from "../../lib/api/platformTypes";

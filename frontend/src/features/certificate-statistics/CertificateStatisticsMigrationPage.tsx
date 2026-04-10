@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import {
-  fetchCertificateStatisticsPage,
-  readBootstrappedCertificateStatisticsPageData,
-  type CertificateStatisticsPagePayload
-} from "../../lib/api/client";
+import { readBootstrappedCertificateStatisticsPageData } from "../../lib/api/bootstrap";
+import { fetchCertificateStatisticsPage } from "../../lib/api/trade";
+import type { CertificateStatisticsPagePayload } from "../../lib/api/tradeTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import {

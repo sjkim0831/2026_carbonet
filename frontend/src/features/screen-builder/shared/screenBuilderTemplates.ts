@@ -1,4 +1,4 @@
-import type { ScreenBuilderEventBinding, ScreenBuilderNode, ScreenBuilderPaletteItem } from "../../../lib/api/client";
+import type { ScreenBuilderEventBinding, ScreenBuilderNode, ScreenBuilderPaletteItem } from "../../../lib/api/platformTypes";
 import { sortScreenBuilderNodes } from "./screenBuilderUtils";
 
 export type AiNodeTreeInputRow = {

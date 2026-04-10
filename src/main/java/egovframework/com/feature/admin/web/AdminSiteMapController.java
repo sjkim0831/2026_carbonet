@@ -1,18 +1,16 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.home.web.ReactAppViewSupport;
 import egovframework.com.feature.home.web.SiteMapPagePayloadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
@@ -20,16 +18,16 @@ import java.util.Map;
 public class AdminSiteMapController {
 
     private final SiteMapPagePayloadService siteMapPagePayloadService;
-    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final AdminReactRouteSupport adminReactRouteSupport;
 
     @RequestMapping(value = {"/admin/content/sitemap"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String sitemap(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "admin-sitemap", false, true);
+    public String sitemap(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "admin-sitemap");
     }
 
     @RequestMapping(value = {"/en/admin/content/sitemap"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String sitemapEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "admin-sitemap", true, true);
+    public String sitemapEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "admin-sitemap");
     }
 
     @GetMapping("/admin/api/admin/content/sitemap")

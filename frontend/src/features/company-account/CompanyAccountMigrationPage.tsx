@@ -2,12 +2,10 @@ import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
+import { saveCompanyAccount } from "../../lib/api/adminActions";
+import { fetchCompanyAccountPage } from "../../lib/api/adminMember";
+import { checkCompanyNameDuplicate } from "../../lib/api/join";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
-import {
-  checkCompanyNameDuplicate,
-  fetchCompanyAccountPage,
-  saveCompanyAccount
-} from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS, PageStatusNotice } from "../member/common";
 import { AdminEditPageFrame } from "../admin-ui/pageFrames";

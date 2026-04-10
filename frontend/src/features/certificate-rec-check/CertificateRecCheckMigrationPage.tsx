@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { readBootstrappedCertificateRecCheckPageData } from "../../lib/api/client";
+import { readBootstrappedCertificateRecCheckPageData } from "../../lib/api/bootstrap";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

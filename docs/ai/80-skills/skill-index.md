@@ -20,6 +20,9 @@ See also:
   - Use for: common vs project splitting, common DB vs project DB ownership, menu scope separation, shared jar extraction, theme/common/project separation, builder runtime versus editor split, reusable read-layer extraction, installable business-process packaging, page-by-page systemization, authority-scope-aware page rebinding, project adapter lines, 3-minute bootstrap preparation, installable module packaging, stable adapter versus changeable common-core governance, and requests that explicitly say future conversion should stay fast.
   - Boundary: use to lock reversible boundary rules first, then hand off concrete repository implementation to `carbonet-feature-builder` or `carbonet-screen-builder`.
   - Builder continuation note: treat `builder-resource-ownership-current-closeout.md` plus `builder-resource-ownership-queue-map.md` as the `single live entry pair` when structure-governance is already closed.
+  - Active continuation target: row `3` (`builder observability metadata/resource family`) in blocker-resolution state across rows `3` and `5`.
+  - Compressed blocker control docs: `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`, `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+  - Canonical partial phrase: `PARTIAL_DONE: builder resource ownership closure still counts rows 3 and 5 as blockers, rows 1 and 2 now carry bounded DELETE_NOW notes, row 4 now carries a stronger non-blocker note, and unresolved fallback blocker count is <n>.`
   - Maintenance note: if blocker count, active row, next review target, or partial-closeout wording changes, update both docs in the same turn.
   - Key references: `.codex/skills/carbonet-common-project-boundary-switcher/SKILL.md`, `docs/architecture/common-project-reversible-transition-rules.md`, `docs/architecture/page-systemization-minimum-contract.md`, `docs/architecture/system-folder-structure-alignment.md`, `docs/architecture/builder-structure-wave-20260409-closure.md`, `docs/architecture/builder-source-of-truth-matrix.md`, `docs/architecture/builder-structure-owner-checklist.md`, `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`, `docs/architecture/builder-resource-ownership-queue-map.md`, `docs/architecture/common-db-and-project-db-splitting.md`, `docs/architecture/screenbuilder-core-jar-adapter-plan.md`, `docs/architecture/installable-builder-upgrade-roadmap.md`, `docs/architecture/framework-common-theme-project-separation-map.md`, `docs/architecture/builder-editor-runtime-module-split.md`, `docs/architecture/installable-business-process-package-model.md`, `docs/architecture/reusable-read-module-separation-plan.md`, `docs/architecture/installable-screen-process-inventory.md`, `docs/architecture/reusable-read-and-executor-candidate-map.md`, `docs/architecture/stable-adapter-and-common-core-versioning.md`, `docs/architecture/artifact-registry-and-project-version-governance.md`
 - `carbonet-screen-builder`
@@ -36,6 +39,14 @@ See also:
   - Use for: design-driven page work, menu IA interpretation, duplicated HTML source conflicts.
   - Boundary: stop after the canonical design source, route/workflow meaning, and conflict resolution are clear; implementation belongs to `carbonet-feature-builder`.
   - Key references: workspace root `1.`, `2.`, `3.`, `4.` HTML files and design mapping text files.
+
+Builder resource-ownership continuation note:
+
+- single live entry pair:
+  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`
+- maintenance contract:
+  - supporting guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 - `html-screen-porter`
   - Purpose: convert HTML design inputs into Carbonet React migration pages using page-type classification, screen family assignment, and shared-frame reconstruction.
   - Group: source interpretation plus implementation bridge

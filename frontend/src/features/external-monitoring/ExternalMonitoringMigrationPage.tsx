@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import {
-  fetchExternalMonitoringPage,
-  readBootstrappedExternalMonitoringPageData,
-  type ExternalMonitoringPagePayload
-} from "../../lib/api/client";
+import { fetchExternalMonitoringPage } from "../../lib/api/ops";
+import { readBootstrappedExternalMonitoringPageData } from "../../lib/api/bootstrap";
+import type { ExternalMonitoringPagePayload } from "../../lib/api/opsTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { stringOf } from "../admin-system/adminSystemShared";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";

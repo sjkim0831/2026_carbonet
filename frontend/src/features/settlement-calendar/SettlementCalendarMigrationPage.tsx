@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
-  fetchSettlementCalendarPage,
-  readBootstrappedSettlementCalendarPageData,
-  type SettlementCalendarPagePayload
-} from "../../lib/api/client";
+  readBootstrappedSettlementCalendarPageData
+} from "../../lib/api/bootstrap";
+import { fetchSettlementCalendarPage } from "../../lib/api/trade";
+import type { SettlementCalendarPagePayload } from "../../lib/api/tradeTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import {

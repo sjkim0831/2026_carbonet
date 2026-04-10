@@ -59,6 +59,16 @@ public class AdminEmissionSiteController {
         return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-gwp-values");
     }
 
+    @RequestMapping(value = "/survey-admin", method = { RequestMethod.GET, RequestMethod.POST })
+    public String emissionSurveyAdminPage(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-survey-admin");
+    }
+
+    @RequestMapping(value = "/survey-admin-data", method = { RequestMethod.GET, RequestMethod.POST })
+    public String emissionSurveyAdminDataPage(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-survey-admin-data");
+    }
+
     @GetMapping("/management/page-data")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> emissionManagementPageApi(HttpServletRequest request, Locale locale) {

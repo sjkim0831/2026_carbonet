@@ -14,4 +14,21 @@ public class AdminPagePayloadFactory {
         payload.put("menuCode", menuCode);
         return payload;
     }
+
+    public Map<String, Object> createStatusResponse(
+            String statusKey,
+            boolean statusValue,
+            String idKey,
+            Object idValue,
+            Object message) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put(statusKey, statusValue);
+        if (idKey != null && !idKey.trim().isEmpty()) {
+            response.put(idKey, idValue);
+        }
+        if (message != null) {
+            response.put("message", message);
+        }
+        return response;
+    }
 }

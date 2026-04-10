@@ -20,8 +20,10 @@ If the structure-governance answers are already accepted and the next question i
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 
 Treat those two docs as the single live entry pair for that continuation.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` only as supporting guidance when continuation state changes.
 If continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 Operating ownership split:
@@ -77,7 +79,14 @@ Admin-binding rule:
 
 Canonical shared metadata source:
 
-- `src/main/resources/framework/contracts/framework-contract-metadata.json`
+- `modules/carbonet-contract-metadata/src/main/resources/framework/contracts/framework-contract-metadata.json`
+
+Root metadata transition note:
+
+- `src/main/resources/framework/contracts/framework-contract-metadata.json` is no longer the canonical shared metadata source for framework contract metadata
+- framework contract metadata runtime lookup no longer depends on any root framework metadata copy
+- framework contract metadata packaging no longer depends on any root framework metadata copy
+- any remaining root `framework/**` metadata line should be treated only as transitional and non-canonical until deleted
 
 Frontend should consume generated metadata copied from that source:
 

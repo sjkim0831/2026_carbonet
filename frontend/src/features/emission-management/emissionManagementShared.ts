@@ -1,4 +1,4 @@
-import type { EmissionCategoryItem, EmissionVariableDefinition } from "../../lib/api/client";
+import type { EmissionCategoryItem, EmissionVariableDefinition } from "../../lib/api/emissionTypes";
 
 export type InputRow = {
   lineNo: number;

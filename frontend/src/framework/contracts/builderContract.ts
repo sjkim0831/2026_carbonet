@@ -15,10 +15,71 @@ export type FrameworkBuilderPageContract = {
   pageId: string;
   label: string;
   routePath: string;
+  canonicalRoute: string;
   menuCode: string;
   domainCode: string;
+  routeId: string;
+  pageFamily: string;
+  ownershipLane: string;
+  installScope: string;
   layoutVersion: string;
   designTokenVersion: string;
+  manifestId: string;
+  systemization: {
+    manifestOwner: string;
+    templateProfile: string;
+    frameProfile: string;
+    helpBinding: string;
+    accessibilityBinding: string;
+    securityBinding: string;
+  };
+  authorityScope: {
+    actorFamily: string;
+    dataScope: string;
+    actionScopes: readonly string[];
+    menuPolicy: string;
+    entryPolicy: string;
+    queryPolicy: string;
+    actionPolicy: string;
+    approvalPolicy: string;
+    auditPolicy: string;
+    tracePolicy: string;
+    denyState: string;
+  };
+  bootstrapQueryMutationContract: {
+    bootstrapPayloadTarget: string;
+    compareTarget: string;
+    auditTrace: string;
+  };
+  projectBinding: {
+    owner: string;
+    menuBinding: string;
+    routeBinding: string;
+    authorityBinding: string;
+    themeBinding: string;
+    bindingInputs: readonly string[];
+  };
+  projectExecutor: {
+    owner: string;
+    responsibilities: readonly string[];
+  };
+  installDeploy: {
+    packagingOwnerPath: string;
+    assemblyOwnerPath: string;
+    validator: string;
+    validatorChecks: readonly string[];
+    rollbackEvidence: string;
+    runtimeVerificationTarget: string;
+    compareTarget: string;
+    deploySequence: string;
+    freshnessVerificationSequence: string;
+  };
+  closeout: {
+    pageSystemization: string;
+    authorityScopeApplication: string;
+    builderInstallDeploy: string;
+    projectBindingPatterns: string;
+  };
   componentCount: number;
   components: FrameworkBuilderSurfaceContract[];
 };

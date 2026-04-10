@@ -95,18 +95,41 @@ public class HomeMenuFallbackController {
         boolean isEn = forceEn || resolveEnglishFromRequestPath(requestPath, request, locale);
         String normalized = normalizeRequestPath(requestPath, request);
         MenuInfoDTO menu = loadMenu(normalized);
+        Map<String, Object> payload = createPlaceholderPayload(isEn, request);
+        appendPlaceholderMenu(payload, menu, requestPath, request, isEn);
+        return payload;
+    }
+
+    private Map<String, Object> createPlaceholderPayload(boolean isEn, HttpServletRequest request) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("isLoggedIn", hasAccessToken(request));
         payload.put("isEn", isEn);
         payload.put("homeMenu", homeMenuService.getHomeMenu(isEn));
-        if (menu != null) {
-            payload.put("placeholderTitle", isEn ? fallbackLabel(menu.getCodeDc(), menu.getCodeNm()) : fallbackLabel(menu.getCodeNm(), menu.getCodeDc()));
-            payload.put("placeholderTitleEn", fallbackLabel(menu.getCodeDc(), menu.getCodeNm()));
-            payload.put("placeholderCode", safeString(menu.getCode()));
-            payload.put("placeholderUrl", safeString(requestPath).isEmpty() ? (request == null ? "" : request.getRequestURI()) : safeString(requestPath));
-            payload.put("placeholderIcon", safeString(menu.getMenuIcon()).isEmpty() ? "web" : safeString(menu.getMenuIcon()));
-        }
         return payload;
+    }
+
+    private void appendPlaceholderMenu(
+            Map<String, Object> payload,
+            MenuInfoDTO menu,
+            String requestPath,
+            HttpServletRequest request,
+            boolean isEn) {
+        if (menu == null) {
+            return;
+        }
+        payload.put("placeholderTitle", isEn ? fallbackLabel(menu.getCodeDc(), menu.getCodeNm()) : fallbackLabel(menu.getCodeNm(), menu.getCodeDc()));
+        payload.put("placeholderTitleEn", fallbackLabel(menu.getCodeDc(), menu.getCodeNm()));
+        payload.put("placeholderCode", safeString(menu.getCode()));
+        payload.put("placeholderUrl", resolvePlaceholderUrl(requestPath, request));
+        payload.put("placeholderIcon", safeString(menu.getMenuIcon()).isEmpty() ? "web" : safeString(menu.getMenuIcon()));
+    }
+
+    private String resolvePlaceholderUrl(String requestPath, HttpServletRequest request) {
+        String normalizedRequestPath = safeString(requestPath);
+        if (!normalizedRequestPath.isEmpty()) {
+            return normalizedRequestPath;
+        }
+        return request == null ? "" : request.getRequestURI();
     }
 
     private boolean resolveEnglishFromRequestPath(String requestPath, HttpServletRequest request, Locale locale) {

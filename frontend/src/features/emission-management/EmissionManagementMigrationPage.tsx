@@ -1,13 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
-  type EmissionCategoryItem,
-  type EmissionFactorDefinition,
-  type EmissionInputValuePayload,
-  type EmissionManagementElementSaveResponse,
-  type EmissionManagementPagePayload,
-  type EmissionTierItem,
-  type EmissionVariableDefinition,
   calculateEmissionInputSession,
   fetchEmissionCategories,
   fetchEmissionInputSession,
@@ -20,7 +13,16 @@ import {
   precheckEmissionDefinitionScope,
   saveEmissionManagementElementDefinition,
   saveEmissionInputSession
-} from "../../lib/api/client";
+} from "../../lib/api/emission";
+import type {
+  EmissionCategoryItem,
+  EmissionFactorDefinition,
+  EmissionInputValuePayload,
+  EmissionManagementElementSaveResponse,
+  EmissionManagementPagePayload,
+  EmissionTierItem,
+  EmissionVariableDefinition
+} from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, CollectionResultPanel, DiagnosticCard, LookupContextStrip, MemberActionBar, MemberButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

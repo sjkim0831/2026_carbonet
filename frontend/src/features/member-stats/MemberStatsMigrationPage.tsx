@@ -1,6 +1,8 @@
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchMemberStatsPage, readBootstrappedMemberStatsPageData, type MemberStatsPagePayload } from "../../lib/api/client";
+import { readBootstrappedMemberStatsPageData } from "../../lib/api/bootstrap";
+import { fetchMemberStatsPage } from "../../lib/api/member";
+import type { MemberStatsPagePayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";

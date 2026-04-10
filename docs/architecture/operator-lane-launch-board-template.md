@@ -34,6 +34,12 @@ waiting, and which lanes are blocked after the `01` contract-lane handoff.
 
 When a lane starts:
 
+If the board update is for `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
 - change `Launch State`
 - update `First Target`
 - update `Current File Family`
@@ -49,6 +55,7 @@ When a lane finishes or hands off:
 - `docs/architecture/implementation-handoff-document-index.md`
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` as supporting guidance only when continuation state changes
 - `docs/architecture/public-admin-template-line-schema.md`
 - `docs/architecture/theme-set-schema.md`
 - `docs/frontend/admin-template-parity-inventory.md`

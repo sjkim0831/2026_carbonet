@@ -13,6 +13,8 @@ Use this document for:
 - actor-to-feature matrix
 - scoped role inheritance
 
+Use `docs/architecture/authority-scope-application-checklist.md` when the task is proving end-to-end authority application instead of defining policy only.
+
 ## Core Rule
 
 No screen, menu, or feature should be generated without an explicit actor and scope policy.
@@ -196,3 +198,16 @@ This contract does not allow:
 - button visibility without a matching execution rule
 - backend authority checks that are invisible to generated UI metadata
 - role assumptions hard-coded directly into page code without registered actor-policy references
+
+## Productization Rule
+
+Authority work is not complete when it exists only as metadata or policy prose.
+
+Treat authority scope as complete only when:
+
+- menu and page entry guards apply it
+- query and export flows apply it
+- mutation and approval flows apply it
+- audit and trace evidence can explain it
+
+Use `docs/architecture/authority-scope-application-checklist.md` as the closeout proof.

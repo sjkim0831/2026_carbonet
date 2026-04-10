@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { CertificateApprovePagePayload } from "../../lib/api/client";
+import type { CertificateApprovePagePayload } from "../../lib/api/memberTypes";
 import { AdminInput, AdminSelect } from "../admin-ui/common";
 import {
   MemberButton,

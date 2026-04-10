@@ -1,7 +1,8 @@
 import { FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchExternalConnectionFormPage, saveExternalConnection, type ExternalConnectionFormPagePayload } from "../../lib/api/client";
+import { fetchExternalConnectionFormPage, saveExternalConnection } from "../../lib/api/ops";
+import type { ExternalConnectionFormPagePayload } from "../../lib/api/opsTypes";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

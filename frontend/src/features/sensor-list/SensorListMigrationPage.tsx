@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchSensorListPage, type SensorListPagePayload } from "../../lib/api/client";
+import { fetchSensorListPage } from "../../lib/api/ops";
+import type { SensorListPagePayload } from "../../lib/api/opsTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

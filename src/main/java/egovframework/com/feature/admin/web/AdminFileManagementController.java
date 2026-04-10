@@ -1,12 +1,9 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.service.AdminFileManagementService;
-import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.FileInputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
@@ -27,16 +25,16 @@ import java.util.Map;
 public class AdminFileManagementController {
 
     private final AdminFileManagementService adminFileManagementService;
-    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final AdminReactRouteSupport adminReactRouteSupport;
 
     @RequestMapping(value = {"/admin/content/file"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String fileManagement(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "file-management", false, true);
+    public String fileManagement(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "file-management");
     }
 
     @RequestMapping(value = {"/en/admin/content/file"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String fileManagementEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "file-management", true, true);
+    public String fileManagementEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "file-management");
     }
 
     @GetMapping("/admin/api/admin/content/file")

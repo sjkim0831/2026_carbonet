@@ -6,6 +6,20 @@ import {
 } from "./pageCache";
 import type { BootstrappedHomePayload } from "./appBootstrapTypes";
 import type {
+  EmissionDataHistoryPagePayload,
+  EmissionDefinitionStudioPagePayload,
+  EmissionResultDetailPagePayload,
+  EmissionResultListPagePayload,
+  EmissionSiteManagementPagePayload,
+  EmissionValidatePagePayload
+} from "./emissionTypes";
+import type {
+  CertificateRecCheckPagePayload,
+  CertificateReviewPagePayload,
+  MemberEditPagePayload,
+  MemberStatsPagePayload
+} from "./memberTypes";
+import type {
   NotificationPagePayload,
   SecurityAuditPagePayload,
   SecurityMonitoringPagePayload,
@@ -23,27 +37,21 @@ import type {
 } from "./tradeTypes";
 import type {
   AdminHomePagePayload,
-  AuthChangePagePayload,
-  AuthGroupPagePayload,
   BackupConfigPagePayload,
   CertificateAuditLogPagePayload,
-  CertificateRecCheckPagePayload,
-  CertificateReviewPagePayload,
-  DeptRolePagePayload,
-  EmissionDataHistoryPagePayload,
-  EmissionDefinitionStudioPagePayload,
-  EmissionResultDetailPagePayload,
-  EmissionResultListPagePayload,
-  EmissionSiteManagementPagePayload,
-  EmissionValidatePagePayload,
   ExternalMonitoringPagePayload,
-  MemberEditPagePayload,
-  MemberStatsPagePayload,
-  MypagePayload,
+  SchedulerManagementPagePayload
+} from "./opsTypes";
+import type {
+  AuthChangePagePayload,
+  AuthGroupPagePayload,
+  DeptRolePagePayload
+} from "./authTypes";
+import type { MypagePayload } from "./portalTypes";
+import type {
   NewPagePagePayload,
-  SchedulerManagementPagePayload,
-  ScreenBuilderPagePayload,
-} from "./client";
+  ScreenBuilderPagePayload
+} from "./platformTypes";
 
 export type BootstrapPayloadKey =
   | "frontendSession"

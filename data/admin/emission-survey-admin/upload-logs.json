@@ -284,8 +284,8 @@
     "sectionResultJson" : "[{\"sectionCode\":\"INPUT_RAW_MATERIALS\",\"sectionLabel\":\"원료 물질 및 보조 물질\",\"rowCount\":12,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"INPUT_ENERGY\",\"sectionLabel\":\"에너지\",\"rowCount\":12,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"INPUT_STEAM\",\"sectionLabel\":\"에너지 스팀\",\"rowCount\":12,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"INPUT_MISC\",\"sectionLabel\":\"기타\",\"rowCount\":12,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"OUTPUT_PRODUCTS\",\"sectionLabel\":\"제품 및 부산물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"OUTPUT_AIR\",\"sectionLabel\":\"대기 배출물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"OUTPUT_WATER\",\"sectionLabel\":\"수계 배출물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"OUTPUT_WASTE\",\"sectionLabel\":\"폐기물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"}]",
     "uploadedAt" : "2026-04-07 16:52:14"
   },
-  "ESL_69EE5EC0C4BB42D6" : {
-    "logId" : "ESL_69EE5EC0C4BB42D6",
+  "ESL_DB7F40A0C87F4591" : {
+    "logId" : "ESL_DB7F40A0C87F4591",
     "datasetId" : "EMISSION_SURVEY_SHARED",
     "ownerActorId" : "COMMON_DATASET",
     "sourceFileName" : "데이터 수집 설문지 blank 양식_steel, electric, low-alloy (10).xlsx",
@@ -300,7 +300,7 @@
     "sectionCount" : 8,
     "rowCount" : 54,
     "storageMode" : "file",
-    "sectionResultJson" : "[{\"sectionCode\":\"INPUT_RAW_MATERIALS\",\"sectionLabel\":\"원료 물질 및 보조 물질\",\"rowCount\":19,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-08 13:38:38\"},{\"sectionCode\":\"INPUT_ENERGY\",\"sectionLabel\":\"에너지\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-08 13:38:38\"},{\"sectionCode\":\"INPUT_STEAM\",\"sectionLabel\":\"에너지 스팀\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-08 13:38:38\"},{\"sectionCode\":\"INPUT_MISC\",\"sectionLabel\":\"기타\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-08 13:38:38\"},{\"sectionCode\":\"OUTPUT_PRODUCTS\",\"sectionLabel\":\"제품 및 부산물\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-08 13:38:38\"},{\"sectionCode\":\"OUTPUT_AIR\",\"sectionLabel\":\"대기 배출물\",\"rowCount\":22,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-08 13:38:38\"},{\"sectionCode\":\"OUTPUT_WATER\",\"sectionLabel\":\"수계 배출물\",\"rowCount\":4,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-08 13:38:38\"},{\"sectionCode\":\"OUTPUT_WASTE\",\"sectionLabel\":\"폐기물\",\"rowCount\":4,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-08 13:38:38\"}]",
-    "uploadedAt" : "2026-04-08 13:38:38"
+    "sectionResultJson" : "[{\"sectionCode\":\"INPUT_RAW_MATERIALS\",\"sectionLabel\":\"원료 물질 및 보조 물질\",\"rowCount\":19,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-10 00:29:46\"},{\"sectionCode\":\"INPUT_ENERGY\",\"sectionLabel\":\"에너지\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-10 00:29:46\"},{\"sectionCode\":\"INPUT_STEAM\",\"sectionLabel\":\"에너지 스팀\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-10 00:29:46\"},{\"sectionCode\":\"INPUT_MISC\",\"sectionLabel\":\"기타\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-10 00:29:46\"},{\"sectionCode\":\"OUTPUT_PRODUCTS\",\"sectionLabel\":\"제품 및 부산물\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-10 00:29:46\"},{\"sectionCode\":\"OUTPUT_AIR\",\"sectionLabel\":\"대기 배출물\",\"rowCount\":22,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-10 00:29:46\"},{\"sectionCode\":\"OUTPUT_WATER\",\"sectionLabel\":\"수계 배출물\",\"rowCount\":4,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-10 00:29:46\"},{\"sectionCode\":\"OUTPUT_WASTE\",\"sectionLabel\":\"폐기물\",\"rowCount\":4,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-10 00:29:46\"}]",
+    "uploadedAt" : "2026-04-10 00:29:46"
   }
 }

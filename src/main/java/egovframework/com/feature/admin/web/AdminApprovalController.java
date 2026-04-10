@@ -26,7 +26,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminApprovalController {
 
-    private final AdminMainController adminMainController;
+    private final AdminApprovalPagePayloadService adminApprovalPagePayloadService;
+    private final AdminApprovalCommandService adminApprovalCommandService;
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
     private final AdminReactRouteSupport adminReactRouteSupport;
 
@@ -40,7 +41,7 @@ public class AdminApprovalController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.member_approve(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, result, request, locale, model);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "member-approve");
     }
 
     @GetMapping("/api/admin/member/approve/page")
@@ -53,7 +54,16 @@ public class AdminApprovalController {
             @RequestParam(value = "result", required = false) String result,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.memberApprovePageApi(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, result, request, locale);
+        Map<String, Object> response = adminApprovalPagePayloadService.buildMemberApprovePagePayload(
+                pageIndexParam,
+                searchKeyword,
+                membershipType,
+                sbscrbSttus,
+                result,
+                request,
+                locale);
+        boolean canManage = Boolean.TRUE.equals(response.get("canViewMemberApprove"));
+        return canManage ? ResponseEntity.ok(response) : ResponseEntity.status(javax.servlet.http.HttpServletResponse.SC_FORBIDDEN).body(response);
     }
 
     @RequestMapping(value = "/member/company-approve", method = RequestMethod.GET)
@@ -65,7 +75,7 @@ public class AdminApprovalController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.companyMemberApprove(pageIndexParam, searchKeyword, sbscrbSttus, result, request, locale, model);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "company-approve");
     }
 
     @GetMapping("/api/admin/member/company-approve/page")
@@ -77,7 +87,15 @@ public class AdminApprovalController {
             @RequestParam(value = "result", required = false) String result,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.companyApprovePageApi(pageIndexParam, searchKeyword, sbscrbSttus, result, request, locale);
+        Map<String, Object> response = adminApprovalPagePayloadService.buildCompanyApprovePagePayload(
+                pageIndexParam,
+                searchKeyword,
+                sbscrbSttus,
+                result,
+                request,
+                locale);
+        boolean canManage = Boolean.TRUE.equals(response.get("canViewCompanyApprove"));
+        return canManage ? ResponseEntity.ok(response) : ResponseEntity.status(javax.servlet.http.HttpServletResponse.SC_FORBIDDEN).body(response);
     }
 
     @RequestMapping(value = "/certificate/approve", method = RequestMethod.GET)
@@ -90,7 +108,7 @@ public class AdminApprovalController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.certificateApprove(pageIndexParam, searchKeyword, requestType, status, result, request, locale, model);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "certificate-approve");
     }
 
     @GetMapping("/api/admin/certificate/approve/page")
@@ -103,7 +121,16 @@ public class AdminApprovalController {
             @RequestParam(value = "result", required = false) String result,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.certificateApprovePageApi(pageIndexParam, searchKeyword, requestType, status, result, request, locale);
+        Map<String, Object> response = adminApprovalPagePayloadService.buildCertificateApprovePagePayload(
+                pageIndexParam,
+                searchKeyword,
+                requestType,
+                status,
+                result,
+                request,
+                locale);
+        boolean canManage = Boolean.TRUE.equals(response.get("canViewCertificateApprove"));
+        return canManage ? ResponseEntity.ok(response) : ResponseEntity.status(javax.servlet.http.HttpServletResponse.SC_FORBIDDEN).body(response);
     }
 
     @RequestMapping(value = "/certificate/pending_list", method = RequestMethod.GET)
@@ -562,7 +589,18 @@ public class AdminApprovalController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.member_approveSubmit(action, memberId, selectedMemberIds, rejectReason, pageIndexParam, searchKeyword, membershipType, sbscrbSttus, request, locale, model);
+        return adminApprovalCommandService.submitMemberApproveForm(
+                action,
+                memberId,
+                selectedMemberIds,
+                rejectReason,
+                pageIndexParam,
+                searchKeyword,
+                membershipType,
+                sbscrbSttus,
+                request,
+                locale,
+                model);
     }
 
     @RequestMapping(value = "/member/company-approve", method = RequestMethod.POST)
@@ -577,7 +615,17 @@ public class AdminApprovalController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return adminMainController.companyMemberApproveSubmit(action, insttId, selectedInsttIds, rejectReason, pageIndexParam, searchKeyword, sbscrbSttus, request, locale, model);
+        return adminApprovalCommandService.submitCompanyApproveForm(
+                action,
+                insttId,
+                selectedInsttIds,
+                rejectReason,
+                pageIndexParam,
+                searchKeyword,
+                sbscrbSttus,
+                request,
+                locale,
+                model);
     }
 
     @PostMapping("/api/admin/member/approve/action")
@@ -586,7 +634,7 @@ public class AdminApprovalController {
             @RequestBody Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.memberApproveSubmitApi(payload, request, locale);
+        return adminApprovalCommandService.submitMemberApproveApi(payload, request, locale);
     }
 
     @PostMapping("/api/admin/member/company-approve/action")
@@ -595,7 +643,7 @@ public class AdminApprovalController {
             @RequestBody Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.companyApproveSubmitApi(payload, request, locale);
+        return adminApprovalCommandService.submitCompanyApproveApi(payload, request, locale);
     }
 
     @PostMapping("/api/admin/certificate/approve/action")
@@ -604,7 +652,7 @@ public class AdminApprovalController {
             @RequestBody Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.certificateApproveSubmitApi(payload, request, locale);
+        return adminApprovalCommandService.submitCertificateApproveApi(payload, request, locale);
     }
 
     private int parsePositiveInt(String value, int defaultValue) {

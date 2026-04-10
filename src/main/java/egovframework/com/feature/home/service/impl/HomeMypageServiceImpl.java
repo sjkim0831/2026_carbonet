@@ -43,25 +43,17 @@ public class HomeMypageServiceImpl implements HomeMypageService {
 
     @Override
     public Map<String, Object> buildMypageContext(boolean en, HttpServletRequest request) {
-        Map<String, Object> payload = new LinkedHashMap<>();
         String accessToken = jwtProvider.getCookie(request, "accessToken");
         if (ObjectUtils.isEmpty(accessToken)) {
-            payload.put("authenticated", false);
-            payload.put("redirectUrl", en ? "/en/signin/loginView" : "/signin/loginView");
-            payload.put("insttId", "");
-            return payload;
+            return createAnonymousMypageContext(en);
         }
 
         String userId = extractUserId(accessToken);
         if (ObjectUtils.isEmpty(userId)) {
-            payload.put("authenticated", false);
-            payload.put("redirectUrl", en ? "/en/signin/loginView" : "/signin/loginView");
-            payload.put("insttId", "");
-            return payload;
+            return createAnonymousMypageContext(en);
         }
 
-        payload.put("authenticated", true);
-        payload.put("userId", userId);
+        Map<String, Object> payload = createAuthenticatedPayload(userId);
         payload.put("insttId", enterpriseMemberRepository.findById(userId)
                 .map(EntrprsMber::getInsttId)
                 .map(this::safeString)
@@ -71,25 +63,17 @@ public class HomeMypageServiceImpl implements HomeMypageService {
 
     @Override
     public Map<String, Object> buildMypagePayload(boolean en, HttpServletRequest request) {
-        Map<String, Object> payload = new LinkedHashMap<>();
         String accessToken = jwtProvider.getCookie(request, "accessToken");
         if (ObjectUtils.isEmpty(accessToken)) {
-            payload.put("authenticated", false);
-            payload.put("redirectUrl", en ? "/en/signin/loginView" : "/signin/loginView");
-            payload.put("pageType", "redirect");
-            return payload;
+            return createAnonymousMypagePayload(en);
         }
 
         String userId = extractUserId(accessToken);
         if (ObjectUtils.isEmpty(userId)) {
-            payload.put("authenticated", false);
-            payload.put("redirectUrl", en ? "/en/signin/loginView" : "/signin/loginView");
-            payload.put("pageType", "redirect");
-            return payload;
+            return createAnonymousMypagePayload(en);
         }
 
-        payload.put("authenticated", true);
-        payload.put("userId", userId);
+        Map<String, Object> payload = createAuthenticatedPayload(userId);
         payload.put("isLoggedIn", true);
 
         Optional<EntrprsMber> enterpriseOpt = enterpriseMemberRepository.findById(userId);
@@ -128,12 +112,7 @@ public class HomeMypageServiceImpl implements HomeMypageService {
     public Map<String, Object> buildMypageSectionPayload(boolean en, String section, HttpServletRequest request) {
         String normalizedSection = normalizeSection(section);
         Map<String, Object> payload = buildMypagePayload(en, request);
-        payload.put("section", normalizedSection);
-        payload.put("sectionTitle", resolveSectionTitle(normalizedSection, en));
-        payload.put("canViewSection", false);
-        payload.put("canUseSection", false);
-        payload.put("sectionReason", "");
-        payload.put("items", Collections.emptyList());
+        initializeSectionPayload(payload, normalizedSection, en);
 
         if (!Boolean.TRUE.equals(payload.get("authenticated"))) {
             payload.put("sectionReason", en ? "Please sign in first." : "로그인 후 이용 가능합니다.");
@@ -157,12 +136,7 @@ public class HomeMypageServiceImpl implements HomeMypageService {
 
         EntrprsMber member = (EntrprsMber) memberObject;
         payload.put("canViewSection", true);
-        payload.put("canUseSection", "profile".equals(normalizedSection)
-                || "company".equals(normalizedSection)
-                || "staff".equals(normalizedSection)
-                || "marketing".equals(normalizedSection)
-                || "email".equals(normalizedSection)
-                || "password".equals(normalizedSection));
+        payload.put("canUseSection", canUseSection(normalizedSection));
         payload.put("items", buildSectionItems(normalizedSection, member));
 
         if ("password".equals(normalizedSection)) {
@@ -176,218 +150,117 @@ public class HomeMypageServiceImpl implements HomeMypageService {
     public Map<String, Object> updateProfile(boolean en, String zip, String address, String detailAddress,
             HttpServletRequest request) {
         Map<String, Object> payload = buildMypageSectionPayload(en, "profile", request);
-        if (!Boolean.TRUE.equals(payload.get("authenticated"))) {
-            payload.put("saved", false);
+        EntrprsMber member = prepareWritableSectionPayload(payload, en);
+        if (member == null) {
             return payload;
         }
-        if (!Boolean.TRUE.equals(payload.get("canUseSection"))) {
-            payload.put("saved", false);
-            payload.put("message", payload.get("sectionReason"));
-            return payload;
-        }
-        Object memberObject = payload.get("member");
-        if (!(memberObject instanceof EntrprsMber)) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Member information could not be loaded." : "회원 정보를 불러오지 못했습니다.");
-            return payload;
-        }
-        EntrprsMber member = (EntrprsMber) memberObject;
         member.setZip(normalizeZip(zip));
         member.setAdres(safeString(address));
         member.setDetailAdres(safeString(detailAddress));
         enterpriseMemberRepository.save(member);
-        payload.put("member", member);
-        payload.put("items", buildSectionItems("profile", member));
-        payload.put("saved", true);
-        payload.put("message", en ? "Profile updated." : "개인정보를 저장했습니다.");
-        return payload;
+        return markSaveSuccess(payload, "profile", member, en ? "Profile updated." : "개인정보를 저장했습니다.");
     }
 
     @Override
     public Map<String, Object> updateCompany(boolean en, String companyName, String representativeName, String zip,
             String address, String detailAddress, HttpServletRequest request) {
         Map<String, Object> payload = buildMypageSectionPayload(en, "company", request);
-        if (!Boolean.TRUE.equals(payload.get("authenticated"))) {
-            payload.put("saved", false);
-            return payload;
-        }
-        if (!Boolean.TRUE.equals(payload.get("canUseSection"))) {
-            payload.put("saved", false);
-            payload.put("message", payload.get("sectionReason"));
-            return payload;
-        }
-        Object memberObject = payload.get("member");
-        if (!(memberObject instanceof EntrprsMber)) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Member information could not be loaded." : "회원 정보를 불러오지 못했습니다.");
-            return payload;
-        }
         String normalizedCompanyName = safeString(companyName);
         String normalizedRepresentativeName = safeString(representativeName);
         if (normalizedCompanyName.isEmpty()) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Please enter the company name." : "회사명을 입력해 주세요.");
+            markSaveFailure(payload, en ? "Please enter the company name." : "회사명을 입력해 주세요.");
             return payload;
         }
-        EntrprsMber member = (EntrprsMber) memberObject;
+        EntrprsMber member = prepareWritableSectionPayload(payload, en);
+        if (member == null) {
+            return payload;
+        }
         member.setCmpnyNm(normalizedCompanyName);
         member.setCxfc(normalizedRepresentativeName);
         member.setZip(normalizeZip(zip));
         member.setAdres(safeString(address));
         member.setDetailAdres(safeString(detailAddress));
         enterpriseMemberRepository.save(member);
-        payload.put("member", member);
-        payload.put("items", buildSectionItems("company", member));
-        payload.put("saved", true);
-        payload.put("message", en ? "Company information updated." : "회사정보를 저장했습니다.");
-        return payload;
+        return markSaveSuccess(payload, "company", member, en ? "Company information updated." : "회사정보를 저장했습니다.");
     }
 
     @Override
     public Map<String, Object> updateMarketingPreference(boolean en, String marketingYn, HttpServletRequest request) {
         Map<String, Object> payload = buildMypageSectionPayload(en, "marketing", request);
-        if (!Boolean.TRUE.equals(payload.get("authenticated"))) {
-            payload.put("saved", false);
+        EntrprsMber member = prepareWritableSectionPayload(payload, en);
+        if (member == null) {
             return payload;
         }
-        if (!Boolean.TRUE.equals(payload.get("canUseSection"))) {
-            payload.put("saved", false);
-            payload.put("message", payload.get("sectionReason"));
-            return payload;
-        }
-        Object memberObject = payload.get("member");
-        if (!(memberObject instanceof EntrprsMber)) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Member information could not be loaded." : "회원 정보를 불러오지 못했습니다.");
-            return payload;
-        }
-
         String normalizedMarketingYn = normalizeMarketingYn(marketingYn);
-        EntrprsMber member = (EntrprsMber) memberObject;
         member.setMarketingYn(normalizedMarketingYn);
         enterpriseMemberRepository.save(member);
-
-        payload.put("member", member);
-        payload.put("items", buildSectionItems("marketing", member));
-        payload.put("saved", true);
-        payload.put("message", en ? "Marketing preference updated." : "마케팅 수신 설정을 저장했습니다.");
-        return payload;
+        return markSaveSuccess(payload, "marketing", member, en ? "Marketing preference updated." : "마케팅 수신 설정을 저장했습니다.");
     }
 
     @Override
     public Map<String, Object> updateStaffContact(boolean en, String staffName, String deptNm, String areaNo,
             String middleTelno, String endTelno, HttpServletRequest request) {
         Map<String, Object> payload = buildMypageSectionPayload(en, "staff", request);
-        if (!Boolean.TRUE.equals(payload.get("authenticated"))) {
-            payload.put("saved", false);
-            return payload;
-        }
-        if (!Boolean.TRUE.equals(payload.get("canUseSection"))) {
-            payload.put("saved", false);
-            payload.put("message", payload.get("sectionReason"));
-            return payload;
-        }
-        Object memberObject = payload.get("member");
-        if (!(memberObject instanceof EntrprsMber)) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Member information could not be loaded." : "회원 정보를 불러오지 못했습니다.");
-            return payload;
-        }
         String normalizedStaffName = safeString(staffName);
         String normalizedAreaNo = digitsOnly(areaNo, 4);
         String normalizedMiddleTelno = digitsOnly(middleTelno, 4);
         String normalizedEndTelno = digitsOnly(endTelno, 4);
 
         if (normalizedStaffName.isEmpty()) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Please enter the staff name." : "담당자명을 입력해 주세요.");
+            markSaveFailure(payload, en ? "Please enter the staff name." : "담당자명을 입력해 주세요.");
             return payload;
         }
         if (!isValidPhonePart(normalizedAreaNo, 2, 4)
                 || !isValidPhonePart(normalizedMiddleTelno, 3, 4)
                 || !isValidPhonePart(normalizedEndTelno, 4, 4)) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Please enter a valid phone number." : "올바른 연락처를 입력해 주세요.");
+            markSaveFailure(payload, en ? "Please enter a valid phone number." : "올바른 연락처를 입력해 주세요.");
             return payload;
         }
 
-        EntrprsMber member = (EntrprsMber) memberObject;
+        EntrprsMber member = prepareWritableSectionPayload(payload, en);
+        if (member == null) {
+            return payload;
+        }
         member.setApplcntNm(normalizedStaffName);
         member.setDeptNm(safeString(deptNm));
         member.setAreaNo(normalizedAreaNo);
         member.setEntrprsMiddleTelno(normalizedMiddleTelno);
         member.setEntrprsEndTelno(normalizedEndTelno);
         enterpriseMemberRepository.save(member);
-
-        payload.put("member", member);
-        payload.put("items", buildSectionItems("staff", member));
-        payload.put("saved", true);
-        payload.put("message", en ? "Staff contact updated." : "실무자 정보를 저장했습니다.");
-        return payload;
+        return markSaveSuccess(payload, "staff", member, en ? "Staff contact updated." : "실무자 정보를 저장했습니다.");
     }
 
     @Override
     public Map<String, Object> updateEmailAddress(boolean en, String email, HttpServletRequest request) {
         Map<String, Object> payload = buildMypageSectionPayload(en, "email", request);
-        if (!Boolean.TRUE.equals(payload.get("authenticated"))) {
-            payload.put("saved", false);
-            return payload;
-        }
-        if (!Boolean.TRUE.equals(payload.get("canUseSection"))) {
-            payload.put("saved", false);
-            payload.put("message", payload.get("sectionReason"));
-            return payload;
-        }
         String normalizedEmail = safeString(email);
         if (!isValidEmail(normalizedEmail)) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Please enter a valid email address." : "올바른 이메일 주소를 입력해 주세요.");
+            markSaveFailure(payload, en ? "Please enter a valid email address." : "올바른 이메일 주소를 입력해 주세요.");
             return payload;
         }
-        Object memberObject = payload.get("member");
-        if (!(memberObject instanceof EntrprsMber)) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Member information could not be loaded." : "회원 정보를 불러오지 못했습니다.");
+        EntrprsMber member = prepareWritableSectionPayload(payload, en);
+        if (member == null) {
             return payload;
         }
-        EntrprsMber member = (EntrprsMber) memberObject;
         member.setApplcntEmailAdres(normalizedEmail);
         member.setAuthEmail(normalizedEmail);
         enterpriseMemberRepository.save(member);
-        payload.put("member", member);
-        payload.put("items", buildSectionItems("email", member));
-        payload.put("saved", true);
-        payload.put("message", en ? "Email address updated." : "이메일 주소를 저장했습니다.");
-        return payload;
+        return markSaveSuccess(payload, "email", member, en ? "Email address updated." : "이메일 주소를 저장했습니다.");
     }
 
     @Override
     public Map<String, Object> updatePassword(boolean en, String currentPassword, String newPassword, HttpServletRequest request) {
         Map<String, Object> payload = buildMypageSectionPayload(en, "password", request);
-        if (!Boolean.TRUE.equals(payload.get("authenticated"))) {
-            payload.put("saved", false);
+        EntrprsMber member = prepareWritableSectionPayload(payload, en);
+        if (member == null) {
             return payload;
         }
-        if (!Boolean.TRUE.equals(payload.get("canUseSection"))) {
-            payload.put("saved", false);
-            payload.put("message", payload.get("sectionReason"));
-            return payload;
-        }
-        Object memberObject = payload.get("member");
-        if (!(memberObject instanceof EntrprsMber)) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Member information could not be loaded." : "회원 정보를 불러오지 못했습니다.");
-            return payload;
-        }
-        EntrprsMber member = (EntrprsMber) memberObject;
         if (!matchesPassword(currentPassword, member.getEntrprsMberId(), member.getEntrprsMberPassword())) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Current password does not match." : "현재 비밀번호가 일치하지 않습니다.");
+            markSaveFailure(payload, en ? "Current password does not match." : "현재 비밀번호가 일치하지 않습니다.");
             return payload;
         }
         if (!validatePasswordPolicy(newPassword)) {
-            payload.put("saved", false);
-            payload.put("message", en
+            markSaveFailure(payload, en
                     ? "Please meet the password policy (at least 9 chars and 3 character types)."
                     : "비밀번호 정책(9자리 이상, 3종류 조합)을 충족해 주세요.");
             return payload;
@@ -395,8 +268,7 @@ public class HomeMypageServiceImpl implements HomeMypageService {
         boolean updated = authService.resetPassword(member.getEntrprsMberId(), newPassword, member.getEntrprsMberId(),
                 resolveClientIp(request), "MYPAGE_SELF_SERVICE");
         if (!updated) {
-            payload.put("saved", false);
-            payload.put("message", en ? "Password update failed." : "비밀번호 변경에 실패했습니다.");
+            markSaveFailure(payload, en ? "Password update failed." : "비밀번호 변경에 실패했습니다.");
             return payload;
         }
         Optional<EntrprsMber> refreshed = enterpriseMemberRepository.findById(member.getEntrprsMberId());
@@ -407,6 +279,87 @@ public class HomeMypageServiceImpl implements HomeMypageService {
         });
         payload.put("saved", true);
         payload.put("message", en ? "Password updated." : "비밀번호를 변경했습니다.");
+        return payload;
+    }
+
+    private Map<String, Object> createAnonymousMypageContext(boolean en) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("authenticated", false);
+        payload.put("redirectUrl", en ? "/en/signin/loginView" : "/signin/loginView");
+        payload.put("insttId", "");
+        return payload;
+    }
+
+    private Map<String, Object> createAuthenticatedPayload(String userId) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("authenticated", true);
+        payload.put("userId", userId);
+        return payload;
+    }
+
+    private Map<String, Object> createAnonymousMypagePayload(boolean en) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("authenticated", false);
+        payload.put("redirectUrl", en ? "/en/signin/loginView" : "/signin/loginView");
+        payload.put("pageType", "redirect");
+        return payload;
+    }
+
+    private void initializeSectionPayload(Map<String, Object> payload, String normalizedSection, boolean en) {
+        payload.put("section", normalizedSection);
+        payload.put("sectionTitle", resolveSectionTitle(normalizedSection, en));
+        payload.put("canViewSection", false);
+        payload.put("canUseSection", false);
+        payload.put("sectionReason", "");
+        payload.put("items", Collections.emptyList());
+    }
+
+    private void markSaveFailure(Map<String, Object> payload, Object message) {
+        payload.put("saved", false);
+        if (message != null) {
+            payload.put("message", message);
+        }
+    }
+
+    private EntrprsMber resolveSectionMember(Map<String, Object> payload, boolean en) {
+        Object memberObject = payload.get("member");
+        if (memberObject instanceof EntrprsMber) {
+            return (EntrprsMber) memberObject;
+        }
+        markSaveFailure(payload, en ? "Member information could not be loaded." : "회원 정보를 불러오지 못했습니다.");
+        return null;
+    }
+
+    private EntrprsMber prepareWritableSectionPayload(Map<String, Object> payload, boolean en) {
+        if (!Boolean.TRUE.equals(payload.get("authenticated"))) {
+            markSaveFailure(payload, null);
+            return null;
+        }
+        if (!Boolean.TRUE.equals(payload.get("canUseSection"))) {
+            markSaveFailure(payload, payload.get("sectionReason"));
+            return null;
+        }
+        return resolveSectionMember(payload, en);
+    }
+
+    private boolean canUseSection(String normalizedSection) {
+        return "profile".equals(normalizedSection)
+                || "company".equals(normalizedSection)
+                || "staff".equals(normalizedSection)
+                || "marketing".equals(normalizedSection)
+                || "email".equals(normalizedSection)
+                || "password".equals(normalizedSection);
+    }
+
+    private Map<String, Object> markSaveSuccess(
+            Map<String, Object> payload,
+            String section,
+            EntrprsMber member,
+            String message) {
+        payload.put("member", member);
+        payload.put("items", buildSectionItems(section, member));
+        payload.put("saved", true);
+        payload.put("message", message);
         return payload;
     }
 

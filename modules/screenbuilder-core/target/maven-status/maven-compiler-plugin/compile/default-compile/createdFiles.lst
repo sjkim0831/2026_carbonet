@@ -5,6 +5,7 @@ egovframework/com/framework/builder/service/FrameworkBuilderCompatibilityService
 egovframework/com/platform/screenbuilder/model/ScreenBuilderComponentUsageVO.class
 egovframework/com/framework/builder/model/FrameworkBuilderContractVO.class
 egovframework/com/platform/screenbuilder/support/ScreenBuilderRequestContextPolicyPort.class
+egovframework/com/framework/authority/model/FrameworkAuthorityContractVO.class
 egovframework/com/platform/screenbuilder/model/ScreenBuilderNodeVO.class
 egovframework/com/framework/builder/support/FrameworkBuilderCompatibilityRecordStoragePort.class
 egovframework/com/framework/builder/model/FrameworkBuilderCompatibilityCheckResponseVO.class
@@ -12,6 +13,7 @@ egovframework/com/platform/screenbuilder/support/ScreenBuilderAuthorityContractP
 egovframework/com/platform/screenbuilder/support/ScreenBuilderCommandPagePort.class
 egovframework/com/platform/screenbuilder/support/ScreenBuilderComponentRegistryPort.class
 egovframework/com/common/trace/UiPageManifestVO.class
+egovframework/com/framework/authority/model/FrameworkAuthorityOptionVO.class
 egovframework/com/platform/screenbuilder/support/model/ScreenBuilderRuntimeCompareResult.class
 egovframework/com/platform/screenbuilder/support/ScreenBuilderDraftStoragePort.class
 egovframework/com/platform/screenbuilder/support/ScreenBuilderArtifactNamingPolicyPort.class
@@ -35,6 +37,7 @@ egovframework/com/framework/builder/model/FrameworkBuilderMigrationPlanVO.class
 egovframework/com/platform/screenbuilder/model/ScreenBuilderEventBindingVO.class
 egovframework/com/framework/builder/support/impl/FileFrameworkBuilderCompatibilityRecordStorageAdapter$1.class
 egovframework/com/platform/screenbuilder/support/ScreenBuilderMenuCatalogPort.class
+egovframework/com/platform/screenbuilder/support/ScreenBuilderPlatformFamilyRegistry.class
 egovframework/com/framework/builder/support/FrameworkBuilderMetadataPort.class
 egovframework/com/common/trace/UiPageComponentDetailVO.class
 egovframework/com/framework/contract/model/FrameworkContractMetadataVO.class
@@ -49,8 +52,10 @@ egovframework/com/framework/builder/support/FrameworkBuilderRequestContextPort.c
 egovframework/com/platform/screenbuilder/support/model/ScreenBuilderMenuDescriptor.class
 egovframework/com/common/trace/UiComponentRegistryVO.class
 egovframework/com/platform/screenbuilder/model/ScreenBuilderDraftDocumentVO.class
+egovframework/com/framework/authority/model/FrameworkAuthorityTextVO.class
 egovframework/com/framework/builder/service/FrameworkBuilderContractService.class
 egovframework/com/framework/builder/model/FrameworkBuilderCompatibilityCheckRequestVO.class
+egovframework/com/platform/screenbuilder/support/ScreenBuilderArtifactSetNormalizer.class
 egovframework/com/framework/builder/model/FrameworkBuilderCompatibilityResultItemVO.class
 egovframework/com/platform/screenbuilder/support/impl/FileScreenBuilderLegacyRegistrySourceAdapter.class
 egovframework/com/platform/screenbuilder/service/impl/ScreenBuilderDraftServiceImpl$1.class

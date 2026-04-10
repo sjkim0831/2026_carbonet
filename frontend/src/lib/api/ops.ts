@@ -1,9 +1,9 @@
 import { buildLocalizedPath } from "../navigation/runtime";
-import { apiFetch, buildResilientCsrfHeaders, readJsonResponse } from "./core";
-import type { SecurityAuditPagePayload } from "./securityTypes";
+import { buildQueryParams, buildQueryString, fetchLocalizedPageJson, fetchPageJson, postJson } from "./core";
 import type {
   BackupConfigPagePayload,
   BatchManagementPagePayload,
+  CertificateAuditLogPagePayload,
   ExternalConnectionFormPagePayload,
   ExternalConnectionListPagePayload,
   ExternalKeysPagePayload,
@@ -19,60 +19,103 @@ import type {
   PerformancePagePayload,
   SchedulerManagementPagePayload,
   SensorListPagePayload
-} from "./client";
+} from "./opsTypes";
+import type { SecurityAuditPagePayload } from "./securityTypes";
 
-function buildQueryString(params?: Record<string, string | number | boolean | null | undefined>): string {
-  if (!params) {
-    return "";
-  }
-  const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") {
-      return;
-    }
-    search.set(key, String(value));
-  });
-  const query = search.toString();
-  return query ? `?${query}` : "";
+type OpsQueryParams = Record<string, string | number | boolean | null | undefined>;
+
+function createOpsActionError(message: string, fallbackMessage: string) {
+  return String(message || fallbackMessage);
 }
 
-async function fetchPage<T>(url: string, fallbackMessage: string): Promise<T> {
-  const response = await apiFetch(url, {
-    credentials: "include"
+async function postLocalizedJson<T>(
+  koPath: string,
+  enPath: string,
+  payload: unknown
+): Promise<T> {
+  return postJson<T>(buildLocalizedPath(koPath, enPath), payload, {
+    headers: {
+      Accept: "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }
   });
-  const body = await readJsonResponse<T>(response);
-  if (!response.ok) {
-    throw new Error(`${fallbackMessage}: ${response.status}`);
+}
+
+async function fetchOpsPageJson<T>(
+  path: string,
+  params?: OpsQueryParams,
+  fallbackMessage?: string
+): Promise<T> {
+  return fetchPageJson<T>(`${path}${buildQueryString(params)}`, {
+    fallbackMessage
+  });
+}
+
+async function postLocalizedOpsAction<T extends { success?: boolean; message?: string }>(
+  koPath: string,
+  enPath: string,
+  payload: unknown,
+  fallbackMessage: string
+): Promise<T> {
+  const body = await postLocalizedJson<T>(koPath, enPath, payload);
+  if (body.success === false) {
+    throw new Error(createOpsActionError(body.message || "", fallbackMessage));
   }
   return body;
 }
 
 export async function fetchOperationsCenterPage() {
-  return fetchPage<OperationsCenterPagePayload>("/admin/monitoring/center/page-data", "Failed to load operations center page");
+  return fetchPageJson<OperationsCenterPagePayload>("/admin/monitoring/center/page-data", {
+    fallbackMessage: "Failed to load operations center page"
+  });
 }
 
 export async function fetchPerformancePage() {
-  return fetchPage<PerformancePagePayload>(buildLocalizedPath("/admin/system/performance/page-data", "/en/admin/system/performance/page-data"), "Failed to load performance page");
+  return fetchLocalizedPageJson<PerformancePagePayload>(
+    "/admin/system/performance/page-data",
+    "/en/admin/system/performance/page-data",
+    { fallbackMessage: "Failed to load performance page" }
+  );
 }
 
 export async function fetchExternalConnectionListPage() {
-  return fetchPage<ExternalConnectionListPagePayload>(buildLocalizedPath("/admin/external/connection_list/page-data", "/en/admin/external/connection_list/page-data"), "Failed to load external connection list page");
+  return fetchLocalizedPageJson<ExternalConnectionListPagePayload>(
+    "/admin/external/connection_list/page-data",
+    "/en/admin/external/connection_list/page-data",
+    { fallbackMessage: "Failed to load external connection list page" }
+  );
 }
 
 export async function fetchExternalSchemaPage() {
-  return fetchPage<ExternalSchemaPagePayload>(buildLocalizedPath("/admin/external/schema/page-data", "/en/admin/external/schema/page-data"), "Failed to load external schema page");
+  return fetchLocalizedPageJson<ExternalSchemaPagePayload>(
+    "/admin/external/schema/page-data",
+    "/en/admin/external/schema/page-data",
+    { fallbackMessage: "Failed to load external schema page" }
+  );
 }
 
 export async function fetchExternalKeysPage() {
-  return fetchPage<ExternalKeysPagePayload>(buildLocalizedPath("/admin/external/keys/page-data", "/en/admin/external/keys/page-data"), "Failed to load external keys page");
+  return fetchLocalizedPageJson<ExternalKeysPagePayload>(
+    "/admin/external/keys/page-data",
+    "/en/admin/external/keys/page-data",
+    { fallbackMessage: "Failed to load external keys page" }
+  );
 }
 
 export async function fetchExternalUsagePage() {
-  return fetchPage<ExternalUsagePagePayload>(buildLocalizedPath("/admin/external/usage/page-data", "/en/admin/external/usage/page-data"), "Failed to load external usage page");
+  return fetchLocalizedPageJson<ExternalUsagePagePayload>(
+    "/admin/external/usage/page-data",
+    "/en/admin/external/usage/page-data",
+    { fallbackMessage: "Failed to load external usage page" }
+  );
 }
 
 export async function fetchExternalLogsPage() {
-  return fetchPage<ExternalLogsPagePayload>(buildLocalizedPath("/admin/external/logs/page-data", "/en/admin/external/logs/page-data"), "Failed to load external logs page");
+  return fetchLocalizedPageJson<ExternalLogsPagePayload>(
+    "/admin/external/logs/page-data",
+    "/en/admin/external/logs/page-data",
+    { fallbackMessage: "Failed to load external logs page" }
+  );
 }
 
 export async function fetchExternalWebhooksPage(params?: {
@@ -80,60 +123,113 @@ export async function fetchExternalWebhooksPage(params?: {
   syncMode?: string;
   status?: string;
 }) {
-  const search = new URLSearchParams();
-  if (params?.keyword?.trim()) search.set("keyword", params.keyword.trim());
-  if (params?.syncMode && params.syncMode !== "ALL") search.set("syncMode", params.syncMode);
-  if (params?.status && params.status !== "ALL") search.set("status", params.status);
-  return fetchPage<ExternalWebhooksPagePayload>(`${buildLocalizedPath("/admin/external/webhooks/page-data", "/en/admin/external/webhooks/page-data")}${search.toString() ? `?${search.toString()}` : ""}`, "Failed to load external webhooks page");
+  const query = buildQueryParams({
+    keyword: params?.keyword?.trim() || undefined,
+    syncMode: params?.syncMode && params.syncMode !== "ALL" ? params.syncMode : undefined,
+    status: params?.status && params.status !== "ALL" ? params.status : undefined
+  });
+  return fetchLocalizedPageJson<ExternalWebhooksPagePayload>(
+    "/admin/external/webhooks/page-data",
+    "/en/admin/external/webhooks/page-data",
+    {
+      query,
+      fallbackMessage: "Failed to load external webhooks page"
+    }
+  );
 }
 
 export async function fetchExternalSyncPage() {
-  return fetchPage<ExternalSyncPagePayload>(buildLocalizedPath("/admin/external/sync/page-data", "/en/admin/external/sync/page-data"), "Failed to load external sync page");
+  return fetchLocalizedPageJson<ExternalSyncPagePayload>(
+    "/admin/external/sync/page-data",
+    "/en/admin/external/sync/page-data",
+    { fallbackMessage: "Failed to load external sync page" }
+  );
 }
 
 export async function fetchExternalMonitoringPage() {
-  return fetchPage<ExternalMonitoringPagePayload>(buildLocalizedPath("/admin/external/monitoring/page-data", "/en/admin/external/monitoring/page-data"), "Failed to load external monitoring page");
+  return fetchLocalizedPageJson<ExternalMonitoringPagePayload>(
+    "/admin/external/monitoring/page-data",
+    "/en/admin/external/monitoring/page-data",
+    { fallbackMessage: "Failed to load external monitoring page" }
+  );
 }
 
 export async function fetchExternalMaintenancePage() {
-  return fetchPage<ExternalMaintenancePagePayload>(buildLocalizedPath("/admin/external/maintenance/page-data", "/en/admin/external/maintenance/page-data"), "Failed to load external maintenance page");
+  return fetchLocalizedPageJson<ExternalMaintenancePagePayload>(
+    "/admin/external/maintenance/page-data",
+    "/en/admin/external/maintenance/page-data",
+    { fallbackMessage: "Failed to load external maintenance page" }
+  );
 }
 
 export async function fetchExternalRetryPage() {
-  return fetchPage<ExternalRetryPagePayload>(buildLocalizedPath("/admin/external/retry/page-data", "/en/admin/external/retry/page-data"), "Failed to load external retry page");
+  return fetchLocalizedPageJson<ExternalRetryPagePayload>(
+    "/admin/external/retry/page-data",
+    "/en/admin/external/retry/page-data",
+    { fallbackMessage: "Failed to load external retry page" }
+  );
 }
 
 export async function fetchExternalConnectionFormPage(mode: "add" | "edit", connectionId?: string) {
-  const search = new URLSearchParams();
-  if (connectionId) search.set("connectionId", connectionId);
-  const path = mode === "add"
-    ? buildLocalizedPath("/admin/external/connection_add/page-data", "/en/admin/external/connection_add/page-data")
-    : buildLocalizedPath("/admin/external/connection_edit/page-data", "/en/admin/external/connection_edit/page-data");
-  return fetchPage<ExternalConnectionFormPagePayload>(`${path}${search.toString() ? `?${search.toString()}` : ""}`, "Failed to load external connection form page");
+  const koPath = mode === "add"
+    ? "/admin/external/connection_add/page-data"
+    : "/admin/external/connection_edit/page-data";
+  const enPath = mode === "add"
+    ? "/en/admin/external/connection_add/page-data"
+    : "/en/admin/external/connection_edit/page-data";
+  return fetchLocalizedPageJson<ExternalConnectionFormPagePayload>(
+    koPath,
+    enPath,
+    {
+      query: buildQueryParams({ connectionId }),
+      fallbackMessage: "Failed to load external connection form page"
+    }
+  );
 }
 
 export async function saveExternalConnection(payload: Record<string, string>) {
-  const response = await apiFetch(buildLocalizedPath("/admin/external/connection/save", "/en/admin/external/connection/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<ExternalConnectionFormPagePayload>(response);
-  if (body.success === false) {
-    throw new Error(body.message || "Failed to save external connection.");
-  }
-  if (!response.ok) {
-    throw new Error(body.message || `Failed to save external connection: ${response.status}`);
-  }
-  return body;
+  return postLocalizedOpsAction<ExternalConnectionFormPagePayload>(
+    "/admin/external/connection/save",
+    "/en/admin/external/connection/save",
+    payload,
+    "Failed to save external connection."
+  );
 }
 
 export async function fetchSensorListPage() {
-  return fetchPage<SensorListPagePayload>(buildLocalizedPath("/admin/monitoring/sensor_list/page-data", "/en/admin/monitoring/sensor_list/page-data"), "Failed to load sensor list page");
+  return fetchLocalizedPageJson<SensorListPagePayload>(
+    "/admin/monitoring/sensor_list/page-data",
+    "/en/admin/monitoring/sensor_list/page-data",
+    { fallbackMessage: "Failed to load sensor list page" }
+  );
+}
+
+export async function fetchCertificateAuditLogPage(params?: {
+  pageIndex?: number;
+  searchKeyword?: string;
+  auditType?: string;
+  status?: string;
+  certificateType?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const query = buildQueryParams({
+    pageIndex: params?.pageIndex && params.pageIndex > 1 ? params.pageIndex : undefined,
+    searchKeyword: params?.searchKeyword,
+    auditType: params?.auditType && params.auditType !== "ALL" ? params.auditType : undefined,
+    status: params?.status && params.status !== "ALL" ? params.status : undefined,
+    certificateType: params?.certificateType && params.certificateType !== "ALL" ? params.certificateType : undefined,
+    startDate: params?.startDate,
+    endDate: params?.endDate
+  });
+  return fetchLocalizedPageJson<CertificateAuditLogPagePayload>(
+    "/admin/certificate/audit-log/page-data",
+    "/en/admin/certificate/audit-log/page-data",
+    {
+      query,
+      fallbackMessage: "Failed to load certificate audit log page"
+    }
+  );
 }
 
 export function buildSecurityAuditExportUrl(params?: {
@@ -145,34 +241,33 @@ export function buildSecurityAuditExportUrl(params?: {
   sortKey?: string;
   sortDirection?: string;
 }) {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.actionType && params.actionType !== "ALL") search.set("actionType", params.actionType);
-  if (params?.routeGroup && params.routeGroup !== "ALL") search.set("routeGroup", params.routeGroup);
-  if (params?.startDate) search.set("startDate", params.startDate);
-  if (params?.endDate) search.set("endDate", params.endDate);
-  if (params?.sortKey && params.sortKey !== "AUDIT_AT") search.set("sortKey", params.sortKey);
-  if (params?.sortDirection && params.sortDirection !== "DESC") search.set("sortDirection", params.sortDirection);
-  const query = search.toString();
+  const query = buildQueryString({
+    searchKeyword: params?.searchKeyword,
+    actionType: params?.actionType && params.actionType !== "ALL" ? params.actionType : undefined,
+    routeGroup: params?.routeGroup && params.routeGroup !== "ALL" ? params.routeGroup : undefined,
+    startDate: params?.startDate,
+    endDate: params?.endDate,
+    sortKey: params?.sortKey && params.sortKey !== "AUDIT_AT" ? params.sortKey : undefined,
+    sortDirection: params?.sortDirection && params.sortDirection !== "DESC" ? params.sortDirection : undefined
+  });
   return buildLocalizedPath(
-    `/admin/system/security-audit/export.csv${query ? `?${query}` : ""}`,
-    `/en/admin/system/security-audit/export.csv${query ? `?${query}` : ""}`
+    `/admin/system/security-audit/export.csv${query}`,
+    `/en/admin/system/security-audit/export.csv${query}`
   );
 }
 
 export async function fetchSchedulerManagementPage(params?: { jobStatus?: string; executionType?: string; }) {
-  const response = await apiFetch(`/admin/system/scheduler/page-data${buildQueryString(params)}`, {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<SchedulerManagementPagePayload>(response);
-  if (!response.ok) {
-    throw new Error(`Failed to load scheduler management page: ${response.status}`);
-  }
-  return body;
+  return fetchOpsPageJson<SchedulerManagementPagePayload>(
+    "/admin/system/scheduler/page-data",
+    params,
+    "Failed to load scheduler management page"
+  );
 }
 
 export async function fetchBatchManagementPage() {
-  return fetchPage<BatchManagementPagePayload>("/admin/system/batch/page-data", "Failed to load batch management page");
+  return fetchPageJson<BatchManagementPagePayload>("/admin/system/batch/page-data", {
+    fallbackMessage: "Failed to load batch management page"
+  });
 }
 
 export async function fetchBackupConfigPage(pathname?: string) {
@@ -188,24 +283,17 @@ export async function fetchBackupConfigPage(pathname?: string) {
   const url = sharedPath.startsWith("/en/")
     ? `${sharedPath}/page-data`
     : buildLocalizedPath(`${sharedPath}/page-data`, `/en${sharedPath}/page-data`);
-  return fetchPage<BackupConfigPagePayload>(url, "Failed to load backup config page");
+  return fetchPageJson<BackupConfigPagePayload>(url, {
+    fallbackMessage: "Failed to load backup config page"
+  });
 }
 
 export async function saveBackupConfig(payload: Record<string, string>) {
-  const response = await apiFetch(buildLocalizedPath("/admin/system/backup_config/save", "/en/admin/system/backup_config/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<BackupConfigPagePayload>(response);
-  if (!response.ok) {
-    throw new Error(String(body.backupConfigMessage || `Failed to save backup config: ${response.status}`));
-  }
-  return body;
+  return postLocalizedJson<BackupConfigPagePayload>(
+    "/admin/system/backup_config/save",
+    "/en/admin/system/backup_config/save",
+    payload
+  );
 }
 
 export async function fetchSecurityAuditPage(params?: {
@@ -218,52 +306,37 @@ export async function fetchSecurityAuditPage(params?: {
   sortKey?: string;
   sortDirection?: string;
 }) {
-  const query = new URLSearchParams();
-  if (params?.pageIndex && params.pageIndex > 1) query.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) query.set("searchKeyword", params.searchKeyword);
-  if (params?.actionType && params.actionType !== "ALL") query.set("actionType", params.actionType);
-  if (params?.routeGroup && params.routeGroup !== "ALL") query.set("routeGroup", params.routeGroup);
-  if (params?.startDate) query.set("startDate", params.startDate);
-  if (params?.endDate) query.set("endDate", params.endDate);
-  if (params?.sortKey && params.sortKey !== "AUDIT_AT") query.set("sortKey", params.sortKey);
-  if (params?.sortDirection && params.sortDirection !== "DESC") query.set("sortDirection", params.sortDirection);
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  return fetchPage<SecurityAuditPagePayload>(`/admin/system/security-audit/page-data${suffix}`, "Failed to load security audit page");
+  return fetchOpsPageJson<SecurityAuditPagePayload>(
+    "/admin/system/security-audit/page-data",
+    {
+      pageIndex: params?.pageIndex && params.pageIndex > 1 ? params.pageIndex : undefined,
+      searchKeyword: params?.searchKeyword,
+      actionType: params?.actionType && params.actionType !== "ALL" ? params.actionType : undefined,
+      routeGroup: params?.routeGroup && params.routeGroup !== "ALL" ? params.routeGroup : undefined,
+      startDate: params?.startDate,
+      endDate: params?.endDate,
+      sortKey: params?.sortKey && params.sortKey !== "AUDIT_AT" ? params.sortKey : undefined,
+      sortDirection: params?.sortDirection && params.sortDirection !== "DESC" ? params.sortDirection : undefined
+    },
+    "Failed to load security audit page"
+  );
 }
 
 export async function createIpWhitelistRequest(payload: Record<string, unknown>) {
-  const response = await apiFetch(buildLocalizedPath("/admin/system/ip-whitelist/request", "/en/admin/system/ip-whitelist/request"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; requestId?: string; ruleId?: string } & Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to create IP whitelist request: ${response.status}`));
-  }
-  return body;
+  return postLocalizedOpsAction<{ success?: boolean; message?: string; requestId?: string; ruleId?: string } & Record<string, unknown>>(
+    "/admin/system/ip-whitelist/request",
+    "/en/admin/system/ip-whitelist/request",
+    payload || {},
+    "Failed to create IP whitelist request"
+  );
 }
 
 export async function restoreBackupConfigVersion(versionId: string) {
-  const response = await apiFetch(buildLocalizedPath("/admin/system/version/restore", "/en/admin/system/version/restore"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify({ versionId })
-  });
-  const body = await readJsonResponse<BackupConfigPagePayload>(response);
-  if (!response.ok) {
-    throw new Error(body.backupConfigMessage || `Failed to restore backup version: ${response.status}`);
-  }
-  return body;
+  return postLocalizedJson<BackupConfigPagePayload>(
+    "/admin/system/version/restore",
+    "/en/admin/system/version/restore",
+    { versionId }
+  );
 }
 
 export async function runBackupExecution(
@@ -289,28 +362,17 @@ export async function runBackupExecution(
     sudoPassword?: string;
   }
 ) {
-  const response = await apiFetch(buildLocalizedPath("/admin/system/backup/run", "/en/admin/system/backup/run"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify({
+  const body = await postLocalizedJson<BackupConfigPagePayload>(
+    "/admin/system/backup/run",
+    "/en/admin/system/backup/run",
+    {
       executionType,
       gitRestoreCommit: options?.gitRestoreCommit || "",
       dbRestoreType: options?.dbRestoreType || "",
       dbRestoreTarget: options?.dbRestoreTarget || "",
       dbRestorePointInTime: options?.dbRestorePointInTime || "",
       sudoPassword: options?.sudoPassword || ""
-    })
-  });
-  const body = await readJsonResponse<BackupConfigPagePayload>(response);
-  if (!response.ok) {
-    const fallbackMessage = (body as BackupConfigPagePayload & { message?: string; retryAfterSeconds?: number; }).message;
-    const retryAfterSeconds = Number((body as BackupConfigPagePayload & { retryAfterSeconds?: number; }).retryAfterSeconds || 0);
-    const retrySuffix = retryAfterSeconds > 0 ? ` (${retryAfterSeconds}s)` : "";
-    throw new Error(body.backupConfigMessage || fallbackMessage || `Failed to run backup execution: ${response.status}${retrySuffix}`);
-  }
+    }
+  );
   return body;
 }

@@ -21,10 +21,11 @@ class AdminBannerManagementServiceTest {
     void buildEditPayloadFallsBackToSeedBannerWhenDatabaseRowsAreUnavailable() {
         AdminBannerManagementMapper bannerMapper = mock(AdminBannerManagementMapper.class);
         AdminBannerManagementMetaMapper metaMapper = mock(AdminBannerManagementMetaMapper.class);
+        AdminPagePayloadFactory payloadFactory = new AdminPagePayloadFactory();
         when(bannerMapper.selectBannerRows()).thenReturn(Collections.emptyList());
         when(metaMapper.selectBannerMetaRows()).thenReturn(Collections.emptyList());
 
-        AdminBannerManagementService service = new AdminBannerManagementService(bannerMapper, metaMapper);
+        AdminBannerManagementService service = new AdminBannerManagementService(bannerMapper, metaMapper, payloadFactory);
 
         Map<String, Object> payload = service.buildEditPayload("BNR-240301", false);
         @SuppressWarnings("unchecked")
@@ -40,11 +41,12 @@ class AdminBannerManagementServiceTest {
     void saveBannerKeepsUpdatedOverlayEvenWhenDatabasePersistenceFails() {
         AdminBannerManagementMapper bannerMapper = mock(AdminBannerManagementMapper.class);
         AdminBannerManagementMetaMapper metaMapper = mock(AdminBannerManagementMetaMapper.class);
+        AdminPagePayloadFactory payloadFactory = new AdminPagePayloadFactory();
         when(bannerMapper.selectBannerRows()).thenReturn(Collections.emptyList());
         when(metaMapper.selectBannerMetaRows()).thenReturn(Collections.emptyList());
         when(bannerMapper.selectBannerById("BNR-240301")).thenThrow(new RuntimeException("db unavailable"));
 
-        AdminBannerManagementService service = new AdminBannerManagementService(bannerMapper, metaMapper);
+        AdminBannerManagementService service = new AdminBannerManagementService(bannerMapper, metaMapper, payloadFactory);
 
         Map<String, Object> response = service.saveBanner(
                 "BNR-240301",
@@ -74,13 +76,14 @@ class AdminBannerManagementServiceTest {
     void saveBannerPersistsBannerAndMetaRowsWhenDatabasePathIsAvailable() {
         AdminBannerManagementMapper bannerMapper = mock(AdminBannerManagementMapper.class);
         AdminBannerManagementMetaMapper metaMapper = mock(AdminBannerManagementMetaMapper.class);
+        AdminPagePayloadFactory payloadFactory = new AdminPagePayloadFactory();
         when(bannerMapper.selectBannerRows()).thenReturn(Collections.emptyList());
         when(metaMapper.selectBannerMetaRows()).thenReturn(Collections.emptyList());
         when(bannerMapper.selectBannerById("BNR-240301")).thenReturn(Collections.emptyMap());
         when(bannerMapper.countBannerById("BNR-240301")).thenReturn(0);
         when(metaMapper.countBannerMetaById("BNR-240301")).thenReturn(0);
 
-        AdminBannerManagementService service = new AdminBannerManagementService(bannerMapper, metaMapper);
+        AdminBannerManagementService service = new AdminBannerManagementService(bannerMapper, metaMapper, payloadFactory);
 
         Map<String, Object> response = service.saveBanner(
                 "BNR-240301",

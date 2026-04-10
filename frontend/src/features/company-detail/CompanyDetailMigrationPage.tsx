@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
+import { fetchCompanyDetailPage } from "../../lib/api/adminMember";
+import type { CompanyDetailPagePayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
-import { CompanyDetailPagePayload, fetchCompanyDetailPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { LookupContextStrip, MemberLinkButton, MemberButtonGroup, MEMBER_BUTTON_LABELS, PageStatusNotice } from "../member/common";
 import { DetailSummaryCard, MemberSectionCard, MemberStateCard } from "../member/sections";

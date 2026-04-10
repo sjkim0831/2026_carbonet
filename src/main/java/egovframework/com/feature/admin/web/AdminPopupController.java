@@ -3,12 +3,9 @@ package egovframework.com.feature.admin.web;
 import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.feature.admin.dto.request.AdminPopupEditSaveRequestDTO;
 import egovframework.com.feature.admin.service.AdminPopupManagementService;
-import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
@@ -29,27 +27,27 @@ public class AdminPopupController {
     private static final String EDIT_MENU_CODE = "A0040204";
 
     private final AdminPopupManagementService adminPopupManagementService;
-    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final AuditTrailService auditTrailService;
 
     @RequestMapping(value = {"/admin/content/popup_list"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String popupList(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "popup-list", false, true);
+    public String popupList(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "popup-list");
     }
 
     @RequestMapping(value = {"/en/admin/content/popup_list"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String popupListEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "popup-list", true, true);
+    public String popupListEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "popup-list");
     }
 
     @RequestMapping(value = {"/admin/content/popup_edit"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String popupEdit(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "popup-edit", false, true);
+    public String popupEdit(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "popup-edit");
     }
 
     @RequestMapping(value = {"/en/admin/content/popup_edit"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String popupEditEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "popup-edit", true, true);
+    public String popupEditEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "popup-edit");
     }
 
     @GetMapping("/admin/api/admin/content/popup")

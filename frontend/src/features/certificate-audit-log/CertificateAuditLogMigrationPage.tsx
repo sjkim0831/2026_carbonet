@@ -2,11 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
-import {
-  fetchCertificateAuditLogPage,
-  readBootstrappedCertificateAuditLogPageData,
-  type CertificateAuditLogPagePayload
-} from "../../lib/api/client";
+import { fetchCertificateAuditLogPage } from "../../lib/api/ops";
+import { readBootstrappedCertificateAuditLogPageData } from "../../lib/api/bootstrap";
+import type { CertificateAuditLogPagePayload } from "../../lib/api/opsTypes";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { SummaryMetricCard } from "../admin-ui/common";
 import { AdminListPageFrame } from "../admin-ui/pageFrames";

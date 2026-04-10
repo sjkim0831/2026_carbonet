@@ -1,4 +1,4 @@
-import type { ScreenBuilderNode } from "../../../lib/api/client";
+import type { ScreenBuilderNode } from "../../../lib/api/platformTypes";
 
 export function resolveScreenBuilderQuery(searchParams: { get(name: string): string | null }): {
   menuCode: string;

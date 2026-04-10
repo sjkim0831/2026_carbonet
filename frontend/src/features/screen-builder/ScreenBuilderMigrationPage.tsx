@@ -1,31 +1,35 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { FrameworkAuthorityRoleContract } from "../../framework";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { resolveAuthorityScope, type AuthorityAction } from "../../app/policy/authorityScope";
+import { getCurrentRuntimePathname, getCurrentRuntimeSearch } from "../../app/routes/runtime";
 import { logGovernanceScope } from "../../app/policy/debug";
-import {
-  readBootstrappedScreenBuilderPageData,
-  type ScreenCommandPagePayload,
-  type ScreenBuilderPagePayload
-} from "../../lib/api/client";
-import { fetchScreenCommandPage } from "../../lib/api/screenGovernance";
+import { readBootstrappedScreenBuilderPageData } from "../../lib/api/bootstrap";
+import { fetchScreenCommandPage } from "../../lib/api/platform";
 import {
   fetchScreenBuilderPage,
-} from "../../lib/api/screenBuilder";
+} from "../../lib/api/platform";
+import type { ScreenCommandPagePayload, ScreenBuilderPagePayload } from "../../lib/api/platformTypes";
 import { buildLocalizedPath, getNavigationEventName, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
-import { DiagnosticCard, MemberButton, MemberLinkButton, PageStatusNotice } from "../admin-ui/common";
+import { DiagnosticCard, MemberLinkButton, MemberPermissionButton, PageStatusNotice } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { MemberStateCard } from "../member/sections";
 import { resolveScreenBuilderQuery } from "./shared/screenBuilderUtils";
 import {
   buildEnvironmentManagementPath,
+  buildCurrentRuntimeComparePath,
+  buildRepairWorkbenchPath,
   buildScreenFlowManagementPath,
   buildScreenMenuAssignmentManagementPath,
   buildScreenRuntimePath
 } from "./screenBuilderPaths";
 import {
   BUILDER_INSTALL_VALIDATOR_CHECKS,
+  buildBuilderInstallFlowContract,
   buildBuilderInstallQueueSummary as buildInstallQueueSummaryFromContract
 } from "./shared/installableBuilderContract";
 import { useScreenBuilderEditor } from "./hooks/useScreenBuilderEditor";
@@ -37,8 +41,20 @@ const ScreenBuilderGovernancePanels = lazy(() => import("./panels/ScreenBuilderG
 const ScreenBuilderEditorPanels = lazy(() => import("./panels/ScreenBuilderEditorPanels"));
 const ScreenBuilderOverviewPanels = lazy(() => import("./panels/ScreenBuilderOverviewPanels"));
 
+function getScreenBuilderRoutePath() {
+  return getCurrentRuntimePathname();
+}
+
+function getScreenBuilderSearchParams() {
+  return new URLSearchParams(getCurrentRuntimeSearch());
+}
+
+function getScreenBuilderProjectId() {
+  return getScreenBuilderSearchParams().get("projectId") || "";
+}
+
 function readScreenBuilderQueryFromLocation() {
-  const searchParams = new URLSearchParams(window.location.search);
+  const searchParams = getScreenBuilderSearchParams();
   return resolveScreenBuilderQuery({
     get(name: string) {
       return searchParams.get(name);
@@ -48,6 +64,7 @@ function readScreenBuilderQueryFromLocation() {
 
 export function ScreenBuilderMigrationPage() {
   const en = isEnglish();
+  const sessionState = useFrontendSession();
   const [pageQuery, setPageQuery] = useState(() => readScreenBuilderQueryFromLocation());
   const bootstrappedPayload = useMemo(() => readBootstrappedScreenBuilderPageData(), []);
   const initialPayload = useMemo(() => {
@@ -313,7 +330,18 @@ export function ScreenBuilderMigrationPage() {
     routePath: String(commandState.value?.page?.routePath || page?.menuUrl || ""),
     menuLookupUrl: String(commandState.value?.page?.menuLookupUrl || "")
   }), [commandState.value?.page, page?.menuUrl]);
+  const screenBuilderAuthority = useMemo(() => resolveAuthorityScope({
+    scopeName: "screen-builder",
+    routePath: getScreenBuilderRoutePath(),
+    session: sessionState.value,
+    menuCode: page?.menuCode || pageQuery.menuCode,
+    requiredViewFeatureCode: commandState.value?.page?.menuPermission?.requiredViewFeatureCode,
+    featureCodes: commandState.value?.page?.menuPermission?.featureCodes,
+    featureRows: commandState.value?.page?.menuPermission?.featureRows
+  }), [commandState.value?.page?.menuPermission?.featureCodes, commandState.value?.page?.menuPermission?.featureRows, commandState.value?.page?.menuPermission?.requiredViewFeatureCode, page?.menuCode, pageQuery.menuCode, sessionState.value]);
+  const pagePermissionDenied = !sessionState.loading && !screenBuilderAuthority.entryAllowed;
   const packageArtifactEvidence = (page?.artifactEvidence || {}) as Record<string, unknown>;
+  const projectId = getScreenBuilderProjectId();
   const packageQueueSummary = useMemo(() => buildInstallQueueSummaryFromContract({
     menuCode: page?.menuCode,
     pageId: page?.pageId,
@@ -326,12 +354,48 @@ export function ScreenBuilderMigrationPage() {
     validatorPassCount: publishReady ? BUILDER_INSTALL_VALIDATOR_CHECKS.length : Math.max(BUILDER_INSTALL_VALIDATOR_CHECKS.length - 2, 0),
     validatorTotalCount: BUILDER_INSTALL_VALIDATOR_CHECKS.length
   }), [packageArtifactEvidence.deployTraceId, packageArtifactEvidence.runtimePackageId, page?.menuCode, page?.menuUrl, page?.pageId, page?.publishedSavedAt, page?.publishedVersionId, page?.releaseUnitId, publishIssueCount, publishReady]);
+  const installFlowQuery = useMemo(() => ({
+    menuCode: page?.menuCode || "",
+    pageId: page?.pageId || "",
+    menuTitle: page?.menuTitle || "",
+    menuUrl: page?.menuUrl || "",
+    snapshotVersionId: String(page?.publishedVersionId || ""),
+    projectId
+  }), [page?.menuCode, page?.menuTitle, page?.menuUrl, page?.pageId, page?.publishedVersionId, projectId]);
+  const installFlowContract = useMemo(() => buildBuilderInstallFlowContract({
+    en,
+    manifestTarget: commandState.value?.page?.manifestRegistry?.pageId
+      ? `${commandState.value.page.manifestRegistry.pageId} / ${commandState.value.page.manifestRegistry.layoutVersion || "-"}`
+      : (page?.pageId || "-"),
+    queueSummary: packageQueueSummary,
+    bindingInputs: [
+      { key: "projectId", ready: Boolean(projectId), detail: projectId || (en ? "Project binding is missing." : "프로젝트 바인딩이 없습니다.") },
+      { key: "menuRoot", ready: Boolean(page?.menuUrl), detail: page?.menuUrl || "-" },
+      { key: "runtimeClass", ready: Boolean(page?.pageId), detail: page?.pageId || "-" },
+      { key: "menuScope", ready: Boolean(screenGovernanceSummary.requiredViewFeatureCode), detail: screenGovernanceSummary.requiredViewFeatureCode || "-" },
+      { key: "releaseUnitPrefix", ready: packageQueueSummary.releaseUnitId !== "-", detail: packageQueueSummary.releaseUnitId },
+      { key: "runtimePackagePrefix", ready: packageQueueSummary.runtimePackageId !== "-", detail: packageQueueSummary.runtimePackageId }
+    ],
+    validatorInputs: BUILDER_INSTALL_VALIDATOR_CHECKS.map((check, index) => ({
+      key: check,
+      ready: packageQueueSummary.validatorPassCount > index,
+      detail: check === "builder-routes-exposed"
+        ? (page?.menuUrl || "-")
+        : (check === "storage-writable" ? packageQueueSummary.deployTraceId : packageQueueSummary.menuCode)
+    })),
+    rollbackEvidenceTarget: buildRepairWorkbenchPath(installFlowQuery),
+    publishedVersionId: page?.publishedVersionId,
+    versionId: page?.versionId,
+    publishIssueCount,
+    requiredViewFeatureCode: screenGovernanceSummary.requiredViewFeatureCode
+  }), [commandState.value?.page?.manifestRegistry?.layoutVersion, commandState.value?.page?.manifestRegistry?.pageId, en, installFlowQuery, packageQueueSummary, page?.menuUrl, page?.pageId, page?.publishedVersionId, page?.versionId, projectId, publishIssueCount, screenGovernanceSummary.requiredViewFeatureCode]);
+  const installReady = installFlowContract.steps[3]?.state === (en ? "READY" : "준비됨");
   useEffect(() => {
     if (!page) {
       return;
     }
     logGovernanceScope("PAGE", "screen-builder", {
-      route: window.location.pathname,
+      route: getScreenBuilderRoutePath(),
       pageId: page.pageId || "",
       menuCode: page.menuCode || "",
       nodeCount: nodes.length,
@@ -359,6 +423,55 @@ export function ScreenBuilderMigrationPage() {
     selectedNode,
     selectedRegistryComponentId
   ]);
+
+  useEffect(() => {
+    if (!pagePermissionDenied) {
+      return;
+    }
+    screenBuilderAuthority.logAuthorityDenied("view", {
+      component: "screen-builder-page",
+      menuCode: page?.menuCode || pageQuery.menuCode,
+      pageId: page?.pageId || pageQuery.pageId
+    });
+  }, [page?.menuCode, page?.pageId, pagePermissionDenied, pageQuery.menuCode, pageQuery.pageId, screenBuilderAuthority]);
+
+  async function runScreenBuilderAction(
+    action: AuthorityAction,
+    executor: () => Promise<void> | void,
+    payload: Record<string, unknown> = {}
+  ) {
+    if (!screenBuilderAuthority.allowsAction(action)) {
+      screenBuilderAuthority.logAuthorityDenied(action, payload);
+      setSaveError(screenBuilderAuthority.getActionReason(action, en));
+      return;
+    }
+    screenBuilderAuthority.logAuthorityGranted(action, payload);
+    await executor();
+  }
+
+  async function handlePreviewRefreshWithAuthority(savedDraft = false) {
+    await runScreenBuilderAction("query", () => handlePreviewRefresh(savedDraft), {
+      component: "screen-builder-preview-refresh",
+      menuCode: page?.menuCode || pageQuery.menuCode,
+      pageId: page?.pageId || pageQuery.pageId
+    });
+  }
+
+  async function handleSaveWithAuthority() {
+    await runScreenBuilderAction("update", handleSave, {
+      component: "screen-builder-save",
+      menuCode: page?.menuCode || pageQuery.menuCode,
+      pageId: page?.pageId || pageQuery.pageId
+    });
+  }
+
+  async function handlePublishWithAuthority() {
+    await runScreenBuilderAction("execute", handlePublish, {
+      component: "screen-builder-publish",
+      menuCode: page?.menuCode || pageQuery.menuCode,
+      pageId: page?.pageId || pageQuery.pageId
+    });
+  }
 
   function applyAuthorityRoleToDraft(role: FrameworkAuthorityRoleContract) {
     setDraftAuthorityProfile({
@@ -403,11 +516,115 @@ export function ScreenBuilderMigrationPage() {
         </PageStatusNotice>
       ) : null}
       <AdminWorkspacePageFrame>
+        {pagePermissionDenied ? (
+          <MemberStateCard
+            description={en
+              ? `You need ${screenBuilderAuthority.requiredViewFeatureCode || `${page?.menuCode || pageQuery.menuCode}_VIEW`} permission to open the governed screen-builder workspace for this page.`
+              : `이 페이지의 governed screen-builder 작업공간을 열려면 ${screenBuilderAuthority.requiredViewFeatureCode || `${page?.menuCode || pageQuery.menuCode}_VIEW`} 권한이 필요합니다.`}
+            icon="lock"
+            title={en ? "Permission denied." : "권한이 없습니다."}
+            tone="danger"
+          />
+        ) : null}
+        {pagePermissionDenied ? null : (
+        <>
         <div data-help-id="screen-builder-summary">
-          <DiagnosticCard
-            actions={(
-              <>
-                {page?.menuCode ? (
+        <DiagnosticCard
+          actions={(
+            <>
+              {page?.menuCode ? (
+                <MemberLinkButton href={buildEnvironmentManagementPath(page.menuCode, projectId)} variant="secondary">
+                  {en ? "Open Project Binding" : "프로젝트 바인딩 열기"}
+                </MemberLinkButton>
+              ) : null}
+              {page?.publishedVersionId ? (
+                <MemberLinkButton href={buildCurrentRuntimeComparePath(installFlowQuery)} variant="secondary">
+                  {en ? "Open Install Compare" : "설치 Compare 열기"}
+                </MemberLinkButton>
+              ) : null}
+              {page?.publishedVersionId ? (
+                <MemberLinkButton href={buildRepairWorkbenchPath(installFlowQuery)} variant="secondary">
+                  {en ? "Open Install Repair" : "설치 Repair 열기"}
+                </MemberLinkButton>
+              ) : null}
+            </>
+          )}
+          description={en
+            ? "Close one governed family by moving the same page from draft save to publish, project binding, and install pipeline without leaving the builder contract."
+            : "같은 페이지를 빌더 계약 안에서 초안 저장, 발행, 프로젝트 바인딩, 설치 파이프라인까지 이어서 닫습니다."}
+          eyebrow={projectId || (en ? "default project lane" : "기본 프로젝트 레인")}
+          status={installReady ? (en ? "INSTALL READY" : "설치 준비 완료") : (en ? "FLOW ACTIVE" : "흐름 진행 중")}
+          statusTone={installReady ? "healthy" : "warning"}
+          summary={(
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {installFlowContract.steps.map((step) => (
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3" key={step.key}>
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{step.title}</p>
+                  <p className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-black ${step.tone}`}>{step.state}</p>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-primary)] break-all">{step.detail}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          title={en ? "Governed Install Flow" : "Governed 설치 흐름"}
+        />
+        <DiagnosticCard
+          description={en
+            ? "This contract keeps manifest identity, binding inputs, validator inputs, and rollback evidence explicit so the family stays installable without source-copy delivery."
+            : "이 계약은 manifest 식별자, binding input, validator input, rollback evidence를 명시해 source-copy 없이도 family가 설치 가능하도록 유지합니다."}
+          eyebrow={en ? "install contract" : "설치 계약"}
+          status={en ? "EXPLICIT" : "명시됨"}
+          statusTone="healthy"
+          summary={(
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">manifest</p>
+                <p className="mt-2 font-mono text-sm text-[var(--kr-gov-text-primary)] break-all">{installFlowContract.manifestTarget}</p>
+                <p className="mt-3 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Rollback Evidence" : "롤백 증거"}</p>
+                <p className="mt-2 font-mono text-sm text-[var(--kr-gov-text-primary)] break-all">{installFlowContract.rollbackEvidenceTarget}</p>
+              </div>
+              <div className="space-y-3">
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Binding Inputs" : "바인딩 입력"}</p>
+                  <div className="mt-2 space-y-2 text-sm">
+                    {installFlowContract.bindingInputs.map((item) => (
+                      <div className="flex items-start justify-between gap-3" key={item.key}>
+                        <div>
+                          <p className="font-semibold text-[var(--kr-gov-text-primary)]">{item.key}</p>
+                          <p className="text-[12px] text-[var(--kr-gov-text-secondary)] break-all">{item.detail}</p>
+                        </div>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-black ${item.ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                          {item.ready ? (en ? "READY" : "준비") : (en ? "PENDING" : "대기")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Validator Inputs" : "검증 입력"}</p>
+                  <div className="mt-2 space-y-2 text-sm">
+                    {installFlowContract.validatorInputs.map((item) => (
+                      <div className="flex items-start justify-between gap-3" key={item.key}>
+                        <div>
+                          <p className="font-semibold text-[var(--kr-gov-text-primary)]">{item.key}</p>
+                          <p className="text-[12px] text-[var(--kr-gov-text-secondary)] break-all">{item.detail}</p>
+                        </div>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-black ${item.ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                          {item.ready ? (en ? "PASS" : "통과") : (en ? "WAIT" : "대기")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          title={en ? "Install Contract" : "설치 계약"}
+        />
+        <DiagnosticCard
+          actions={(
+            <>
+              {page?.menuCode ? (
                   <MemberLinkButton
                     href={buildEnvironmentManagementPath(page.menuCode)}
                     variant="secondary"
@@ -434,15 +651,15 @@ export function ScreenBuilderMigrationPage() {
                 <MemberLinkButton href={screenMenuAssignmentHref} variant="secondary">
                   {en ? "Open Menu Package Binding" : "메뉴 패키지 바인딩"}
                 </MemberLinkButton>
-                <MemberButton disabled={!page?.menuCode || saving} onClick={() => { void handleSave(); }} variant="primary">
+                <MemberPermissionButton allowed={screenBuilderAuthority.allowsAction("update")} disabled={!page?.menuCode || saving} onClick={() => { void handleSaveWithAuthority(); }} reason={screenBuilderAuthority.getActionReason("update", en)} variant="primary">
                   {saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Package Draft" : "패키지 초안 저장")}
-                </MemberButton>
-                <MemberButton disabled={!page?.menuCode || saving || publishIssueCount > 0} onClick={() => { void handlePublish(); }} variant="info">
+                </MemberPermissionButton>
+                <MemberPermissionButton allowed={screenBuilderAuthority.allowsAction("execute")} disabled={!page?.menuCode || saving || publishIssueCount > 0} onClick={() => { void handlePublishWithAuthority(); }} reason={screenBuilderAuthority.getActionReason("execute", en)} variant="info">
                   {saving ? (en ? "Working..." : "처리 중...") : (en ? "Build Install Snapshot" : "설치 스냅샷 빌드")}
-                </MemberButton>
-                <MemberButton disabled={!page?.menuCode || previewLoading} onClick={() => { void handlePreviewRefresh(false); }} variant="secondary">
+                </MemberPermissionButton>
+                <MemberPermissionButton allowed={screenBuilderAuthority.allowsAction("query")} disabled={!page?.menuCode || previewLoading} onClick={() => { void handlePreviewRefreshWithAuthority(false); }} reason={screenBuilderAuthority.getActionReason("query", en)} variant="secondary">
                   {previewLoading ? (en ? "Refreshing..." : "갱신 중...") : (en ? "Refresh Package Preview" : "패키지 미리보기 갱신")}
-                </MemberButton>
+                </MemberPermissionButton>
               </>
             )}
             description={en ? "Use this studio to save package drafts, build install snapshots, and hand off runtime validation for the current menu." : "현재 메뉴 기준으로 패키지 초안을 저장하고, 설치 스냅샷을 만들고, 런타임 검증으로 넘기는 스튜디오입니다."}
@@ -560,15 +777,15 @@ export function ScreenBuilderMigrationPage() {
               en={en}
               filteredComponentRegistry={filteredComponentRegistry}
               filteredSystemCatalog={filteredSystemCatalog}
-              handleAddNodeFromComponent={handleAddNodeFromComponent}
-              handleAddNodeTreeFromAiSurface={handleAddNodeTreeFromAiSurface}
-              handleAutoReplaceDeprecated={handleAutoReplaceDeprecated}
-              handleDeleteRegistryItem={handleDeleteRegistryItem}
-              handleDeprecateComponent={handleDeprecateComponent}
-              handlePreviewAutoReplaceDeprecated={handlePreviewAutoReplaceDeprecated}
-              handleRemapRegistryUsage={handleRemapRegistryUsage}
-              handleSaveRegistryItem={handleSaveRegistryItem}
-              handleScanRegistryDiagnostics={handleScanRegistryDiagnostics}
+              handleAddNodeFromComponent={(componentType) => runScreenBuilderAction("create", () => handleAddNodeFromComponent(componentType), { component: "screen-builder-add-node", componentType })}
+              handleAddNodeTreeFromAiSurface={() => runScreenBuilderAction("create", handleAddNodeTreeFromAiSurface, { component: "screen-builder-add-node-tree" })}
+              handleAutoReplaceDeprecated={() => runScreenBuilderAction("update", handleAutoReplaceDeprecated, { component: "screen-builder-auto-replace" })}
+              handleDeleteRegistryItem={() => runScreenBuilderAction("delete", handleDeleteRegistryItem, { component: "screen-builder-delete-registry-item" })}
+              handleDeprecateComponent={(componentId) => runScreenBuilderAction("update", () => handleDeprecateComponent(componentId), { component: "screen-builder-deprecate-component", componentId })}
+              handlePreviewAutoReplaceDeprecated={() => runScreenBuilderAction("query", handlePreviewAutoReplaceDeprecated, { component: "screen-builder-preview-auto-replace" })}
+              handleRemapRegistryUsage={() => runScreenBuilderAction("update", handleRemapRegistryUsage, { component: "screen-builder-remap-registry-usage" })}
+              handleSaveRegistryItem={() => runScreenBuilderAction("update", handleSaveRegistryItem, { component: "screen-builder-save-registry-item" })}
+              handleScanRegistryDiagnostics={() => runScreenBuilderAction("query", handleScanRegistryDiagnostics, { component: "screen-builder-scan-registry-diagnostics" })}
               registryEditorDescription={registryEditorDescription}
               registryEditorPropsJson={registryEditorPropsJson}
               registryEditorLabel={registryEditorLabel}
@@ -623,8 +840,12 @@ export function ScreenBuilderMigrationPage() {
               en={en}
               ensureSelectedEvent={ensureSelectedEvent}
               filteredPalette={filteredPalette}
-              handleRegisterSelectedComponent={handleRegisterSelectedComponent}
-              handleReplaceSelectedComponent={handleReplaceSelectedComponent}
+              handleRegisterSelectedComponent={async () => {
+                await runScreenBuilderAction("create", handleRegisterSelectedComponent, { component: "screen-builder-register-selected-component" });
+              }}
+              handleReplaceSelectedComponent={async () => {
+                await runScreenBuilderAction("update", handleReplaceSelectedComponent, { component: "screen-builder-replace-selected-component" });
+              }}
               menuUrl={page?.menuUrl}
               moveSelectedNode={moveSelectedNode}
               nodeTreeRows={nodeTreeRows}
@@ -661,6 +882,8 @@ export function ScreenBuilderMigrationPage() {
             />
           </Suspense>
         </div>
+        </>
+        )}
       </AdminWorkspacePageFrame>
     </AdminPageShell>
   );

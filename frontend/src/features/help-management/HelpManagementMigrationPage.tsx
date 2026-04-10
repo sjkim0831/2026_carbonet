@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { findManifestByPageId, listPageManifestOptions } from "../../platform/screen-registry/pageManifestIndex";
 import { logGovernanceScope } from "../../app/policy/debug";
-import {
-  AuditEventSearchPayload,
-  fetchAuditEvents,
-  fetchHelpManagementPage,
-  HelpManagementItem,
-  HelpManagementPagePayload,
-  saveHelpManagementPage
-} from "../../lib/api/client";
+import { fetchHelpManagementPage, saveHelpManagementPage } from "../../lib/api/platform";
+import type { AuditEventSearchPayload, HelpManagementItem, HelpManagementPagePayload } from "../../lib/api/platformTypes";
+import { fetchAuditEvents } from "../../platform/observability/observability";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { DiagnosticCard, GridToolbar, MemberButton } from "../admin-ui/common";

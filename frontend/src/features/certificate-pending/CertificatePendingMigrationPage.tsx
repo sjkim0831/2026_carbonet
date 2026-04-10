@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchCertificatePendingPage, type CertificatePendingPagePayload } from "../../lib/api/client";
+import { fetchCertificatePendingPage } from "../../lib/api/member";
+import type { CertificatePendingPagePayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { SummaryMetricCard } from "../admin-ui/common";

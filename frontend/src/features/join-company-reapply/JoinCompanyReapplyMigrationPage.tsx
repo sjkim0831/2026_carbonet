@@ -4,10 +4,12 @@ import { useExternalScript } from "../../app/hooks/useExternalScript";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 import {
-  fetchJoinCompanyReapplyPage,
+  fetchJoinCompanyReapplyPage
+} from "../../lib/api/join";
+import {
   resetJoinSession,
   submitJoinCompanyReapply
-} from "../../lib/api/client";
+} from "../../lib/api/joinSession";
 import { HomeButton, HomeIconButton, HomeInput, HomeLinkButton } from "../home-ui/common";
 
 type UploadRow = {

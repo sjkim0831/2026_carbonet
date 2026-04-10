@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchCertificateReviewPage, readBootstrappedCertificateReviewPageData, type CertificateReviewPagePayload } from "../../lib/api/client";
+import { readBootstrappedCertificateReviewPageData } from "../../lib/api/bootstrap";
+import { fetchCertificateReviewPage } from "../../lib/api/member";
+import type { CertificateReviewPagePayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { SummaryMetricCard } from "../admin-ui/common";

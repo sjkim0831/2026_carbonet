@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchLoginHistoryPage } from "../../lib/api/client";
+import { fetchLoginHistoryPage } from "../../lib/api/security";
 import { LoginHistorySharedPage } from "../security-history/LoginHistorySharedPage";
 
 export function LoginHistoryMigrationPage() {

@@ -8,8 +8,8 @@ import type {
   ScreenBuilderComponentUsage,
   ScreenBuilderNode,
   ScreenBuilderPagePayload
-} from "../../../lib/api/client";
-import { fetchScreenBuilderComponentRegistryUsage } from "../../../lib/api/screenBuilder";
+} from "../../../lib/api/platformTypes";
+import { fetchScreenBuilderComponentRegistryUsage } from "../../../lib/api/platform";
 import type { SystemComponentCatalogItem, SystemComponentCatalogType } from "../catalog/buttonCatalogCore";
 import { supportedSystemCatalogTypes, type BuilderTemplateType } from "../shared/screenBuilderShared";
 import { sortScreenBuilderNodes } from "../shared/screenBuilderUtils";

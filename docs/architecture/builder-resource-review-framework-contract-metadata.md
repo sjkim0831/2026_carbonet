@@ -6,8 +6,10 @@
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
 3. `docs/architecture/builder-resource-ownership-status-tracker.md`
 
-Use this review card only after the live family entry confirms row `2` is the active target.
+Use this review card only after the live family entry confirms row `2` is being checked as resolved historical support.
 Treat the first two docs above as the `single live entry pair`.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
 If this review changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
 
 ## Family
@@ -25,18 +27,6 @@ If this review changes blocker count, active row, next review target, or partial
 ## Competing Legacy Root Path
 
 - `src/main/resources/framework/**`
-
-## Why This Is A Start-Now Review
-
-- canonical owner is already explicit
-- the duplicate line is narrow and easy to name
-- this row directly tests whether builder metadata still relies on silent root fallback
-
-## Evidence To Check
-
-- `docs/architecture/screenbuilder-module-source-inventory.md` says contract-metadata ownership now lives in the dedicated module
-- `docs/architecture/framework-builder-standard.md` still names `src/main/resources/framework/contracts/framework-contract-metadata.json` as the canonical shared metadata source and therefore must be interpreted carefully during this family
-- `docs/architecture/builder-resource-ownership-status-tracker.md` row `2` should carry the final delete-versus-shim answer
 
 ## Decision Rule
 
@@ -58,38 +48,30 @@ Use `BLOCKS_CLOSEOUT` if:
 - the owner cannot state whether runtime lookup still depends on the legacy root resource line
 - documents still imply conflicting canonical answers for the same metadata resource
 
-## Closeout Condition
+## Current Docs-Only Decision
 
-This review is closed only when the owner can leave one sentence of the form:
+- current decision:
+  - `DELETE_NOW`
+- current decision shape:
+  - dedicated module owner is explicit, and root canonical and runtime fallback readings are now reconciled
+- why `DELETE_NOW` now succeeds:
+  - `framework-builder-standard.md` now names `modules/carbonet-contract-metadata/src/main/resources/framework/contracts/framework-contract-metadata.json` as the canonical shared metadata source
+  - `framework-builder-standard.md` now says framework contract metadata runtime lookup and packaging no longer depend on any root framework metadata copy
+  - `screenbuilder-module-source-inventory.md` now says runtime lookup resolves from the dedicated module resource and packaging no longer depends on any root `framework/**` metadata copy
+  - `screenbuilder-multimodule-cutover-plan.md` now says the live cutover path resolves runtime lookup and packaging through the dedicated contract-metadata module resource
+- why not `EXPLICIT_RESOURCE_SHIM`:
+  - no one named temporary reason for keeping root framework metadata is documented
+  - no explicit removal trigger is documented for a remaining root metadata line
 
-- `Framework contract metadata resolves from the dedicated contract-metadata module; root framework metadata placement is <deleted | explicit shim with one named reason | blocker>.`
+## Current Resolved Phrase
 
-## Provisional Read
+- `PARTIAL_DONE: framework contract metadata now carries a bounded DELETE_NOW note because the current docs set says runtime lookup and packaging no longer depend on any root framework metadata copy for this resource, and the dedicated contract-metadata module is the intended runtime owner.`
 
-Before metadata lookup and app-assembly proof are fully aligned, the safe default reading is:
+## Downgrade Limits
 
-- canonical owner is already explicit at module level
-- root `framework/**` ambiguity still exists in the documentation set
-- the row should lean `BLOCKS_CLOSEOUT` unless the owner can explicitly prove `DELETE_NOW` or name one valid `EXPLICIT_RESOURCE_SHIM` reason
-
-This is a review default, not a final decision.
-
-## Default Handoff Phrase
-
-If the owner reviewed this family but cannot yet close it, use:
-
-- `PARTIAL_DONE: framework contract metadata has an explicit module owner, but root framework metadata fallback still needs a final delete-versus-shim verdict.`
-
-## Required Handoff Output
-
-- selected family:
-  - `framework contract metadata resource`
-- canonical owner path
-- duplicate root path
-- evidence checked
-- closeout condition used
-- duplicate decision
-- blocker count contribution
+- do not reopen row `2` on the current docs set, because the bounded delete-proof bundle is now documented
+- do not replace row `2` with explicit shim on the current docs set, because no one named temporary reason with one explicit removal trigger is documented
+- reopen this row only if a later docs set reintroduces root framework metadata dependence
 
 ## Related Docs
 
@@ -98,3 +80,17 @@ If the owner reviewed this family but cannot yet close it, use:
 - `docs/architecture/builder-resource-ownership-priority-board.md`
 - `docs/architecture/screenbuilder-module-source-inventory.md`
 - `docs/architecture/framework-builder-standard.md`
+- `docs/architecture/builder-resource-row2-owner-packet.md`
+- `docs/architecture/builder-resource-row2-delete-proof-checklist.md`
+- `docs/architecture/builder-resource-row2-delete-proof-questions.md`
+- `docs/architecture/builder-resource-row2-delete-proof-evidence-map.md`
+- `docs/architecture/builder-resource-row2-candidate-sentence-ledger.md`
+- `docs/architecture/builder-resource-row2-branch-flip-gate.md`
+- `docs/architecture/builder-resource-row2-source-sentence-search-note.md`
+- `docs/architecture/builder-resource-row2-replacement-note-pattern.md`
+- `docs/architecture/builder-resource-row2-replacement-note-attempt.md`
+- `docs/architecture/builder-resource-row2-explicit-shim-checklist.md`
+- `docs/architecture/builder-resource-row2-explicit-shim-questions.md`
+- `docs/architecture/builder-resource-row2-explicit-shim-evidence-map.md`
+- `docs/architecture/builder-resource-row2-decision-note-template.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-row2-blocker-example.md`

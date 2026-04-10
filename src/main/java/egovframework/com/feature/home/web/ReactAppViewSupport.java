@@ -37,23 +37,8 @@ public class ReactAppViewSupport {
     }
 
     public void populate(Model model, String route, boolean en, boolean admin, HttpServletRequest request) {
-        ReactAppAssetResolver.ReactAppAssets assets = reactAppAssetResolver.resolveAssets();
-        String jsPath = adaptAssetPath(assets.getJsPath(), admin, en);
-        String cssPath = adaptAssetPath(assets.getCssPath(), admin, en);
         applyNoStoreCacheHeaders(currentResponse());
-        model.addAttribute("reactRoute", ReactRouteSupport.normalizeViewRoute(route, admin));
-        model.addAttribute("reactLocale", en ? "en" : "ko");
-        model.addAttribute("reactAdmin", admin);
-        model.addAttribute("reactShellTitle", admin
-                ? (en ? "Admin React App" : "관리자 React 앱")
-                : (en ? "Home React App" : "홈 React 앱"));
-        model.addAttribute("reactShellDescription", en
-                ? "This page mounts the React app shell."
-                : "이 페이지는 React 앱 셸을 마운트합니다.");
-        model.addAttribute("reactAppDevUrl", reactAppDevUrl);
-        model.addAttribute("reactAppProdJs", jsPath);
-        model.addAttribute("reactAppProdCss", cssPath);
-        model.addAttribute("reactBootstrapPayload", reactAppBootstrapService.buildBootstrapPayload(route, en, admin, request));
+        applyShellPayload(model, createBootstrapPayload(route, en, admin, request));
     }
 
     public Map<String, Object> createBootstrapPayload(String route, boolean en, boolean admin) {
@@ -64,6 +49,16 @@ public class ReactAppViewSupport {
         ReactAppAssetResolver.ReactAppAssets assets = reactAppAssetResolver.resolveAssets();
         String jsPath = adaptAssetPath(assets.getJsPath(), admin, en);
         String cssPath = adaptAssetPath(assets.getCssPath(), admin, en);
+        Map<String, Object> payload = createShellPayload(route, en, admin, jsPath, cssPath);
+        payload.put("reactBootstrapPayload", reactAppBootstrapService.buildBootstrapPayload(route, en, admin, request));
+        return payload;
+    }
+
+    private Map<String, Object> createShellPayload(String route,
+                                                   boolean en,
+                                                   boolean admin,
+                                                   String jsPath,
+                                                   String cssPath) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("reactRoute", ReactRouteSupport.normalizeViewRoute(route, admin));
         payload.put("reactLocale", en ? "en" : "ko");
@@ -77,8 +72,13 @@ public class ReactAppViewSupport {
         payload.put("reactAppDevUrl", reactAppDevUrl);
         payload.put("reactAppProdJs", jsPath);
         payload.put("reactAppProdCss", cssPath);
-        payload.put("reactBootstrapPayload", reactAppBootstrapService.buildBootstrapPayload(route, en, admin, request));
         return payload;
+    }
+
+    private void applyShellPayload(Model model, Map<String, Object> payload) {
+        for (Map.Entry<String, Object> entry : payload.entrySet()) {
+            model.addAttribute(entry.getKey(), entry.getValue());
+        }
     }
 
     private HttpServletRequest currentRequest() {

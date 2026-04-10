@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchPageManagementPage, type PageManagementPagePayload } from "../../lib/api/client";
+import { fetchPageManagementPage } from "../../lib/api/platform";
+import type { PageManagementPagePayload } from "../../lib/api/platformTypes";
 import { postFormUrlEncoded } from "../../lib/api/core";
 import { buildLocalizedPath, getNavigationEventName, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";

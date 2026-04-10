@@ -1,7 +1,8 @@
 import { logGovernanceScope } from "../../app/policy/debug";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
-import { fetchPerformancePage, type PerformancePagePayload } from "../../lib/api/client";
+import { fetchPerformancePage } from "../../lib/api/ops";
+import type { PerformancePagePayload } from "../../lib/api/opsTypes";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";

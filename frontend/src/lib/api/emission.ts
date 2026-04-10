@@ -1,5 +1,18 @@
 import { buildLocalizedPath } from "../navigation/runtime";
-import { apiFetch, buildAdminApiPath, buildResilientCsrfHeaders, readJsonResponse } from "./core";
+import {
+  apiFetch,
+  buildAdminApiPath,
+  buildQueryParams,
+  buildQueryString,
+  buildResilientCsrfHeaders,
+  fetchJson,
+  fetchLocalizedPageJson,
+  postFormData,
+  postAdminJson,
+  postJson,
+  postLocalizedAction,
+  readJsonResponse
+} from "./core";
 import type {
   EmissionCategoryItem,
   EmissionDataHistoryPagePayload,
@@ -28,46 +41,12 @@ import type {
   EmissionTierResponse,
   EmissionVariableDefinition,
   EmissionValidatePagePayload
-} from "./client";
+} from "./emissionTypes";
 
-function buildQueryString(params?: Record<string, string | number | boolean | null | undefined>): string {
-  if (!params) {
-    return "";
-  }
-  const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") {
-      return;
-    }
-    if (value === true) {
-      search.set(key, "true");
-      return;
-    }
-    search.set(key, String(value));
-  });
-  const query = search.toString();
-  return query ? `?${query}` : "";
-}
+type EmissionQueryParams = Record<string, string | number | boolean | null | undefined>;
 
-async function fetchLocalizedJsonPage<T>(koPath: string, enPath: string, params?: Record<string, string | number | boolean | null | undefined>): Promise<T> {
-  const response = await apiFetch(`${buildLocalizedPath(koPath, enPath)}${buildQueryString(params)}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<T>(response);
-}
-
-async function postAdminJson<T>(path: string, payload?: unknown): Promise<T> {
-  const response = await apiFetch(buildAdminApiPath(path), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: payload === undefined ? undefined : JSON.stringify(payload)
-  });
-  return readJsonResponse<T>(response);
+function buildEmissionQuery(params?: EmissionQueryParams) {
+  return buildQueryString(params);
 }
 
 export async function fetchEmissionGwpValuesPage(params?: {
@@ -78,35 +57,65 @@ export async function fetchEmissionGwpValuesPage(params?: {
   includePdfCompare?: boolean;
   pdfCompareScope?: string;
 }): Promise<EmissionGwpValuesPagePayload> {
-  return fetchLocalizedJsonPage<EmissionGwpValuesPagePayload>("/admin/emission/gwp-values/page-data", "/en/admin/emission/gwp-values/page-data", params);
+  return fetchLocalizedPageJson<EmissionGwpValuesPagePayload>(
+    "/admin/emission/gwp-values/page-data",
+    "/en/admin/emission/gwp-values/page-data",
+    { query: buildQueryParams(params) }
+  );
 }
 
 export async function saveEmissionGwpValue(payload: EmissionGwpValueSavePayload): Promise<EmissionGwpValueSaveResponse> {
-  return postAdminJson<EmissionGwpValueSaveResponse>("/emission/api/gwp-values/save", payload);
+  return postJson<EmissionGwpValueSaveResponse>(
+    buildAdminApiPath("/emission/api/gwp-values/save"),
+    payload,
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function deleteEmissionGwpValue(rowId: string): Promise<{ success: boolean; message: string; rowId?: string }> {
-  return postAdminJson<{ success: boolean; message: string; rowId?: string }>("/emission/api/gwp-values/delete", { rowId });
+  return postJson<{ success: boolean; message: string; rowId?: string }>(
+    buildAdminApiPath("/emission/api/gwp-values/delete"),
+    { rowId },
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function fetchEmissionResultListPage(params?: { pageIndex?: number; searchKeyword?: string; resultStatus?: string; verificationStatus?: string; }) {
-  return fetchLocalizedJsonPage<EmissionResultListPagePayload>("/admin/emission/result_list/page-data", "/en/admin/emission/result_list/page-data", params);
+  return fetchLocalizedPageJson<EmissionResultListPagePayload>(
+    "/admin/emission/result_list/page-data",
+    "/en/admin/emission/result_list/page-data",
+    { query: buildQueryParams(params) }
+  );
 }
 
 export async function fetchEmissionResultDetailPage(resultId: string) {
-  return fetchLocalizedJsonPage<EmissionResultDetailPagePayload>("/admin/emission/result_detail/page-data", "/en/admin/emission/result_detail/page-data", resultId ? { resultId } : undefined);
+  return fetchLocalizedPageJson<EmissionResultDetailPagePayload>(
+    "/admin/emission/result_detail/page-data",
+    "/en/admin/emission/result_detail/page-data",
+    { query: buildQueryParams(resultId ? { resultId } : undefined) }
+  );
 }
 
 export async function fetchEmissionDataHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; changeType?: string; changeTarget?: string; }) {
-  return fetchLocalizedJsonPage<EmissionDataHistoryPagePayload>("/admin/emission/data_history/page-data", "/en/admin/emission/data_history/page-data", params);
+  return fetchLocalizedPageJson<EmissionDataHistoryPagePayload>(
+    "/admin/emission/data_history/page-data",
+    "/en/admin/emission/data_history/page-data",
+    { query: buildQueryParams(params) }
+  );
 }
 
 export async function fetchEmissionSiteManagementPage() {
-  return fetchLocalizedJsonPage<EmissionSiteManagementPagePayload>("/admin/emission/site-management/page-data", "/en/admin/emission/site-management/page-data");
+  return fetchLocalizedPageJson<EmissionSiteManagementPagePayload>(
+    "/admin/emission/site-management/page-data",
+    "/en/admin/emission/site-management/page-data"
+  );
 }
 
 export async function fetchEmissionManagementPage() {
-  return fetchLocalizedJsonPage<EmissionManagementPagePayload>("/admin/emission/management/page-data", "/en/admin/emission/management/page-data");
+  return fetchLocalizedPageJson<EmissionManagementPagePayload>(
+    "/admin/emission/management/page-data",
+    "/en/admin/emission/management/page-data"
+  );
 }
 
 export async function fetchEmissionLciClassificationPage(params?: {
@@ -115,19 +124,34 @@ export async function fetchEmissionLciClassificationPage(params?: {
   useAt?: string;
   code?: string;
 }) {
-  return fetchLocalizedJsonPage<EmissionLciClassificationPagePayload>("/admin/emission/lci-classification/page-data", "/en/admin/emission/lci-classification/page-data", params);
+  return fetchLocalizedPageJson<EmissionLciClassificationPagePayload>(
+    "/admin/emission/lci-classification/page-data",
+    "/en/admin/emission/lci-classification/page-data",
+    { query: buildQueryParams(params) }
+  );
 }
 
 export async function saveEmissionLciClassification(payload: EmissionLciClassificationSavePayload) {
-  return postAdminJson<{ success: boolean; message: string; code?: string; row?: Record<string, unknown> | null }>("/api/admin/emission/lci-classification/save", payload);
+  return postJson<{ success: boolean; message: string; code?: string; row?: Record<string, unknown> | null }>(
+    buildAdminApiPath("/api/admin/emission/lci-classification/save"),
+    payload,
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function deleteEmissionLciClassification(code: string) {
-  return postAdminJson<{ success: boolean; message: string; code?: string }>("/api/admin/emission/lci-classification/delete", { code });
+  return postJson<{ success: boolean; message: string; code?: string }>(
+    buildAdminApiPath("/api/admin/emission/lci-classification/delete"),
+    { code },
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function fetchEmissionSurveyAdminPage() {
-  return fetchLocalizedJsonPage<EmissionSurveyAdminPagePayload>("/admin/emission/survey-admin/page-data", "/en/admin/emission/survey-admin/page-data");
+  return fetchLocalizedPageJson<EmissionSurveyAdminPagePayload>(
+    "/admin/emission/survey-admin/page-data",
+    "/en/admin/emission/survey-admin/page-data"
+  );
 }
 
 export async function fetchEmissionSurveyAdminDataPage(filters: {
@@ -140,56 +164,81 @@ export async function fetchEmissionSurveyAdminDataPage(filters: {
   pageIndex?: number;
   pageSize?: number;
 }) {
-  return fetchLocalizedJsonPage<EmissionSurveyAdminDataPagePayload>("/admin/emission/survey-admin-data/page-data", "/en/admin/emission/survey-admin-data/page-data", filters);
+  return fetchLocalizedPageJson<EmissionSurveyAdminDataPagePayload>(
+    "/admin/emission/survey-admin-data/page-data",
+    "/en/admin/emission/survey-admin-data/page-data",
+    { query: buildQueryParams(filters) }
+  );
 }
 
 export async function fetchEmissionDefinitionStudioPage() {
-  return fetchLocalizedJsonPage<EmissionDefinitionStudioPagePayload>("/admin/emission/definition-studio/page-data", "/en/admin/emission/definition-studio/page-data");
+  return fetchLocalizedPageJson<EmissionDefinitionStudioPagePayload>(
+    "/admin/emission/definition-studio/page-data",
+    "/en/admin/emission/definition-studio/page-data"
+  );
 }
 
 export async function saveEmissionDefinitionDraft(payload: EmissionDefinitionDraftSavePayload) {
-  return postAdminJson<EmissionDefinitionDraftSaveResponse>("/api/admin/emission-definition-studio/drafts", payload);
+  return postJson<EmissionDefinitionDraftSaveResponse>(
+    buildAdminApiPath("/api/admin/emission-definition-studio/drafts"),
+    payload,
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function publishEmissionDefinitionDraft(draftId: string) {
-  const response = await apiFetch(buildLocalizedPath(`/admin/api/admin/emission-definition-studio/drafts/${encodeURIComponent(draftId)}/publish`, `/en/admin/api/admin/emission-definition-studio/drafts/${encodeURIComponent(draftId)}/publish`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "X-Requested-With": "XMLHttpRequest"
-    })
-  });
-  return readJsonResponse<EmissionDefinitionDraftSaveResponse>(response);
+  return postLocalizedAction<EmissionDefinitionDraftSaveResponse>(
+    `/admin/api/admin/emission-definition-studio/drafts/${encodeURIComponent(draftId)}/publish`,
+    `/en/admin/api/admin/emission-definition-studio/drafts/${encodeURIComponent(draftId)}/publish`
+  );
 }
 
 export async function fetchEmissionValidatePage(params?: { pageIndex?: number; resultId?: string; searchKeyword?: string; verificationStatus?: string; priorityFilter?: string; }) {
-  return fetchLocalizedJsonPage<EmissionValidatePagePayload>("/admin/emission/validate/page-data", "/en/admin/emission/validate/page-data", params);
+  return fetchLocalizedPageJson<EmissionValidatePagePayload>(
+    "/admin/emission/validate/page-data",
+    "/en/admin/emission/validate/page-data",
+    { query: buildQueryParams(params) }
+  );
 }
 
 async function postEmissionJson<T>(koPath: string, enPath: string, payload?: unknown): Promise<T> {
+  return postJson<T>(buildLocalizedPath(koPath, enPath), payload, {
+    headers: {
+      Accept: "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }
+  });
+}
+
+async function postEmissionFormData<T>(koPath: string, enPath: string, formData: FormData): Promise<T> {
+  return postFormData<T>(buildLocalizedPath(koPath, enPath), formData);
+}
+
+async function fetchEmissionJson<T>(koPath: string, enPath: string, query?: string): Promise<T> {
+  return fetchJson<T>(`${buildLocalizedPath(koPath, enPath)}${query || ""}`, {
+    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+  });
+}
+
+async function postEmissionAction<T>(koPath: string, enPath: string): Promise<T> {
   const response = await apiFetch(buildLocalizedPath(koPath, enPath), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
       Accept: "application/json",
       "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: payload === undefined ? undefined : JSON.stringify(payload)
+    })
   });
   return readJsonResponse<T>(response);
 }
 
-async function postEmissionFormData<T>(koPath: string, enPath: string, formData: FormData): Promise<T> {
-  const headers = await buildResilientCsrfHeaders({
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  delete headers["Content-Type"];
-  const response = await apiFetch(buildLocalizedPath(koPath, enPath), {
-    method: "POST",
+async function deleteEmissionAction<T>(koPath: string, enPath: string, query?: string): Promise<T> {
+  const response = await apiFetch(`${buildLocalizedPath(koPath, enPath)}${query || ""}`, {
+    method: "DELETE",
     credentials: "include",
-    headers,
-    body: formData
+    headers: await buildResilientCsrfHeaders({
+      "X-Requested-With": "XMLHttpRequest"
+    })
   });
   return readJsonResponse<T>(response);
 }
@@ -238,24 +287,19 @@ export async function saveEmissionSurveyCaseDraft(payload: EmissionSurveyCaseDra
 }
 
 export async function loadEmissionSurveyCaseDraftsByClassification(lciMajorCode: string, lciMiddleCode: string, lciSmallCode: string, caseCode: string) {
-  const query = new URLSearchParams({ lciMajorCode, lciMiddleCode, lciSmallCode, caseCode }).toString();
-  const response = await apiFetch(`${buildLocalizedPath("/admin/api/admin/emission-survey-admin/case-drafts/by-classification", "/en/admin/api/admin/emission-survey-admin/case-drafts/by-classification")}?${query}`, {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<EmissionSurveyClassificationLoadResponse>(response);
+  return fetchEmissionJson<EmissionSurveyClassificationLoadResponse>(
+    "/admin/api/admin/emission-survey-admin/case-drafts/by-classification",
+    "/en/admin/api/admin/emission-survey-admin/case-drafts/by-classification",
+    buildEmissionQuery({ lciMajorCode, lciMiddleCode, lciSmallCode, caseCode })
+  );
 }
 
 export async function deleteEmissionSurveyCaseDraft(sectionCode: string, caseCode: string) {
-  const query = new URLSearchParams({ sectionCode, caseCode }).toString();
-  const response = await apiFetch(`${buildLocalizedPath("/admin/api/admin/emission-survey-admin/case-drafts", "/en/admin/api/admin/emission-survey-admin/case-drafts")}?${query}`, {
-    method: "DELETE",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "X-Requested-With": "XMLHttpRequest"
-    })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return deleteEmissionAction<Record<string, unknown>>(
+    "/admin/api/admin/emission-survey-admin/case-drafts",
+    "/en/admin/api/admin/emission-survey-admin/case-drafts",
+    buildEmissionQuery({ sectionCode, caseCode })
+  );
 }
 
 export async function saveEmissionSurveyDraftSet(payload: EmissionSurveyDraftSetSavePayload) {
@@ -267,15 +311,11 @@ export async function saveEmissionSurveyDraftSet(payload: EmissionSurveyDraftSet
 }
 
 export async function deleteEmissionSurveyDraftSet(setId: string) {
-  const query = new URLSearchParams({ setId }).toString();
-  const response = await apiFetch(`${buildLocalizedPath("/admin/api/admin/emission-survey-admin/draft-sets", "/en/admin/api/admin/emission-survey-admin/draft-sets")}?${query}`, {
-    method: "DELETE",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "X-Requested-With": "XMLHttpRequest"
-    })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return deleteEmissionAction<Record<string, unknown>>(
+    "/admin/api/admin/emission-survey-admin/draft-sets",
+    "/en/admin/api/admin/emission-survey-admin/draft-sets",
+    buildEmissionQuery({ setId })
+  );
 }
 
 export function getEmissionSurveyTemplateDownloadUrl() {
@@ -295,31 +335,21 @@ export async function saveEmissionManagementElementDefinition(payload: EmissionM
 }
 
 export async function fetchEmissionCategories(searchKeyword?: string) {
-  const search = new URLSearchParams();
-  if (searchKeyword) {
-    search.set("searchKeyword", searchKeyword);
-  }
-  const response = await apiFetch(`${buildAdminApiPath("/api/admin/emission-management/categories")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<{ items: EmissionCategoryItem[] }>(response);
+  return fetchJson<{ items: EmissionCategoryItem[] }>(
+    `${buildAdminApiPath("/api/admin/emission-management/categories")}${buildEmissionQuery({ searchKeyword })}`,
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function fetchEmissionTiers(categoryId: number) {
-  const response = await apiFetch(buildAdminApiPath(`/api/admin/emission-management/categories/${encodeURIComponent(String(categoryId))}/tiers`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<EmissionTierResponse>(response);
+  return fetchJson<EmissionTierResponse>(
+    buildAdminApiPath(`/api/admin/emission-management/categories/${encodeURIComponent(String(categoryId))}/tiers`),
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function fetchEmissionVariableDefinitions(categoryId: number, tier: number) {
-  const response = await apiFetch(buildAdminApiPath(`/api/admin/emission-management/categories/${encodeURIComponent(String(categoryId))}/tiers/${encodeURIComponent(String(tier))}/variables`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<{
+  return fetchJson<{
     category?: EmissionCategoryItem;
     tier?: number;
     variables?: EmissionVariableDefinition[];
@@ -328,7 +358,10 @@ export async function fetchEmissionVariableDefinitions(categoryId: number, tier:
     formulaDisplay?: string;
     publishedDefinition?: Record<string, unknown>;
     publishedDefinitionApplied?: boolean;
-  }>(response);
+  }>(
+    buildAdminApiPath(`/api/admin/emission-management/categories/${encodeURIComponent(String(categoryId))}/tiers/${encodeURIComponent(String(tier))}/variables`),
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function saveEmissionInputSession(payload: EmissionInputSessionSavePayload) {
@@ -336,52 +369,43 @@ export async function saveEmissionInputSession(payload: EmissionInputSessionSave
 }
 
 export async function fetchEmissionInputSession(sessionId: number) {
-  const response = await apiFetch(buildAdminApiPath(`/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return fetchJson<Record<string, unknown>>(
+    buildAdminApiPath(`/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}`),
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function calculateEmissionInputSession(sessionId: number) {
-  const response = await apiFetch(buildAdminApiPath(`/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}/calculate`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return postEmissionAction<Record<string, unknown>>(
+    `/admin/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}/calculate`,
+    `/en/admin/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}/calculate`
+  );
 }
 
 export async function materializeEmissionDefinitionScope(draftId: string) {
-  const response = await apiFetch(buildAdminApiPath(`/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/materialize`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<EmissionDefinitionMaterializeResponse>(response);
+  return postEmissionAction<EmissionDefinitionMaterializeResponse>(
+    `/admin/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/materialize`,
+    `/en/admin/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/materialize`
+  );
 }
 
 export async function fetchEmissionScopeStatus(categoryCode: string, tier: number) {
-  const response = await apiFetch(buildAdminApiPath(`/api/admin/emission-management/scopes/${encodeURIComponent(categoryCode)}/${encodeURIComponent(String(tier))}/status`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return fetchJson<Record<string, unknown>>(
+    buildAdminApiPath(`/api/admin/emission-management/scopes/${encodeURIComponent(categoryCode)}/${encodeURIComponent(String(tier))}/status`),
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 export async function precheckEmissionDefinitionScope(draftId: string) {
-  const response = await apiFetch(buildAdminApiPath(`/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/precheck`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return postEmissionAction<Record<string, unknown>>(
+    `/admin/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/precheck`,
+    `/en/admin/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/precheck`
+  );
 }
 
 export async function fetchEmissionLimeDefaultFactor() {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/emission-management/lime/default-factor"), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return fetchJson<Record<string, unknown>>(
+    buildAdminApiPath("/api/admin/emission-management/lime/default-factor"),
+    { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } }
+  );
 }

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { createIpWhitelistRequest, decideIpWhitelistRequest, type IpWhitelistPagePayload, fetchIpWhitelistPage } from "../../lib/api/client";
+import { createIpWhitelistRequest } from "../../lib/api/ops";
+import { decideIpWhitelistRequest, fetchIpWhitelistPage } from "../../lib/api/security";
+import type { IpWhitelistPagePayload } from "../../lib/api/opsTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";

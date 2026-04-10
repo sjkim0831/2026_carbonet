@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { DeptRolePagePayload } from "../../lib/api/client";
+import type { DeptRolePagePayload } from "../../lib/api/authTypes";
 import { GridToolbar, MemberButton, MemberPagination, MemberPermissionButton } from "../admin-ui/common";
 
 function t(page: DeptRolePagePayload | null, ko: string, en: string) {

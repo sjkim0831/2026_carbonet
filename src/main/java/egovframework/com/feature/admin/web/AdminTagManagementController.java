@@ -1,12 +1,9 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.service.AdminTagManagementService;
-import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -14,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
@@ -21,16 +19,16 @@ import java.util.Map;
 public class AdminTagManagementController {
 
     private final AdminTagManagementService adminTagManagementService;
-    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final AdminReactRouteSupport adminReactRouteSupport;
 
     @RequestMapping(value = {"/admin/content/tag"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String tagManagement(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "tag-management", false, true);
+    public String tagManagement(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "tag-management");
     }
 
     @RequestMapping(value = {"/en/admin/content/tag"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String tagManagementEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "tag-management", true, true);
+    public String tagManagementEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "tag-management");
     }
 
     @GetMapping("/admin/api/admin/content/tag")

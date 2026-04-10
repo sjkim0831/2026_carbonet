@@ -1,4 +1,4 @@
-import type { AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/client";
+import type { AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/platformTypes";
 import { apiFetch, buildAdminApiPath, readJsonResponse } from "../../lib/api/core";
 
 export async function fetchAuditEvents(params?: {

@@ -6,6 +6,14 @@ Generated on 2026-03-21 for immediate execution after the `01` handoff.
 
 These are shorter operator-ready prompts for implementation lanes.
 
+If `04` is continuing `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting maintenance-contract guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+- `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+- `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+
 Use them when the lane already has:
 
 - the handoff map
@@ -44,8 +52,9 @@ Additional rule:
 
 - `if 04 is continuing builder resource ownership instead of ordinary builder UI work, read builder-resource-ownership-current-closeout.md and builder-resource-ownership-queue-map.md first, then continue from the next row-specific review card.`
 - `treat builder-resource-ownership-current-closeout.md and builder-resource-ownership-queue-map.md as the single live entry pair for that mode.`
+- `use builder-resource-blocker-source-sentence-matrix.md and builder-resource-blocker-source-trigger-matrix.md before any docs-only reopen decision on rows 2, 3, or 5.`
 - `if that work changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.`
-- `04 lane resource-ownership mode: continue BUILDER_RESOURCE_OWNERSHIP_CLOSURE from the current closeout and queue map, keep structure-governance closed, and work only on the next queued row review card and provisional handoff shape.`
+- `04 lane resource-ownership mode: continue BUILDER_RESOURCE_OWNERSHIP_CLOSURE from the current closeout and queue map, keep structure-governance closed, treat row 2 as the active blocker-resolution target, and work only on the next queued row review card or bounded replacement-note follow-up.`
 
 ## 03 Theme
 

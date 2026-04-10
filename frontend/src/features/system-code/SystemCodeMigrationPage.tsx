@@ -1,7 +1,8 @@
 import { FormEvent, KeyboardEvent as ReactKeyboardEvent, useDeferredValue, useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchSystemCodePage, type SystemCodePagePayload } from "../../lib/api/client";
+import { fetchSystemCodePage } from "../../lib/api/member";
+import type { SystemCodePagePayload } from "../../lib/api/memberTypes";
 import {
   buildLocalizedPath,
   getNavigationEventName,

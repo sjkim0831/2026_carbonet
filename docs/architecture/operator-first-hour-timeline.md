@@ -13,6 +13,10 @@ lane handoff.
   - `docs/architecture/operator-quickstart-cheatsheet.md`
   - `docs/architecture/operator-lane-launch-routine.md`
   - `docs/architecture/operator-lane-launch-board-template.md`
+- if the active continuation is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also open:
+  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`
+  - supporting maintenance-contract guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 - confirm `01` is in `HANDOFF`
 - prepare to start `05`, `06`, `08`, `09`
 
@@ -58,6 +62,8 @@ If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`:
 
 - open `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - open `docs/architecture/builder-resource-ownership-queue-map.md`
+- open `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+- open `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
 - continue from the next queued row instead of reopening structure-governance
 - treat those two docs as the single live entry pair before opening any row-specific review card
 - if first-hour review changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn

@@ -1,5 +1,10 @@
-import { buildCsrfHeaders, readJsonResponse } from "./core";
+import { buildQueryString, fetchPageJson, fetchTextWithResponse, fetchValidatedJson, postFormDataWithResponse } from "./core";
 import { invalidateJoinSessionCache } from "./joinSession";
+import type {
+  JoinCompanyReapplyPagePayload,
+  JoinCompanyRegisterPagePayload,
+  JoinCompanyStatusDetailPayload
+} from "./joinTypes";
 
 type CompanySearchPayload = {
   list: Array<{
@@ -16,144 +21,16 @@ type CompanySearchPayload = {
   totalPages: number;
 };
 
-type JoinCompanyRegisterPagePayload = Record<string, unknown> & {
-  membershipType?: string;
-  canViewCompanyRegister?: boolean;
-  canUseCompanyRegister?: boolean;
-};
-
-type JoinCompanyStatusDetailPayload = {
-  success: boolean;
-  message?: string;
-  result?: Record<string, unknown>;
-  insttFiles?: Array<Record<string, unknown>>;
-};
-
-type JoinCompanyReapplyPagePayload = {
-  success: boolean;
-  message?: string;
-  result?: Record<string, unknown>;
-  insttFiles?: Array<Record<string, unknown>>;
-};
-
 type DuplicateFlagResponse = {
   isDuplicated?: boolean;
   duplicated?: boolean;
 };
 
-async function fetchDuplicateFlag(url: string, fallbackMessage: string): Promise<boolean> {
-  const response = await fetch(url, {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<DuplicateFlagResponse>(response);
-  if (!response.ok) {
-    throw new Error(`${fallbackMessage}: ${response.status}`);
-  }
-  return Boolean(body.isDuplicated ?? body.duplicated);
-}
+type JoinQueryParams = Record<string, string | number | boolean | null | undefined>;
+type JoinActionResponse = { success?: boolean; message?: string } & Record<string, unknown>;
+type JoinValidatedResponse = { message?: string; success?: boolean };
 
-async function fetchNumericDuplicateFlag(url: string, fallbackMessage: string): Promise<boolean> {
-  const response = await fetch(url, {
-    credentials: "include"
-  });
-  if (!response.ok) {
-    throw new Error(`${fallbackMessage}: ${response.status}`);
-  }
-  const body = await response.text();
-  return Number(body) > 0;
-}
-
-async function searchCompanyDirectory(
-  url: string,
-  fallbackMessage: string
-): Promise<CompanySearchPayload> {
-  const response = await fetch(url, {
-    credentials: "include"
-  });
-  if (!response.ok) {
-    throw new Error(`${fallbackMessage}: ${response.status}`);
-  }
-  return response.json() as Promise<CompanySearchPayload>;
-}
-
-export async function searchJoinCompanies(params: {
-  keyword: string;
-  page?: number;
-  size?: number;
-  status?: string;
-  membershipType?: string;
-}) {
-  const search = new URLSearchParams();
-  search.set("keyword", params.keyword);
-  if (params.page) search.set("page", String(params.page));
-  if (params.size) search.set("size", String(params.size));
-  if (params.status) search.set("status", params.status);
-  if (params.membershipType) search.set("membershipType", params.membershipType);
-  return searchCompanyDirectory(
-    `/join/searchCompany?${search.toString()}`,
-    "Failed to search join companies"
-  );
-}
-
-export async function checkJoinMemberId(mberId: string) {
-  return {
-    isDuplicated: await fetchDuplicateFlag(
-      `/join/checkId?mberId=${encodeURIComponent(mberId)}`,
-      "Failed to check join member ID"
-    )
-  };
-}
-
-export async function checkJoinEmail(email: string) {
-  return {
-    isDuplicated: await fetchDuplicateFlag(
-      `/join/checkEmail?email=${encodeURIComponent(email)}`,
-      "Failed to check join email"
-    )
-  };
-}
-
-export async function fetchJoinCompanyRegisterPage() {
-  const response = await fetch("/join/api/company-register/page", {
-    credentials: "include"
-  });
-  if (!response.ok) throw new Error(`Failed to load join company register page: ${response.status}`);
-  return response.json() as Promise<JoinCompanyRegisterPagePayload>;
-}
-
-export async function checkCompanyNameDuplicate(agencyName: string) {
-  return fetchNumericDuplicateFlag(
-    `/join/checkCompanyNameDplct?agencyName=${encodeURIComponent(agencyName)}`,
-    "Failed to check company name"
-  );
-}
-
-export async function fetchJoinCompanyStatusDetail(params: { bizNo?: string; appNo?: string; repName: string; }) {
-  const search = new URLSearchParams();
-  if (params.bizNo) search.set("bizNo", params.bizNo);
-  if (params.appNo) search.set("appNo", params.appNo);
-  search.set("repName", params.repName);
-  const response = await fetch(`/join/api/company-status/detail?${search.toString()}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to load company status detail: ${response.status}`);
-  return body as JoinCompanyStatusDetailPayload;
-}
-
-export async function fetchJoinCompanyReapplyPage(params: { bizNo: string; repName: string; }) {
-  const search = new URLSearchParams();
-  search.set("bizNo", params.bizNo);
-  search.set("repName", params.repName);
-  const response = await fetch(`/join/api/company-reapply/page?${search.toString()}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to load company reapply page: ${response.status}`);
-  return body as JoinCompanyReapplyPagePayload;
-}
-
-export async function submitJoinCompanyRegister(payload: {
+type JoinCompanyRegisterSubmitPayload = {
   membershipType: string;
   agencyName: string;
   representativeName: string;
@@ -166,31 +43,168 @@ export async function submitJoinCompanyRegister(payload: {
   chargerTel: string;
   lang?: string;
   fileUploads: File[];
-}) {
-  invalidateJoinSessionCache();
-  const form = new FormData();
-  form.set("membershipType", payload.membershipType);
-  form.set("agencyName", payload.agencyName);
-  form.set("representativeName", payload.representativeName);
-  form.set("bizRegistrationNumber", payload.bizRegistrationNumber);
-  form.set("zipCode", payload.zipCode);
-  form.set("companyAddress", payload.companyAddress);
-  form.set("companyAddressDetail", payload.companyAddressDetail || "");
-  form.set("chargerName", payload.chargerName);
-  form.set("chargerEmail", payload.chargerEmail);
-  form.set("chargerTel", payload.chargerTel);
-  form.set("lang", payload.lang || "ko");
-  payload.fileUploads.forEach((file) => form.append("fileUploads", file));
+};
 
-  const response = await fetch("/join/api/company-register", {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders(),
-    body: form
+function buildJoinUrl(path: string, params?: JoinQueryParams) {
+  return `${path}${buildQueryString(params)}`;
+}
+
+function appendJoinFormFields(form: FormData, payload: Record<string, string | undefined>) {
+  Object.entries(payload).forEach(([key, value]) => {
+    form.set(key, value ?? "");
   });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
+  return form;
+}
+
+function buildJoinCompanyRegisterForm(payload: JoinCompanyRegisterSubmitPayload): FormData {
+  const form = new FormData();
+  appendJoinFormFields(form, {
+    membershipType: payload.membershipType,
+    agencyName: payload.agencyName,
+    representativeName: payload.representativeName,
+    bizRegistrationNumber: payload.bizRegistrationNumber,
+    zipCode: payload.zipCode,
+    companyAddress: payload.companyAddress,
+    companyAddressDetail: payload.companyAddressDetail,
+    chargerName: payload.chargerName,
+    chargerEmail: payload.chargerEmail,
+    chargerTel: payload.chargerTel,
+    lang: payload.lang || "ko"
+  });
+  payload.fileUploads.forEach((file) => form.append("fileUploads", file));
+  return form;
+}
+
+async function submitJoinMultipartForm(
+  path: string,
+  form: FormData,
+  fallbackMessage: string
+) {
+  invalidateJoinSessionCache();
+  const { response, body } = await postFormDataWithResponse<JoinActionResponse>(
+    path,
+    form
+  );
   if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to submit company register: ${response.status}`);
+    throw new Error(body.message || `${fallbackMessage}: ${response.status}`);
   }
   return body;
+}
+
+async function fetchDuplicateFlag(
+  path: string,
+  params: JoinQueryParams,
+  fallbackMessage: string
+): Promise<boolean> {
+  const body = await fetchPageJson<DuplicateFlagResponse>(buildJoinUrl(path, params), {
+    fallbackMessage
+  });
+  return Boolean(body.isDuplicated ?? body.duplicated);
+}
+
+async function fetchNumericDuplicateFlag(
+  path: string,
+  params: JoinQueryParams,
+  fallbackMessage: string
+): Promise<boolean> {
+  const { response, body } = await fetchTextWithResponse(buildJoinUrl(path, params));
+  if (!response.ok) {
+    throw new Error(`${fallbackMessage}: ${response.status}`);
+  }
+  return Number(body) > 0;
+}
+
+async function fetchJoinJson<T>(
+  path: string,
+  fallbackMessage: string,
+  params?: JoinQueryParams
+): Promise<T> {
+  return fetchPageJson<T>(buildJoinUrl(path, params), {
+    fallbackMessage
+  });
+}
+
+async function fetchValidatedJoinJson<T extends JoinValidatedResponse>(
+  path: string,
+  params: JoinQueryParams,
+  fallbackMessage: string
+) {
+  return fetchValidatedJson<T>(buildJoinUrl(path, params), {
+    fallbackMessage,
+    resolveError: (body, status) => body.message || `${fallbackMessage}: ${status}`,
+    validate: (body) => body.success !== false
+  });
+}
+
+export async function searchJoinCompanies(params: {
+  keyword: string;
+  page?: number;
+  size?: number;
+  status?: string;
+  membershipType?: string;
+}) {
+  return fetchJoinJson<CompanySearchPayload>(
+    "/join/searchCompany",
+    "Failed to search join companies",
+    params
+  );
+}
+
+export async function checkJoinMemberId(mberId: string) {
+  return {
+    isDuplicated: await fetchDuplicateFlag(
+      "/join/checkId",
+      { mberId },
+      "Failed to check join member ID"
+    )
+  };
+}
+
+export async function checkJoinEmail(email: string) {
+  return {
+    isDuplicated: await fetchDuplicateFlag(
+      "/join/checkEmail",
+      { email },
+      "Failed to check join email"
+    )
+  };
+}
+
+export async function fetchJoinCompanyRegisterPage() {
+  return fetchJoinJson<JoinCompanyRegisterPagePayload>(
+    "/join/api/company-register/page",
+    "Failed to load join company register page"
+  );
+}
+
+export async function checkCompanyNameDuplicate(agencyName: string) {
+  return fetchNumericDuplicateFlag(
+    "/join/checkCompanyNameDplct",
+    { agencyName },
+    "Failed to check company name"
+  );
+}
+
+export async function fetchJoinCompanyStatusDetail(params: { bizNo?: string; appNo?: string; repName: string; }) {
+  return fetchValidatedJoinJson<JoinCompanyStatusDetailPayload>(
+    "/join/api/company-status/detail",
+    params,
+    "Failed to load company status detail"
+  );
+}
+
+export async function fetchJoinCompanyReapplyPage(params: { bizNo: string; repName: string; }) {
+  return fetchValidatedJoinJson<JoinCompanyReapplyPagePayload>(
+    "/join/api/company-reapply/page",
+    params,
+    "Failed to load company reapply page"
+  );
+}
+
+export async function submitJoinCompanyRegister(payload: JoinCompanyRegisterSubmitPayload) {
+  return submitJoinMultipartForm(
+    "/join/api/company-register",
+    buildJoinCompanyRegisterForm(payload),
+    "Failed to submit company register"
+  );
 }

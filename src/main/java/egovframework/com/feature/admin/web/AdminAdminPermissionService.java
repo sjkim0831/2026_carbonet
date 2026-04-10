@@ -26,17 +26,22 @@ class AdminAdminPermissionService {
     private static final String ROLE_SYSTEM_MASTER = "ROLE_SYSTEM_MASTER";
 
     private final EmployeeMemberRepository employMemberRepository;
-    private final ObjectProvider<AdminMainController> adminMainControllerProvider;
+    private final AdminPermissionOverrideService adminPermissionOverrideService;
+    private final AdminAdminAccountAccessService adminAdminAccountAccessService;
+    private final AdminAdminPermissionSupportService adminAdminPermissionSupportService;
+    private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
 
     AdminAdminPermissionService(
             EmployeeMemberRepository employMemberRepository,
-            ObjectProvider<AdminMainController> adminMainControllerProvider) {
+            AdminPermissionOverrideService adminPermissionOverrideService,
+            AdminAdminAccountAccessService adminAdminAccountAccessService,
+            AdminAdminPermissionSupportService adminAdminPermissionSupportService,
+            AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport) {
         this.employMemberRepository = employMemberRepository;
-        this.adminMainControllerProvider = adminMainControllerProvider;
-    }
-
-    private AdminMainController adminMainController() {
-        return adminMainControllerProvider.getObject();
+        this.adminPermissionOverrideService = adminPermissionOverrideService;
+        this.adminAdminAccountAccessService = adminAdminAccountAccessService;
+        this.adminAdminPermissionSupportService = adminAdminPermissionSupportService;
+        this.adminAuthorityPagePayloadSupport = adminAuthorityPagePayloadSupport;
     }
 
     SaveResult saveAdminPermission(
@@ -48,7 +53,7 @@ class AdminAdminPermissionService {
             String currentUserId,
             String currentUserAuthorCode,
             boolean hasAccess) {
-        SaveResult result = SaveResult.normalize(adminMainController(), emplyrId, authorCode, featureCodes);
+        SaveResult result = SaveResult.normalize(adminAdminPermissionSupportService, emplyrId, authorCode, featureCodes);
         if (!hasAccess) {
             return result.forbidden(isEn
                     ? "You do not have permission to change administrator permissions."
@@ -76,7 +81,7 @@ class AdminAdminPermissionService {
         }
 
         result.adminMember = adminMemberOpt.get();
-        if (!adminMainController().canCurrentAdminAccessAdmin(request, result.adminMember)) {
+        if (!adminAdminAccountAccessService.canCurrentAdminAccessAdmin(request, result.adminMember)) {
             return result.forbidden(isEn
                     ? "You can only update administrators in your own company."
                     : "본인 회사에 속한 관리자만 수정할 수 있습니다.");
@@ -85,18 +90,17 @@ class AdminAdminPermissionService {
         List<AuthorInfoVO> authorGroups;
         List<String> baselineFeatureCodes = Collections.emptyList();
         try {
-            String currentAssignedAuthorCode = adminMainController().loadAssignedAuthorCode(result.emplyrId);
-            authorGroups = adminMainController().flattenPermissionAuthorGroupSections(
-                    adminMainController().buildAdminPermissionAuthorGroupSections(result.adminMember, isEn, currentUserId));
+            String currentAssignedAuthorCode = adminAdminPermissionSupportService.loadAssignedAuthorCode(result.emplyrId);
+            authorGroups = adminAdminPermissionSupportService.loadGrantableAdminAuthorGroups(result.adminMember, isEn, currentUserId);
             if (result.authorCode.isEmpty()) {
                 result.errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
-            } else if (!adminMainController().isGrantableOrCurrentAdminAuthorCode(
+            } else if (!adminAdminPermissionSupportService.isGrantableOrCurrentAdminAuthorCode(
                     authorGroups,
                     result.authorCode,
                     currentAssignedAuthorCode)) {
                 result.errors.add(isEn ? "Please select a valid administrator role." : "유효한 관리자 권한 롤을 선택해 주세요.");
             } else {
-                baselineFeatureCodes = adminMainController().loadAuthorFeatureCodes(result.authorCode);
+                baselineFeatureCodes = adminAdminPermissionSupportService.loadAuthorFeatureCodes(result.authorCode);
             }
             if ("webmaster".equalsIgnoreCase(result.emplyrId)
                     && !ROLE_SYSTEM_MASTER.equalsIgnoreCase(result.authorCode)) {
@@ -115,16 +119,14 @@ class AdminAdminPermissionService {
         }
 
         try {
-            adminMainController().updateAdminRoleAssignment(result.emplyrId, result.authorCode);
-            adminMainController().savePermissionOverrides(
-                    adminMainController().safeString(result.adminMember.getEsntlId()),
+            adminAdminPermissionSupportService.updateAdminRoleAssignment(result.emplyrId, result.authorCode);
+            adminPermissionOverrideService.savePermissionOverrides(
+                    adminAuthorityPagePayloadSupport.safeValue(result.adminMember.getEsntlId()),
                     "USR03",
                     baselineFeatureCodes,
                     result.featureCodes,
                     currentUserId,
-                    adminMainController().resolveGrantableFeatureCodeSet(
-                            currentUserId,
-                            adminMainController().isWebmaster(currentUserId)));
+                    adminAdminPermissionSupportService.resolveGrantableFeatureCodeSet(currentUserId));
             result.success = true;
             return result;
         } catch (Exception e) {
@@ -148,12 +150,12 @@ class AdminAdminPermissionService {
         private List<String> featureCodes;
         private EmplyrInfo adminMember;
 
-        static SaveResult normalize(AdminMainController controller, String emplyrId, String authorCode, List<String> featureCodes) {
+        static SaveResult normalize(AdminAdminPermissionSupportService support, String emplyrId, String authorCode, List<String> featureCodes) {
             SaveResult result = new SaveResult();
             result.statusCode = HttpStatus.OK.value();
-            result.emplyrId = controller.safeString(emplyrId);
-            result.authorCode = controller.safeString(authorCode).toUpperCase(Locale.ROOT);
-            result.featureCodes = controller.normalizeFeatureCodes(featureCodes);
+            result.emplyrId = support.normalizeEmplyrId(emplyrId);
+            result.authorCode = support.normalizeAuthorCode(authorCode);
+            result.featureCodes = support.normalizeFeatureCodes(featureCodes);
             return result;
         }
 

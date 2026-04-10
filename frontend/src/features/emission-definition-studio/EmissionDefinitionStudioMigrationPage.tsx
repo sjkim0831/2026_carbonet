@@ -4,11 +4,13 @@ import { logGovernanceScope } from "../../app/policy/debug";
 import {
   fetchEmissionDefinitionStudioPage,
   publishEmissionDefinitionDraft,
-  readBootstrappedEmissionDefinitionStudioPageData,
-  saveEmissionDefinitionDraft,
-  type EmissionDefinitionDraftSaveResponse,
-  type EmissionDefinitionStudioPagePayload
-} from "../../lib/api/client";
+  saveEmissionDefinitionDraft
+} from "../../lib/api/emission";
+import { readBootstrappedEmissionDefinitionStudioPageData } from "../../lib/api/bootstrap";
+import type {
+  EmissionDefinitionDraftSaveResponse,
+  EmissionDefinitionStudioPagePayload
+} from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, MemberButton, PageStatusNotice } from "../admin-ui/common";

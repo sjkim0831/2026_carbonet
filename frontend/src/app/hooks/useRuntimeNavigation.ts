@@ -1,25 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
 import { preloadPageModule } from "../routes/pageRegistry";
-import { isReactManagedPath, parseLocationState, resolveCanonicalRuntimePath, resolvePageFromPath } from "../routes/runtime";
+import {
+  buildRuntimeRequestPath,
+  getCurrentRuntimeLocationState,
+  type ManagedRuntimeRoute,
+  parseLocationState,
+  resolveCanonicalRuntimePath,
+  resolveManagedRuntimeHref,
+  resolvePageFromPath
+} from "../routes/runtime";
 import { getNavigationEventName, navigate, replace } from "../../lib/navigation/runtime";
-import { prefetchRouteBootstrap, prefetchRoutePageData } from "../../lib/api/client";
-
-function getCurrentLocationState() {
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
-}
+import { prefetchRouteBootstrap, prefetchRoutePageData } from "../../lib/api/appBootstrap";
 
 export function useRuntimeNavigation() {
-  const [locationState, setLocationState] = useState(getCurrentLocationState);
+  const [locationState, setLocationState] = useState(getCurrentRuntimeLocationState);
   const [routeLoading, setRouteLoading] = useState(false);
   const location = useMemo(() => parseLocationState(locationState), [locationState]);
-  const page = useMemo(() => resolvePageFromPath(location.pathname, location.search), [location.pathname, location.search]);
+  const page = useMemo(() => resolvePageFromPath(location.pathname), [location.pathname]);
+  const currentRoutePath = useMemo(
+    () => buildRuntimeRequestPath(location.pathname, location.search),
+    [location.pathname, location.search]
+  );
 
   useEffect(() => {
     const canonicalPath = resolveCanonicalRuntimePath();
-    if (canonicalPath && canonicalPath !== `${location.pathname}${location.search}`) {
+    if (canonicalPath && canonicalPath !== currentRoutePath) {
       replace(canonicalPath);
     }
-  }, [location.pathname, location.search]);
+  }, [currentRoutePath]);
 
   useEffect(() => {
     void preloadPageModule(page);
@@ -27,21 +35,20 @@ export function useRuntimeNavigation() {
 
   useEffect(() => {
     function syncLocation() {
-      setLocationState(getCurrentLocationState());
+      setLocationState(getCurrentRuntimeLocationState());
       setRouteLoading(false);
     }
 
-    async function handleReactNavigation(nextUrl: URL) {
+    async function handleReactNavigation(nextRoute: ManagedRuntimeRoute) {
       setRouteLoading(true);
       try {
-        const nextPage = resolvePageFromPath(nextUrl.pathname, nextUrl.search);
         await Promise.all([
-          prefetchRouteBootstrap(nextPage, `${nextUrl.pathname}${nextUrl.search}`),
-          preloadPageModule(nextPage),
-          prefetchRoutePageData(nextPage, nextUrl.search).catch(() => undefined)
+          prefetchRouteBootstrap(nextRoute.pageId, nextRoute.routePath),
+          preloadPageModule(nextRoute.pageId),
+          prefetchRoutePageData(nextRoute.pageId, nextRoute.search).catch(() => undefined)
         ]);
       } finally {
-        navigate(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+        navigate(nextRoute.locationState);
       }
     }
 
@@ -64,12 +71,12 @@ export function useRuntimeNavigation() {
       if (!href || href.startsWith("#") || anchor.hasAttribute("download") || anchor.target === "_blank") {
         return;
       }
-      const nextUrl = new URL(anchor.href, window.location.origin);
-      if (nextUrl.origin !== window.location.origin || !isReactManagedPath(nextUrl.pathname)) {
+      const managedRoute = resolveManagedRuntimeHref(anchor.href);
+      if (!managedRoute) {
         return;
       }
       event.preventDefault();
-      void handleReactNavigation(nextUrl);
+      void handleReactNavigation(managedRoute);
     }
 
     window.addEventListener("popstate", syncLocation);

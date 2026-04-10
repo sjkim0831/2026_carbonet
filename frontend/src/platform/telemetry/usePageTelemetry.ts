@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { getCurrentRuntimeRequestPath } from "../../app/routes/runtime";
 import { publishTelemetryEvent } from "./events";
 import { initializeTraceContext, updateCurrentPage } from "./traceContext";
 
@@ -11,7 +12,7 @@ export function usePageTelemetry(pageId: string, locale: "ko" | "en") {
       type: "page_view",
       pageId,
       payloadSummary: {
-        path: `${window.location.pathname}${window.location.search}`
+        path: getCurrentRuntimeRequestPath()
       }
     });
 

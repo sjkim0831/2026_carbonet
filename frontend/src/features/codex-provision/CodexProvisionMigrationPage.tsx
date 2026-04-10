@@ -2,11 +2,6 @@ import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
-  type CodexHistoryPayload,
-  type CodexProvisionPagePayload,
-  type SrTicketArtifactPayload,
-  type SrTicketDetailPayload,
-  type SrTicketRow,
   deleteCodexSrTicket,
   directExecuteCodexSrTicket,
   executeCodexProvision,
@@ -24,7 +19,14 @@ import {
   remediateCodexHistory,
   skipPlanExecuteCodexSrTicket,
   runCodexLoginCheck
-} from "../../lib/api/client";
+} from "../../lib/api/platform";
+import type {
+  CodexHistoryPayload,
+  CodexProvisionPagePayload,
+  SrTicketArtifactPayload,
+  SrTicketDetailPayload,
+  SrTicketRow
+} from "../../lib/api/platformTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";

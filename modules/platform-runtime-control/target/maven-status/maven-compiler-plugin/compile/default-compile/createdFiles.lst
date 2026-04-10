@@ -8,5 +8,4 @@ egovframework/com/platform/runtimecontrol/model/ProjectPipelineStatusRequest.cla
 egovframework/com/platform/runtimecontrol/model/ProjectPipelineRunRequest.class
 egovframework/com/platform/runtimecontrol/web/RuntimeControlPlaneApiController.class
 egovframework/com/platform/runtimecontrol/service/impl/RuntimeControlPlaneServiceImpl$2.class
-egovframework/com/platform/versioncontrol/mapper/ProjectVersionManagementMapper.class
 egovframework/com/platform/runtimecontrol/web/RuntimeControlPlaneApiController$Action.class

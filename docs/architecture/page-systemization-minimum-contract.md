@@ -124,3 +124,8 @@ One page is systemized enough when:
 - it can be installed into a project through bindings instead of source copy
 - authority scope survives regeneration and deploy
 - validator and rollback surfaces can reason about it without page-local tribal knowledge
+
+Use these closeout documents when the task moves from structure cleanup into productization:
+
+- `docs/architecture/page-systemization-checklist.md`
+- `docs/architecture/builder-install-deploy-closeout-checklist.md`

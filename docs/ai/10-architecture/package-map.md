@@ -12,12 +12,28 @@ For builder resource-ownership continuation questions, read:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
-- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+- supporting guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+- `docs/architecture/builder-resource-app-packaging-evidence-checklist.md`
 
 before deciding which row-specific review card to open next.
 
 Treat those two docs as the single live entry pair for that family.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` only as supporting guidance when continuation state changes.
 If package-map guidance changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
+The active continuation row is `3`.
+The family is in blocker-resolution state across rows `3` and `5`.
+Use the compressed blocker control docs before any docs-only reopen decision:
+
+- `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+- `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+
+Remaining docs-only valid work is only:
+
+- whether a watched source doc changed
+- whether that changed source adds the exact missing sentence bundle
+
+canonical partial phrase is:
+`PARTIAL_DONE: builder resource ownership closure still counts rows 3 and 5 as blockers, rows 1 and 2 now carry bounded DELETE_NOW notes, row 4 now carries a stronger non-blocker note, and unresolved fallback blocker count is <n>.`
 
 ## Backend Packages
 

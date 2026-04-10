@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { type FunctionManagementPagePayload, fetchFunctionManagementPage } from "../../lib/api/client";
+import { fetchFunctionManagementPage } from "../../lib/api/platform";
+import type { FunctionManagementPagePayload } from "../../lib/api/platformTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf, submitFormRequest } from "../admin-system/adminSystemShared";

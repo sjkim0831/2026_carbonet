@@ -5,7 +5,7 @@ import type {
   ScreenBuilderComponentUsage,
   ScreenBuilderNode,
   ScreenBuilderRegistryScanItem
-} from "../../../lib/api/client";
+} from "../../../lib/api/platformTypes";
 import {
   createAiNodeTreeInputRow,
   type AiNodeTreeInputRow,

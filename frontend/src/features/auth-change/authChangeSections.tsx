@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { AuthChangePagePayload } from "../../lib/api/client";
+import type { AuthChangePagePayload } from "../../lib/api/authTypes";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminInput, AdminSelect, AdminTable, DiagnosticCard, GridToolbar, MemberButton, MemberPagination, MemberPermissionButton } from "../admin-ui/common";
 

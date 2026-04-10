@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchCertificateObjectionListPage, type CertificateObjectionListPagePayload } from "../../lib/api/client";
+import { fetchCertificateObjectionListPage } from "../../lib/api/member";
+import type { CertificateObjectionListPagePayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

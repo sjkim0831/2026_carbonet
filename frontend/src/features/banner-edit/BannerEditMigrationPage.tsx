@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchBannerEditPage, saveBannerEditPage, type BannerEditPagePayload } from "../../lib/api/client";
+import { fetchBannerEditPage, saveBannerEditPage } from "../../lib/api/content";
+import type { BannerEditPagePayload } from "../../lib/api/contentTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchEmissionDataHistoryPage, readBootstrappedEmissionDataHistoryPageData, type EmissionDataHistoryPagePayload } from "../../lib/api/client";
+import { readBootstrappedEmissionDataHistoryPageData } from "../../lib/api/bootstrap";
+import { fetchEmissionDataHistoryPage } from "../../lib/api/emission";
+import type { EmissionDataHistoryPagePayload } from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, CollectionResultPanel, GridToolbar, MemberPagination, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

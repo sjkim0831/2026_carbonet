@@ -19,6 +19,27 @@ handing off, blocking, and restarting lanes.
 - `03 대기`
 - `02 대기`
 
+Builder resource ownership reopen set:
+
+- `builder-resource-ownership-current-closeout.md`
+- `builder-resource-ownership-queue-map.md`
+
+Use this as supporting maintenance-contract guidance only:
+
+- `builder-resource-entry-pair-maintenance-contract.md`
+
+Current active continuation target:
+
+- row `5`
+- `executable app resource assembly fallback`
+- blocker-resolution state with row `5` as the remaining blocker
+- `builder-resource-row5-owner-packet.md`
+- compressed blocker control docs:
+  - `builder-resource-blocker-source-sentence-matrix.md`
+  - `builder-resource-blocker-source-trigger-matrix.md`
+- canonical partial phrase:
+  - `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
+
 ## Handoff Commands
 
 - `05 handoff`
@@ -82,6 +103,7 @@ Use with:
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Treat the last two docs above as the single live entry pair for `builder resource ownership 재개`.
+Use `builder-resource-entry-pair-maintenance-contract.md` as supporting guidance when continuation state changes.
 
 If the restart command results in a changed blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
 

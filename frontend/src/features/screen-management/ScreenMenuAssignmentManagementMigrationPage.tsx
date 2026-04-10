@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import {
-  fetchMenuManagementPage,
-  fetchScreenCommandPage,
-  saveScreenCommandMenuMapping,
-  type MenuManagementPagePayload,
-  type ScreenCommandPagePayload
-} from "../../lib/api/client";
+import { fetchMenuManagementPage, fetchScreenCommandPage, saveScreenCommandMenuMapping } from "../../lib/api/platform";
+import type { MenuManagementPagePayload, ScreenCommandPagePayload } from "../../lib/api/platformTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { GridToolbar, KeyValueGridPanel, PageStatusNotice, WarningPanel } from "../admin-ui/common";

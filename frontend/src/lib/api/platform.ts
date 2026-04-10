@@ -1,5 +1,18 @@
 import { buildLocalizedPath } from "../navigation/runtime";
-import { apiFetch, buildAdminApiPath, buildCsrfHeaders, buildResilientCsrfHeaders, readJsonResponse } from "./core";
+import {
+  buildAdminApiPath,
+  buildFormUrlEncoded,
+  buildQueryString,
+  fetchJson,
+  fetchPageJson,
+  fetchValidatedJson,
+  fetchLocalizedPageJson,
+  postAdminValidatedJson,
+  postValidatedJson,
+  postLocalizedValidatedAction,
+  postLocalizedValidatedFormUrlEncoded,
+  postLocalizedValidatedJson,
+} from "./core";
 import { buildPageCacheKey, fetchCachedJson, fetchJsonWithoutCache } from "./pageCache";
 import type {
   AuditEventSearchPayload,
@@ -30,6 +43,7 @@ import type {
   ScreenBuilderPagePayload,
   ScreenBuilderPreviewPayload,
   ScreenBuilderRegistryScanItem,
+  ScreenBuilderStatusSummaryResponse,
   SrTicketArtifactPayload,
   SrTicketDetailPayload,
   SrTicketRow,
@@ -37,9 +51,7 @@ import type {
   SrWorkbenchStackItem,
   TraceEventSearchPayload,
   WbsManagementPagePayload
-} from "./client";
-
-const fetch = apiFetch;
+} from "./platformTypes";
 
 function buildVersionControlApiPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
@@ -49,62 +61,28 @@ function buildVersionControlApiPath(path: string): string {
   );
 }
 
-async function fetchLocalizedPageData<T>(
-  koPath: string,
-  enPath: string,
-  options?: {
-    query?: string;
-    fallbackMessage: string;
-    resolveError?: (body: T, status: number) => string;
-  }
-): Promise<T> {
-  const query = options?.query ? `${options.query}` : "";
-  const response = await fetch(buildLocalizedPath(
-    `${koPath}${query ? `?${query}` : ""}`,
-    `${enPath}${query ? `?${query}` : ""}`
-  ), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<T>(response);
-  if (!response.ok) {
-    throw new Error(options?.resolveError?.(body, response.status) || `${options?.fallbackMessage}: ${response.status}`);
-  }
-  return body;
-}
-
 async function postProjectVersionJson<T>(
   url: string,
   payload: unknown,
   fallback: string,
   requiredFeatureCode: string
 ): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<T & Record<string, unknown>>(response).catch((error) => {
-    if (error instanceof Error && error.message.includes("Authentication required")) {
-      throw error;
+  return postValidatedJson<T & Record<string, unknown>>(url, payload, {
+    fallbackMessage: fallback,
+    init: {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    },
+    resolveError: (body, status) => {
+      if (status === 403) {
+        return String(
+          body.message || `You do not have permission to run this version-management action. Required feature: ${requiredFeatureCode}.`
+        );
+      }
+      return String(body.message || fallback);
     }
-    if (error instanceof Error && error.message.includes("Server returned HTML instead of JSON")) {
-      throw error;
-    }
-    return {} as T & Record<string, unknown>;
-  });
-  if (!response.ok) {
-    if (response.status === 403) {
-      throw new Error(
-        String(body.message || `You do not have permission to run this version-management action. Required feature: ${requiredFeatureCode}.`)
-      );
-    }
-    throw new Error(String(body.message || fallback));
-  }
-  return body as T;
+  }) as Promise<T>;
 }
 
 function versionPermissionError(
@@ -150,84 +128,92 @@ type EnvironmentFeatureImpactResponse = {
   userOverrideCount?: number;
 } & Record<string, unknown>;
 
+function createPlatformPageErrorResolver<T extends Record<string, unknown>>(
+  fallbackMessage: string,
+  errorKey: keyof T & string
+) {
+  return (body: T, status: number) => String(body[errorKey] || `${fallbackMessage}: ${status}`);
+}
+
 export async function fetchFullStackManagementPage(menuType?: string, saved?: string) {
-  const search = new URLSearchParams();
-  if (menuType) search.set("menuType", menuType);
-  if (saved) search.set("saved", saved);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/full-stack-management/page-data${query ? `?${query}` : ""}`, `/en/admin/system/full-stack-management/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.menuMgmtError || `Failed to load full-stack management page: ${response.status}`);
-  return body as MenuManagementPagePayload;
+  const query = buildQueryString({ menuType, saved });
+  const fallbackMessage = "Failed to load full-stack management page";
+  return fetchPageJson<MenuManagementPagePayload>(
+    buildLocalizedPath(
+      `/admin/system/full-stack-management/page-data${query}`,
+      `/en/admin/system/full-stack-management/page-data${query}`
+    ),
+    {
+      fallbackMessage,
+      resolveError: createPlatformPageErrorResolver<MenuManagementPagePayload>(fallbackMessage, "menuMgmtError")
+    }
+  );
 }
 
 export async function fetchWbsManagementPage(menuType?: string) {
-  const search = new URLSearchParams();
-  if (menuType) search.set("menuType", menuType);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/wbs-management/page-data${query ? `?${query}` : ""}`, `/en/admin/system/wbs-management/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load WBS management page: ${response.status}`);
-  return body as WbsManagementPagePayload;
+  const query = buildQueryString({ menuType });
+  return fetchPageJson<WbsManagementPagePayload>(
+    buildLocalizedPath(
+      `/admin/system/wbs-management/page-data${query}`,
+      `/en/admin/system/wbs-management/page-data${query}`
+    ),
+    {
+      fallbackMessage: "Failed to load WBS management page"
+    }
+  );
 }
 
 export async function fetchNewPagePage() {
-  const response = await fetch(buildLocalizedPath("/admin/system/new-page/page-data", "/en/admin/system/new-page/page-data"), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load new page: ${response.status}`);
-  return body as NewPagePagePayload;
+  return fetchPageJson<NewPagePagePayload>(
+    buildLocalizedPath("/admin/system/new-page/page-data", "/en/admin/system/new-page/page-data"),
+    {
+      fallbackMessage: "Failed to load new page"
+    }
+  );
 }
 
 export async function fetchFunctionManagementPage(params?: { menuType?: string; searchMenuCode?: string; searchKeyword?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.menuType) search.set("menuType", params.menuType);
-  if (params?.searchMenuCode) search.set("searchMenuCode", params.searchMenuCode);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const query = search.toString();
-  return fetchLocalizedPageData<FunctionManagementPagePayload>(
+  const fallbackMessage = "Failed to load function management page";
+  const query = buildQueryString({
+    menuType: params?.menuType,
+    searchMenuCode: params?.searchMenuCode,
+    searchKeyword: params?.searchKeyword
+  });
+  return fetchLocalizedPageJson<FunctionManagementPagePayload>(
     "/admin/system/feature-management/page-data",
     "/en/admin/system/feature-management/page-data",
     {
       query,
-      fallbackMessage: "Failed to load function management page",
-      resolveError: (body, status) => body.featureMgmtError || `Failed to load function management page: ${status}`
+      fallbackMessage,
+      resolveError: createPlatformPageErrorResolver<FunctionManagementPagePayload>(fallbackMessage, "featureMgmtError")
     }
   );
 }
 
 export async function fetchMenuManagementPage(menuType?: string, saved?: string) {
-  const search = new URLSearchParams();
-  if (menuType) search.set("menuType", menuType);
-  if (saved) search.set("saved", saved);
-  const query = search.toString();
-  return fetchLocalizedPageData<MenuManagementPagePayload>(
+  const fallbackMessage = "Failed to load menu management page";
+  const query = buildQueryString({ menuType, saved });
+  return fetchLocalizedPageJson<MenuManagementPagePayload>(
     "/admin/system/menu/page-data",
     "/en/admin/system/menu/page-data",
     {
       query,
-      fallbackMessage: "Failed to load menu management page",
-      resolveError: (body, status) => body.menuMgmtError || `Failed to load menu management page: ${status}`
+      fallbackMessage,
+      resolveError: createPlatformPageErrorResolver<MenuManagementPagePayload>(fallbackMessage, "menuMgmtError")
     }
   );
 }
 
 export async function fetchContentMenuManagementPage(saved?: string) {
-  const search = new URLSearchParams();
-  if (saved) search.set("saved", saved);
-  const query = search.toString();
-  return fetchLocalizedPageData<MenuManagementPagePayload>(
+  const fallbackMessage = "Failed to load content menu management page";
+  const query = buildQueryString({ saved });
+  return fetchLocalizedPageJson<MenuManagementPagePayload>(
     "/admin/content/menu/page-data",
     "/en/admin/content/menu/page-data",
     {
       query,
-      fallbackMessage: "Failed to load content menu management page",
-      resolveError: (body, status) => body.menuMgmtError || `Failed to load content menu management page: ${status}`
+      fallbackMessage,
+      resolveError: createPlatformPageErrorResolver<MenuManagementPagePayload>(fallbackMessage, "menuMgmtError")
     }
   );
 }
@@ -238,15 +224,15 @@ export async function fetchScreenBuilderPage(params?: {
   menuTitle?: string;
   menuUrl?: string;
 }) {
-  const search = new URLSearchParams();
-  if (params?.menuCode) search.set("menuCode", params.menuCode);
-  if (params?.pageId) search.set("pageId", params.pageId);
-  if (params?.menuTitle) search.set("menuTitle", params.menuTitle);
-  if (params?.menuUrl) search.set("menuUrl", params.menuUrl);
-  const query = search.toString();
+  const query = buildQueryString({
+    menuCode: params?.menuCode,
+    pageId: params?.pageId,
+    menuTitle: params?.menuTitle,
+    menuUrl: params?.menuUrl
+  });
   return fetchCachedJson<ScreenBuilderPagePayload>({
-    cacheKey: buildPageCacheKey(`screen-builder/page?${query}`),
-    url: `${buildAdminApiPath("/api/platform/screen-builder/page")}${query ? `?${query}` : ""}`,
+    cacheKey: buildPageCacheKey(`screen-builder/page${query}`),
+    url: `${buildAdminApiPath("/api/platform/screen-builder/page")}${query}`,
     mapError: (body, status) => body.screenBuilderMessage || `Failed to load screen builder page: ${status}`
   });
 }
@@ -256,34 +242,32 @@ export async function fetchProjectVersionManagementPage(params?: {
   page?: number;
   pageSize?: number;
 }): Promise<ProjectVersionManagementPagePayload> {
-  const search = new URLSearchParams();
-  if (params?.projectId) search.set("projectId", params.projectId);
-  const overviewQuery = search.toString();
-
-  const paging = new URLSearchParams(search);
-  if (params?.page) paging.set("page", String(params.page));
-  if (params?.pageSize) paging.set("pageSize", String(params.pageSize));
-  const listQuery = paging.toString();
+  const overviewQuery = buildQueryString({ projectId: params?.projectId });
+  const listQuery = buildQueryString({
+    projectId: params?.projectId,
+    page: params?.page,
+    pageSize: params?.pageSize
+  });
 
   const [overview, adapterHistory, releaseUnits, serverDeployState, candidateArtifacts] = await Promise.all([
     fetchJsonWithoutCache<ProjectVersionOverviewPayload>({
-      url: `${buildVersionControlApiPath("/overview")}${overviewQuery ? `?${overviewQuery}` : ""}`,
+      url: `${buildVersionControlApiPath("/overview")}${overviewQuery}`,
       mapError: (body, status) => versionPermissionError(body, status, `Failed to load version overview: ${status}`, "A0060404_VIEW")
     }),
     fetchJsonWithoutCache<ProjectVersionListPayload>({
-      url: `${buildVersionControlApiPath("/adapter-history")}${listQuery ? `?${listQuery}` : ""}`,
+      url: `${buildVersionControlApiPath("/adapter-history")}${listQuery}`,
       mapError: (body, status) => versionPermissionError(body, status, `Failed to load adapter history: ${status}`, "A0060404_VIEW")
     }),
     fetchJsonWithoutCache<ProjectVersionListPayload>({
-      url: `${buildVersionControlApiPath("/release-units")}${listQuery ? `?${listQuery}` : ""}`,
+      url: `${buildVersionControlApiPath("/release-units")}${listQuery}`,
       mapError: (body, status) => versionPermissionError(body, status, `Failed to load release units: ${status}`, "A0060404_VIEW")
     }),
     fetchJsonWithoutCache<ProjectVersionServerStatePayload>({
-      url: `${buildVersionControlApiPath("/server-deploy-state")}${overviewQuery ? `?${overviewQuery}` : ""}`,
+      url: `${buildVersionControlApiPath("/server-deploy-state")}${overviewQuery}`,
       mapError: (body, status) => versionPermissionError(body, status, `Failed to load server deployment state: ${status}`, "A0060404_VIEW")
     }),
     fetchJsonWithoutCache<ProjectVersionListPayload>({
-      url: `${buildVersionControlApiPath("/candidate-artifacts")}${listQuery ? `?${listQuery}` : ""}`,
+      url: `${buildVersionControlApiPath("/candidate-artifacts")}${listQuery}`,
       mapError: (body, status) => versionPermissionError(body, status, `Failed to load candidate artifacts: ${status}`, "A0060404_VIEW")
     })
   ]);
@@ -343,21 +327,47 @@ export async function fetchScreenBuilderPreview(params?: {
   menuUrl?: string;
   versionStatus?: string;
 }) {
-  const search = new URLSearchParams();
-  if (params?.menuCode) search.set("menuCode", params.menuCode);
-  if (params?.pageId) search.set("pageId", params.pageId);
-  if (params?.menuTitle) search.set("menuTitle", params.menuTitle);
-  if (params?.menuUrl) search.set("menuUrl", params.menuUrl);
-  if (params?.versionStatus) search.set("versionStatus", params.versionStatus);
-  const query = search.toString();
-  const response = await fetch(`${buildAdminApiPath("/api/platform/screen-builder/preview")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
+  const query = buildQueryString({
+    menuCode: params?.menuCode,
+    pageId: params?.pageId,
+    menuTitle: params?.menuTitle,
+    menuUrl: params?.menuUrl,
+    versionStatus: params?.versionStatus
   });
-  const body = await readJsonResponse<ScreenBuilderPreviewPayload & Record<string, unknown>>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to load screen builder preview: ${response.status}`));
-  }
-  return body as ScreenBuilderPreviewPayload;
+  return fetchPageJson<ScreenBuilderPreviewPayload & Record<string, unknown>>(
+    `${buildAdminApiPath("/api/platform/screen-builder/preview")}${query}`,
+    {
+      fallbackMessage: "Failed to load screen builder preview",
+      resolveError: (body, status) => String(body.message || `Failed to load screen builder preview: ${status}`)
+    }
+  ) as Promise<ScreenBuilderPreviewPayload>;
+}
+
+export async function fetchScreenBuilderStatusSummary(menuCodes: string[]) {
+  const query = buildQueryString({
+    menuCode: [...new Set(menuCodes.map((item) => item.trim()).filter(Boolean))]
+  });
+  return fetchCachedJson<ScreenBuilderStatusSummaryResponse>({
+    cacheKey: buildPageCacheKey(`screen-builder/status-summary${query}`),
+    url: `${buildAdminApiPath("/api/platform/screen-builder/status-summary")}${query}`,
+    mapError: (_body, status) => `Failed to load screen builder status summary: ${status}`
+  });
+}
+
+export async function rebuildScreenBuilderStatusSummary(menuCodes: string[] = []) {
+  const query = buildQueryString({
+    menuCode: [...new Set(menuCodes.map((item) => item.trim()).filter(Boolean))]
+  });
+  return postAdminValidatedJson<ScreenBuilderStatusSummaryResponse & { success?: boolean; message?: string }>(
+    `/api/platform/screen-builder/status-summary/rebuild${query}`,
+    {},
+    "Failed to rebuild screen builder status summary",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
 }
 
 export async function saveScreenBuilderDraft(payload: {
@@ -366,62 +376,51 @@ export async function saveScreenBuilderDraft(payload: {
   menuTitle: string;
   menuUrl: string;
   templateType: string;
+  authorityProfile?: ScreenBuilderPagePayload["authorityProfile"];
   nodes: ScreenBuilderNode[];
   events: ScreenBuilderEventBinding[];
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/draft"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to save screen builder draft: ${response.status}`));
-  }
-  return body;
+  return postAdminValidatedJson<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/platform/screen-builder/draft",
+    payload,
+    "Failed to save screen builder draft",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
 }
 
 export async function restoreScreenBuilderDraft(payload: {
   menuCode: string;
   versionId: string;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/restore"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to restore screen builder draft: ${response.status}`));
-  }
-  return body;
+  return postAdminValidatedJson<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/platform/screen-builder/restore",
+    payload,
+    "Failed to restore screen builder draft",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
 }
 
 export async function publishScreenBuilderDraft(payload: {
   menuCode: string;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/publish"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to publish screen builder draft: ${response.status}`));
-  }
-  return body;
+  return postAdminValidatedJson<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/platform/screen-builder/publish",
+    payload,
+    "Failed to publish screen builder draft",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
 }
 
 export async function registerScreenBuilderComponent(payload: {
@@ -435,18 +434,18 @@ export async function registerScreenBuilderComponent(payload: {
   description?: string;
   propsTemplate?: Record<string, unknown>;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/component-registry"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; item?: ScreenBuilderComponentRegistryItem } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success || !body.item) {
-    throw new Error(String(body.message || `Failed to register screen builder component: ${response.status}`));
+  const body = await postAdminValidatedJson<{ success?: boolean; message?: string; item?: ScreenBuilderComponentRegistryItem } & Record<string, unknown>>(
+    "/api/platform/screen-builder/component-registry",
+    payload,
+    "Failed to register screen builder component",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
+  if (!body.item) {
+    throw new Error(String(body.message || "Failed to register screen builder component"));
   }
   return body as { success: boolean; message?: string; item: ScreenBuilderComponentRegistryItem };
 }
@@ -462,49 +461,45 @@ export async function updateScreenBuilderComponentRegistry(payload: {
   propsTemplate?: Record<string, unknown>;
   menuCode?: string;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/update"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; item?: ScreenBuilderComponentRegistryItem } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success || !body.item) {
-    throw new Error(String(body.message || `Failed to update screen builder component registry: ${response.status}`));
+  const body = await postAdminValidatedJson<{ success?: boolean; message?: string; item?: ScreenBuilderComponentRegistryItem } & Record<string, unknown>>(
+    "/api/platform/screen-builder/component-registry/update",
+    payload,
+    "Failed to update screen builder component registry",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
+  if (!body.item) {
+    throw new Error(String(body.message || "Failed to update screen builder component registry"));
   }
   return body as { success: boolean; message?: string; item: ScreenBuilderComponentRegistryItem };
 }
 
 export async function fetchScreenBuilderComponentRegistryUsage(componentId: string) {
-  const response = await fetch(buildAdminApiPath(`/api/platform/screen-builder/component-registry/usage?componentId=${encodeURIComponent(componentId)}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<{ componentId?: string; items?: ScreenBuilderComponentUsage[] } & Record<string, unknown>>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to load component usage: ${response.status}`));
-  }
-  return body as { componentId: string; items: ScreenBuilderComponentUsage[] };
+  return fetchPageJson<{ componentId?: string; items?: ScreenBuilderComponentUsage[] } & Record<string, unknown>>(
+    buildAdminApiPath(`/api/platform/screen-builder/component-registry/usage?componentId=${encodeURIComponent(componentId)}`),
+    {
+      fallbackMessage: "Failed to load component usage",
+      resolveError: (body, status) => String(body.message || `Failed to load component usage: ${status}`)
+    }
+  ) as Promise<{ componentId: string; items: ScreenBuilderComponentUsage[] }>;
 }
 
 export async function deleteScreenBuilderComponentRegistryItem(payload: {
   componentId: string;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/delete"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to delete screen builder component: ${response.status}`));
-  }
+  const body = await postAdminValidatedJson<{ success?: boolean; message?: string } & Record<string, unknown>>(
+    "/api/platform/screen-builder/component-registry/delete",
+    payload,
+    "Failed to delete screen builder component",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
   return body as { success: boolean; message?: string };
 }
 
@@ -512,69 +507,59 @@ export async function remapScreenBuilderComponentRegistryUsage(payload: {
   fromComponentId: string;
   toComponentId: string;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/remap"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; updatedDraftCount?: number; updatedPublishedCount?: number } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to remap screen builder component usage: ${response.status}`));
-  }
+  const body = await postAdminValidatedJson<{ success?: boolean; message?: string; updatedDraftCount?: number; updatedPublishedCount?: number } & Record<string, unknown>>(
+    "/api/platform/screen-builder/component-registry/remap",
+    payload,
+    "Failed to remap screen builder component usage",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
   return body as { success: boolean; message?: string; updatedDraftCount?: number; updatedPublishedCount?: number };
 }
 
 export async function autoReplaceDeprecatedScreenBuilderComponents(payload: {
   menuCode: string;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/auto-replace"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; replacedCount?: number } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to auto replace deprecated components: ${response.status}`));
-  }
+  const body = await postAdminValidatedJson<{ success?: boolean; message?: string; replacedCount?: number } & Record<string, unknown>>(
+    "/api/platform/screen-builder/component-registry/auto-replace",
+    payload,
+    "Failed to auto replace deprecated components",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
   return body as { success: boolean; message?: string; replacedCount?: number };
 }
 
 export async function previewAutoReplaceDeprecatedScreenBuilderComponents(payload: {
   menuCode: string;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/auto-replace-preview"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ replacedCount?: number; items?: ScreenBuilderAutoReplacePreviewItem[] } & Record<string, unknown>>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to preview deprecated component replacement: ${response.status}`));
-  }
+  const body = await postAdminValidatedJson<{ replacedCount?: number; items?: ScreenBuilderAutoReplacePreviewItem[] } & Record<string, unknown>>(
+    "/api/platform/screen-builder/component-registry/auto-replace-preview",
+    payload,
+    "Failed to preview deprecated component replacement",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
   return body as { replacedCount: number; items: ScreenBuilderAutoReplacePreviewItem[] };
 }
 
 export async function scanScreenBuilderRegistryDiagnostics() {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/scan"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<{ items?: ScreenBuilderRegistryScanItem[]; totalCount?: number } & Record<string, unknown>>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to scan screen builder registry diagnostics: ${response.status}`));
-  }
-  return body as { items: ScreenBuilderRegistryScanItem[]; totalCount: number };
+  return fetchPageJson<{ items?: ScreenBuilderRegistryScanItem[]; totalCount?: number } & Record<string, unknown>>(
+    buildAdminApiPath("/api/platform/screen-builder/component-registry/scan"),
+    {
+      fallbackMessage: "Failed to scan screen builder registry diagnostics",
+      resolveError: (body, status) => String(body.message || `Failed to scan screen builder registry diagnostics: ${status}`)
+    }
+  ) as Promise<{ items: ScreenBuilderRegistryScanItem[]; totalCount: number }>;
 }
 
 export async function addScreenBuilderNodeFromComponent(payload: {
@@ -583,19 +568,16 @@ export async function addScreenBuilderNodeFromComponent(payload: {
   parentNodeId?: string;
   props?: Record<string, unknown>;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/add-node"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; nodeId?: string; componentId?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to add node from registered component: ${response.status}`));
-  }
+  const body = await postAdminValidatedJson<{ success?: boolean; message?: string; nodeId?: string; componentId?: string } & Record<string, unknown>>(
+    "/api/platform/screen-builder/component-registry/add-node",
+    payload,
+    "Failed to add node from registered component",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
   return body as { success: boolean; message?: string; nodeId?: string; componentId?: string };
 }
 
@@ -609,19 +591,16 @@ export async function addScreenBuilderNodeTreeFromComponents(payload: {
     props?: Record<string, unknown>;
   }>;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/add-node-tree"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; addedCount?: number; items?: Array<Record<string, unknown>> } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to add node tree from components: ${response.status}`));
-  }
+  const body = await postAdminValidatedJson<{ success?: boolean; message?: string; addedCount?: number; items?: Array<Record<string, unknown>> } & Record<string, unknown>>(
+    "/api/platform/screen-builder/component-registry/add-node-tree",
+    payload,
+    "Failed to add node tree from components",
+    {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
   return body as { success: boolean; message?: string; addedCount?: number; items?: Array<Record<string, unknown>> };
 }
 
@@ -634,56 +613,38 @@ export async function updateEnvironmentManagedPage(payload: {
   menuIcon: string;
   useAt: string;
 }) {
-  const form = new URLSearchParams();
-  form.set("menuType", payload.menuType);
-  form.set("code", payload.code);
-  form.set("codeNm", payload.codeNm);
-  form.set("codeDc", payload.codeDc);
-  form.set("menuUrl", payload.menuUrl);
-  form.set("menuIcon", payload.menuIcon);
-  form.set("useAt", payload.useAt);
-  const response = await fetch(buildLocalizedPath("/admin/system/environment-management/page/update", "/en/admin/system/environment-management/page/update"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; code?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to update environment managed page: ${response.status}`);
-  return body;
+  const form = buildFormUrlEncoded(payload);
+  return postLocalizedValidatedFormUrlEncoded<{ success?: boolean; message?: string; code?: string } & Record<string, unknown>>(
+    "/admin/system/environment-management/page/update",
+    "/en/admin/system/environment-management/page/update",
+    form,
+    "Failed to update environment managed page"
+  );
 }
 
 export async function fetchEnvironmentManagedPageImpact(menuType: string, code: string) {
-  const query = new URLSearchParams();
-  query.set("menuType", menuType);
-  query.set("code", code);
-  const response = await fetch(buildLocalizedPath(`/admin/system/environment-management/page-impact?${query.toString()}`, `/en/admin/system/environment-management/page-impact?${query.toString()}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<EnvironmentManagedPageImpactResponse>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to load environment managed page impact: ${response.status}`);
-  return body;
+  const query = buildQueryString({ menuType, code });
+  return fetchValidatedJson<EnvironmentManagedPageImpactResponse>(
+    buildLocalizedPath(
+      `/admin/system/environment-management/page-impact${query}`,
+      `/en/admin/system/environment-management/page-impact${query}`
+    ),
+    {
+      fallbackMessage: "Failed to load environment managed page impact",
+      resolveError: (body, status) => body.message || `Failed to load environment managed page impact: ${status}`,
+      validate: (body) => body.success !== false
+    }
+  );
 }
 
 export async function deleteEnvironmentManagedPage(menuType: string, code: string) {
-  const form = new URLSearchParams();
-  form.set("menuType", menuType);
-  form.set("code", code);
-  const response = await fetch(buildLocalizedPath("/admin/system/environment-management/page/delete", "/en/admin/system/environment-management/page/delete"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<EnvironmentManagedPageDeleteResponse>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to delete environment managed page: ${response.status}`);
-  return body;
+  const form = buildFormUrlEncoded({ menuType, code });
+  return postLocalizedValidatedFormUrlEncoded<EnvironmentManagedPageDeleteResponse>(
+    "/admin/system/environment-management/page/delete",
+    "/en/admin/system/environment-management/page/delete",
+    form,
+    "Failed to delete environment managed page"
+  );
 }
 
 export async function updateEnvironmentFeature(payload: {
@@ -695,53 +656,35 @@ export async function updateEnvironmentFeature(payload: {
   featureDc: string;
   useAt: string;
 }) {
-  const form = new URLSearchParams();
-  form.set("menuType", payload.menuType);
-  form.set("menuCode", payload.menuCode);
-  form.set("featureCode", payload.featureCode);
-  form.set("featureNm", payload.featureNm);
-  form.set("featureNmEn", payload.featureNmEn);
-  form.set("featureDc", payload.featureDc);
-  form.set("useAt", payload.useAt);
-  const response = await fetch(buildLocalizedPath("/admin/system/environment-management/feature/update", "/en/admin/system/environment-management/feature/update"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; featureCode?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to update environment feature: ${response.status}`);
-  return body;
+  const form = buildFormUrlEncoded(payload);
+  return postLocalizedValidatedFormUrlEncoded<{ success?: boolean; message?: string; featureCode?: string } & Record<string, unknown>>(
+    "/admin/system/environment-management/feature/update",
+    "/en/admin/system/environment-management/feature/update",
+    form,
+    "Failed to update environment feature"
+  );
 }
 
 export async function fetchEnvironmentFeatureImpact(featureCode: string) {
-  const query = `?featureCode=${encodeURIComponent(featureCode)}`;
-  const response = await fetch(buildLocalizedPath(`/admin/system/environment-management/feature-impact${query}`, `/en/admin/system/environment-management/feature-impact${query}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<EnvironmentFeatureImpactResponse>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to load environment feature impact: ${response.status}`);
-  return body;
+  const query = buildQueryString({ featureCode });
+  return fetchValidatedJson<EnvironmentFeatureImpactResponse>(
+    buildLocalizedPath(`/admin/system/environment-management/feature-impact${query}`, `/en/admin/system/environment-management/feature-impact${query}`),
+    {
+      fallbackMessage: "Failed to load environment feature impact",
+      resolveError: (body, status) => body.message || `Failed to load environment feature impact: ${status}`,
+      validate: (body) => body.success !== false
+    }
+  );
 }
 
 export async function deleteEnvironmentFeature(featureCode: string) {
-  const form = new URLSearchParams();
-  form.set("featureCode", featureCode);
-  const response = await fetch(buildLocalizedPath("/admin/system/environment-management/feature/delete", "/en/admin/system/environment-management/feature/delete"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<EnvironmentFeatureImpactResponse>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to delete environment feature: ${response.status}`);
-  return body;
+  const form = buildFormUrlEncoded({ featureCode });
+  return postLocalizedValidatedFormUrlEncoded<EnvironmentFeatureImpactResponse>(
+    "/admin/system/environment-management/feature/delete",
+    "/en/admin/system/environment-management/feature/delete",
+    form,
+    "Failed to delete environment feature"
+  );
 }
 
 export async function fetchPageManagementPage(params?: {
@@ -754,173 +697,172 @@ export async function fetchPageManagementPage(params?: {
   deletedRoleRefs?: string;
   deletedUserOverrides?: string;
 }) {
-  const search = new URLSearchParams();
-  if (params?.menuType) search.set("menuType", params.menuType);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.searchUrl) search.set("searchUrl", params.searchUrl);
-  if (params?.autoFeature) search.set("autoFeature", params.autoFeature);
-  if (params?.updated) search.set("updated", params.updated);
-  if (params?.deleted) search.set("deleted", params.deleted);
-  if (params?.deletedRoleRefs) search.set("deletedRoleRefs", params.deletedRoleRefs);
-  if (params?.deletedUserOverrides) search.set("deletedUserOverrides", params.deletedUserOverrides);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/page-management/page-data${query ? `?${query}` : ""}`, `/en/admin/system/page-management/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
+  const query = buildQueryString({
+    menuType: params?.menuType,
+    searchKeyword: params?.searchKeyword,
+    searchUrl: params?.searchUrl,
+    autoFeature: params?.autoFeature,
+    updated: params?.updated,
+    deleted: params?.deleted,
+    deletedRoleRefs: params?.deletedRoleRefs,
+    deletedUserOverrides: params?.deletedUserOverrides
   });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.pageMgmtError || `Failed to load page management page: ${response.status}`);
-  return body as PageManagementPagePayload;
+  return fetchLocalizedPageJson<PageManagementPagePayload>(
+    "/admin/system/page-management/page-data",
+    "/en/admin/system/page-management/page-data",
+    {
+      query,
+      fallbackMessage: "Failed to load page management page",
+      resolveError: (body, status) => body.pageMgmtError || `Failed to load page management page: ${status}`
+    }
+  );
 }
 
 export async function fetchCodexProvisionPage() {
-  const response = await fetch(buildLocalizedPath("/admin/system/codex-request/page-data", "/en/admin/system/codex-request/page-data"), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load Codex provision page: ${response.status}`);
-  return body as CodexProvisionPagePayload;
+  return fetchPageJson<CodexProvisionPagePayload>(
+    buildLocalizedPath("/admin/system/codex-request/page-data", "/en/admin/system/codex-request/page-data"),
+    {
+      fallbackMessage: "Failed to load Codex provision page"
+    }
+  );
 }
 
 export async function runCodexLoginCheck() {
-  const response = await fetch(buildLocalizedPath("/admin/system/codex-request/login", "/en/admin/system/codex-request/login"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return postLocalizedValidatedAction<Record<string, unknown>>(
+    "/admin/system/codex-request/login",
+    "/en/admin/system/codex-request/login",
+    "Failed to run Codex login check"
+  );
 }
 
 export async function executeCodexProvision(payload: Record<string, unknown>) {
-  const response = await fetch(buildLocalizedPath("/admin/system/codex-request/execute", "/en/admin/system/codex-request/execute"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({ "Content-Type": "application/json", Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return postLocalizedValidatedJson<Record<string, unknown>>(
+    "/admin/system/codex-request/execute",
+    "/en/admin/system/codex-request/execute",
+    payload,
+    "Failed to execute Codex provision"
+  );
 }
 
 export async function fetchCodexHistory() {
-  const response = await fetch(buildLocalizedPath("/admin/system/codex-request/history", "/en/admin/system/codex-request/history"), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<CodexHistoryPayload>(response);
+  return fetchJson<CodexHistoryPayload>(
+    buildLocalizedPath("/admin/system/codex-request/history", "/en/admin/system/codex-request/history"),
+    {
+      headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+    }
+  );
 }
 
 export async function inspectCodexHistory(logId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/history/${encodeURIComponent(logId)}/inspect`, `/en/admin/system/codex-request/history/${encodeURIComponent(logId)}/inspect`), {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return postLocalizedValidatedAction<Record<string, unknown>>(
+    `/admin/system/codex-request/history/${encodeURIComponent(logId)}/inspect`,
+    `/en/admin/system/codex-request/history/${encodeURIComponent(logId)}/inspect`,
+    "Failed to inspect Codex history"
+  );
 }
 
 export async function remediateCodexHistory(logId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/history/${encodeURIComponent(logId)}/remediate`, `/en/admin/system/codex-request/history/${encodeURIComponent(logId)}/remediate`), {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
+  return postLocalizedValidatedAction<Record<string, unknown>>(
+    `/admin/system/codex-request/history/${encodeURIComponent(logId)}/remediate`,
+    `/en/admin/system/codex-request/history/${encodeURIComponent(logId)}/remediate`,
+    "Failed to remediate Codex history"
+  );
 }
 
 export async function prepareCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/prepare`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/prepare`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postLocalizedValidatedAction<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/prepare`,
+    `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/prepare`,
+    "Failed to prepare Codex SR ticket"
+  );
 }
 
 export async function planCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/plan`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/plan`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postLocalizedValidatedAction<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/plan`,
+    `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/plan`,
+    "Failed to plan Codex SR ticket"
+  );
 }
 
 export async function executeCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/execute`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/execute`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postLocalizedValidatedAction<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/execute`,
+    `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/execute`,
+    "Failed to execute Codex SR ticket"
+  );
 }
 
 export async function directExecuteCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/direct-execute`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/direct-execute`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postLocalizedValidatedAction<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/direct-execute`,
+    `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/direct-execute`,
+    "Failed to direct execute Codex SR ticket"
+  );
 }
 
 export async function queueDirectExecuteCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/queue-direct-execute`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/queue-direct-execute`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow; executionLanes?: Array<Record<string, unknown>> }>(response);
+  return postLocalizedValidatedAction<{ success: boolean; message: string; ticket: SrTicketRow; executionLanes?: Array<Record<string, unknown>> }>(
+    `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/queue-direct-execute`,
+    `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/queue-direct-execute`,
+    "Failed to queue direct execute Codex SR ticket"
+  );
 }
 
 export async function skipPlanExecuteCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/skip-plan-execute`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/skip-plan-execute`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postLocalizedValidatedAction<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/skip-plan-execute`,
+    `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/skip-plan-execute`,
+    "Failed to skip-plan execute Codex SR ticket"
+  );
 }
 
 export async function reissueCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/reissue`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/reissue`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow; sourceTicketId: string }>(response);
+  return postLocalizedValidatedAction<{ success: boolean; message: string; ticket: SrTicketRow; sourceTicketId: string }>(
+    `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/reissue`,
+    `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/reissue`,
+    "Failed to reissue Codex SR ticket"
+  );
 }
 
 export async function rollbackCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/rollback`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/rollback`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postLocalizedValidatedAction<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/rollback`,
+    `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/rollback`,
+    "Failed to rollback Codex SR ticket"
+  );
 }
 
 export async function deleteCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/delete`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/delete`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; deletedTicketId: string }>(response);
+  return postLocalizedValidatedAction<{ success: boolean; message: string; deletedTicketId: string }>(
+    `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/delete`,
+    `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/delete`,
+    "Failed to delete Codex SR ticket"
+  );
 }
 
 export async function fetchCodexSrTicketDetail(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<SrTicketDetailPayload>(response);
+  return fetchJson<SrTicketDetailPayload>(
+    buildLocalizedPath(
+      `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}`,
+      `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}`
+    ),
+    {
+      headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+    }
+  );
 }
 
 export async function fetchCodexSrTicketArtifact(ticketId: string, artifactType: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/artifacts/${encodeURIComponent(artifactType)}`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/artifacts/${encodeURIComponent(artifactType)}`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<SrTicketArtifactPayload>(response);
+  return fetchJson<SrTicketArtifactPayload>(
+    buildLocalizedPath(
+      `/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/artifacts/${encodeURIComponent(artifactType)}`,
+      `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/artifacts/${encodeURIComponent(artifactType)}`
+    ),
+    {
+      headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+    }
+  );
 }
 
 export async function fetchAuditEvents(params?: {
@@ -934,21 +876,13 @@ export async function fetchAuditEvents(params?: {
   resultStatus?: string;
   searchKeyword?: string;
 }): Promise<AuditEventSearchPayload> {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.pageSize) search.set("pageSize", String(params.pageSize));
-  if (params?.traceId) search.set("traceId", params.traceId);
-  if (params?.actorId) search.set("actorId", params.actorId);
-  if (params?.actionCode) search.set("actionCode", params.actionCode);
-  if (params?.menuCode) search.set("menuCode", params.menuCode);
-  if (params?.pageId) search.set("pageId", params.pageId);
-  if (params?.resultStatus) search.set("resultStatus", params.resultStatus);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/observability/audit-events")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include",
-    apiId: "admin.observability.audit-events.search"
-  });
-  return readJsonResponse<AuditEventSearchPayload>(response);
+  const query = buildQueryString(params);
+  return fetchJson<AuditEventSearchPayload>(
+    `${buildAdminApiPath("/api/admin/observability/audit-events")}${query}`,
+    {
+      apiId: "admin.observability.audit-events.search"
+    }
+  );
 }
 
 export async function fetchTraceEvents(params?: {
@@ -963,31 +897,23 @@ export async function fetchTraceEvents(params?: {
   resultCode?: string;
   searchKeyword?: string;
 }): Promise<TraceEventSearchPayload> {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.pageSize) search.set("pageSize", String(params.pageSize));
-  if (params?.traceId) search.set("traceId", params.traceId);
-  if (params?.pageId) search.set("pageId", params.pageId);
-  if (params?.componentId) search.set("componentId", params.componentId);
-  if (params?.functionId) search.set("functionId", params.functionId);
-  if (params?.apiId) search.set("apiId", params.apiId);
-  if (params?.eventType) search.set("eventType", params.eventType);
-  if (params?.resultCode) search.set("resultCode", params.resultCode);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/observability/trace-events")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include",
-    apiId: "admin.observability.trace-events.search"
-  });
-  return readJsonResponse<TraceEventSearchPayload>(response);
+  const query = buildQueryString(params);
+  return fetchJson<TraceEventSearchPayload>(
+    `${buildAdminApiPath("/api/admin/observability/trace-events")}${query}`,
+    {
+      apiId: "admin.observability.trace-events.search"
+    }
+  );
 }
 
 export async function fetchHelpManagementPage(pageId: string): Promise<HelpManagementPagePayload> {
-  const query = pageId ? `?pageId=${encodeURIComponent(pageId)}` : "";
-  const response = await fetch(`${buildAdminApiPath("/api/platform/help-management/page")}${query}`, {
-    credentials: "include",
-    apiId: "admin.help-management.page"
+  const query = buildQueryString({ pageId });
+  return fetchPageJson<HelpManagementPagePayload>(`${buildAdminApiPath("/api/platform/help-management/page")}${query}`, {
+    init: {
+      apiId: "admin.help-management.page"
+    },
+    fallbackMessage: "Failed to load help management page"
   });
-  return readJsonResponse<HelpManagementPagePayload>(response);
 }
 
 export async function saveHelpManagementPage(payload: {
@@ -998,25 +924,27 @@ export async function saveHelpManagementPage(payload: {
   activeYn: string;
   items: HelpManagementItem[];
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/help-management/save"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.help-management.save",
-    headers: buildCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; pageId: string; message: string }>(response);
+  return postAdminValidatedJson<{ success: boolean; pageId: string; message: string }>(
+    "/api/platform/help-management/save",
+    payload,
+    "Failed to save help management page",
+    {
+      apiId: "admin.help-management.save",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    } as RequestInit
+  );
 }
 
 export async function fetchScreenCommandPage(pageId: string): Promise<ScreenCommandPagePayload> {
-  const query = pageId ? `?pageId=${encodeURIComponent(pageId)}` : "";
-  const response = await fetch(`${buildAdminApiPath("/api/platform/help-management/screen-command/page")}${query}`, {
-    credentials: "include",
-    apiId: "admin.help-management.screen-command.page"
+  const query = buildQueryString({ pageId });
+  return fetchPageJson<ScreenCommandPagePayload>(`${buildAdminApiPath("/api/platform/help-management/screen-command/page")}${query}`, {
+    init: {
+      apiId: "admin.help-management.screen-command.page"
+    },
+    fallbackMessage: "Failed to load screen command page"
   });
-  return readJsonResponse<ScreenCommandPagePayload>(response);
 }
 
 export async function saveScreenCommandMenuMapping(payload: {
@@ -1026,38 +954,32 @@ export async function saveScreenCommandMenuMapping(payload: {
   menuUrl: string;
   domainCode: string;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/help-management/screen-command/map-menu"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.help-management.screen-command.map-menu",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; pageId: string; menuCode: string; routePath: string }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; pageId: string; menuCode: string; routePath: string }>(
+    "/api/platform/help-management/screen-command/map-menu",
+    payload,
+    "Failed to save screen command menu mapping",
+    {
+      apiId: "admin.help-management.screen-command.map-menu"
+    } as RequestInit
+  );
 }
 
 export async function fetchFullStackGovernanceRegistry(menuCode: string): Promise<FullStackGovernanceRegistryEntry> {
-  const query = menuCode ? `?menuCode=${encodeURIComponent(menuCode)}` : "";
-  const response = await fetch(`/api/admin/full-stack-management/registry${query}`, {
-    credentials: "include",
+  const query = buildQueryString({ menuCode });
+  return fetchJson<FullStackGovernanceRegistryEntry>(`/api/admin/full-stack-management/registry${query}`, {
     apiId: "admin.full-stack-management.registry"
   });
-  return readJsonResponse<FullStackGovernanceRegistryEntry>(response);
 }
 
 export async function saveFullStackGovernanceRegistry(payload: FullStackGovernanceRegistryEntry) {
-  const response = await fetch("/api/admin/full-stack-management/registry", {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.full-stack-management.registry-save",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; entry: FullStackGovernanceRegistryEntry }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; entry: FullStackGovernanceRegistryEntry }>(
+    "/api/admin/full-stack-management/registry",
+    payload,
+    "Failed to save full-stack governance registry",
+    {
+      apiId: "admin.full-stack-management.registry-save"
+    } as RequestInit
+  );
 }
 
 export async function saveWbsManagementEntry(payload: {
@@ -1075,38 +997,35 @@ export async function saveWbsManagementEntry(payload: {
   notes: string;
   codexInstruction: string;
 }) {
-  const response = await fetch("/api/admin/wbs-management/entry", {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.wbs-management.entry-save",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; entry: Record<string, unknown> }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; entry: Record<string, unknown> }>(
+    "/api/admin/wbs-management/entry",
+    payload,
+    "Failed to save WBS management entry",
+    {
+      apiId: "admin.wbs-management.entry-save"
+    } as RequestInit
+  );
 }
 
 export async function autoCollectFullStackGovernanceRegistry(payload: FullStackGovernanceAutoCollectRequest) {
-  const response = await fetch("/api/admin/full-stack-management/registry/auto-collect", {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.full-stack-management.registry-auto-collect",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; entry: FullStackGovernanceRegistryEntry }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; entry: FullStackGovernanceRegistryEntry }>(
+    "/api/admin/full-stack-management/registry/auto-collect",
+    payload,
+    "Failed to auto-collect full-stack governance registry",
+    {
+      apiId: "admin.full-stack-management.registry-auto-collect"
+    } as RequestInit
+  );
 }
 
 export async function fetchSrWorkbenchPage(pageId: string): Promise<SrWorkbenchPagePayload> {
-  const query = pageId ? `?pageId=${encodeURIComponent(pageId)}` : "";
-  const response = await fetch(`${buildAdminApiPath("/api/platform/workbench/page")}${query}`, {
-    credentials: "include",
-    apiId: "admin.sr-workbench.page"
+  const query = buildQueryString({ pageId });
+  return fetchPageJson<SrWorkbenchPagePayload>(`${buildAdminApiPath("/api/platform/workbench/page")}${query}`, {
+    init: {
+      apiId: "admin.sr-workbench.page"
+    },
+    fallbackMessage: "Failed to load SR workbench page"
   });
-  return readJsonResponse<SrWorkbenchPagePayload>(response);
 }
 
 export async function createSrTicket(payload: {
@@ -1128,16 +1047,14 @@ export async function createSrTicket(payload: {
   commandPrompt: string;
   stackItemIds?: string[];
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/workbench/tickets"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.create",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    "/api/platform/workbench/tickets",
+    payload,
+    "Failed to create SR ticket",
+    {
+      apiId: "admin.sr-workbench.ticket.create"
+    } as RequestInit
+  );
 }
 
 export async function quickExecuteSrTicket(payload: {
@@ -1159,16 +1076,14 @@ export async function quickExecuteSrTicket(payload: {
   commandPrompt: string;
   stackItemIds?: string[];
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/workbench/quick-execute"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.quick-execute",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow; ticketId: string }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; ticket: SrTicketRow; ticketId: string }>(
+    "/api/platform/workbench/quick-execute",
+    payload,
+    "Failed to quick-execute SR ticket",
+    {
+      apiId: "admin.sr-workbench.ticket.quick-execute"
+    } as RequestInit
+  );
 }
 
 export async function addSrWorkbenchStackItem(payload: {
@@ -1191,97 +1106,100 @@ export async function addSrWorkbenchStackItem(payload: {
   traceId: string;
   requestId: string;
 }) {
-  const response = await fetch(buildAdminApiPath("/api/platform/workbench/stack-items"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.stack-item.create",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; stackItem: SrWorkbenchStackItem }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; stackItem: SrWorkbenchStackItem }>(
+    "/api/platform/workbench/stack-items",
+    payload,
+    "Failed to add SR workbench stack item",
+    {
+      apiId: "admin.sr-workbench.stack-item.create"
+    } as RequestInit
+  );
 }
 
 export async function removeSrWorkbenchStackItem(stackItemId: string) {
-  const response = await fetch(buildAdminApiPath(`/api/platform/workbench/stack-items/${encodeURIComponent(stackItemId)}/delete`), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.stack-item.delete",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; removedCount: number }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; removedCount: number }>(
+    `/api/platform/workbench/stack-items/${encodeURIComponent(stackItemId)}/delete`,
+    {},
+    "Failed to remove SR workbench stack item",
+    {
+      apiId: "admin.sr-workbench.stack-item.delete"
+    } as RequestInit
+  );
 }
 
 export async function clearSrWorkbenchStack() {
-  const response = await fetch(buildAdminApiPath("/api/platform/workbench/stack-items/clear"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.stack-item.clear",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string }>(
+    "/api/platform/workbench/stack-items/clear",
+    {},
+    "Failed to clear SR workbench stack",
+    {
+      apiId: "admin.sr-workbench.stack-item.clear"
+    } as RequestInit
+  );
 }
 
 export async function approveSrTicket(ticketId: string, decision: "APPROVE" | "REJECT", comment: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/approve`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.approve",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify({ decision, comment })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/approve`,
+    { decision, comment },
+    "Failed to approve SR ticket",
+    {
+      apiId: "admin.sr-workbench.ticket.approve"
+    } as RequestInit
+  );
 }
 
 export async function prepareSrExecution(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/prepare-execution`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.prepare-execution",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/prepare-execution`,
+    {},
+    "Failed to prepare SR execution",
+    {
+      apiId: "admin.sr-workbench.ticket.prepare-execution"
+    } as RequestInit
+  );
 }
 
 export async function planSrTicket(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/plan`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.plan",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/plan`,
+    {},
+    "Failed to plan SR ticket",
+    {
+      apiId: "admin.sr-workbench.ticket.plan"
+    } as RequestInit
+  );
 }
 
 export async function executeSrTicket(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/execute`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.execute",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/execute`,
+    {},
+    "Failed to execute SR ticket",
+    {
+      apiId: "admin.sr-workbench.ticket.execute"
+    } as RequestInit
+  );
 }
 
 export async function directExecuteSrTicket(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/direct-execute`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.direct-execute",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/direct-execute`,
+    {},
+    "Failed to direct-execute SR ticket",
+    {
+      apiId: "admin.sr-workbench.ticket.direct-execute"
+    } as RequestInit
+  );
 }
 
 export async function skipPlanExecuteSrTicket(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/skip-plan-execute`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.skip-plan-execute",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+  return postAdminValidatedJson<{ success: boolean; message: string; ticket: SrTicketRow }>(
+    `/api/platform/workbench/tickets/${encodeURIComponent(ticketId)}/skip-plan-execute`,
+    {},
+    "Failed to skip-plan execute SR ticket",
+    {
+      apiId: "admin.sr-workbench.ticket.skip-plan-execute"
+    } as RequestInit
+  );
 }

@@ -2,10 +2,10 @@ import { useEffect, useMemo } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
-  fetchEmissionSiteManagementPage,
-  readBootstrappedEmissionSiteManagementPageData,
-  type EmissionSiteManagementPagePayload
-} from "../../lib/api/client";
+  readBootstrappedEmissionSiteManagementPageData
+} from "../../lib/api/bootstrap";
+import { fetchEmissionSiteManagementPage } from "../../lib/api/emission";
+import type { EmissionSiteManagementPagePayload } from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 

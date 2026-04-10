@@ -1,5 +1,5 @@
 import type { ChangeEvent, ReactNode } from "react";
-import type { ScreenCommandPagePayload } from "../../lib/api/client";
+import type { ScreenCommandPagePayload } from "../../lib/api/platformTypes";
 import { AdminInput, CollectionResultPanel, KeyValueGridPanel, SummaryMetricCard } from "../admin-ui/common";
 
 type SummaryMetricItem = {

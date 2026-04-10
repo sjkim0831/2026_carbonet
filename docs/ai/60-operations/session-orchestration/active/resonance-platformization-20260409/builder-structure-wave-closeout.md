@@ -33,6 +33,12 @@ Updated on `2026-04-09`.
 - frontend builder implementation closure
 - repository-wide separation completion
 
+For the next-family continuation, reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
 ## Operator Decision Rule
 
 When asked whether the current builder structure wave is complete, answer:
@@ -41,6 +47,7 @@ When asked whether the current builder structure wave is complete, answer:
 - `no` for repository-wide builder completion
 
 Do not mix those two answers.
+Treat this as the completion-owner boundary for the `2026-04-09` wave.
 
 ## Reopen Rule
 
@@ -74,6 +81,7 @@ Live continuation entry:
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Treat those two docs as the `single live entry pair` for the next builder family.
+For blocker rows `3` and `5`, the remaining docs-only validity test is now limited to whether watched source docs changed and whether that change added the exact missing sentence bundle.
 
 If next-family continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both continuation docs in the same turn.
 

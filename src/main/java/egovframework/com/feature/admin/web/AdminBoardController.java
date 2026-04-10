@@ -2,12 +2,9 @@ package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.dto.request.AdminBoardDistributionSaveRequestDTO;
 import egovframework.com.feature.admin.service.AdminBoardDistributionService;
-import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
@@ -24,26 +22,26 @@ import java.util.Map;
 public class AdminBoardController {
 
     private final AdminBoardDistributionService adminBoardDistributionService;
-    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final AdminReactRouteSupport adminReactRouteSupport;
 
     @RequestMapping(value = {"/admin/content/board_add"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String boardAdd(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "board-add", false, true);
+    public String boardAdd(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "board-add");
     }
 
     @RequestMapping(value = {"/admin/content/board_list"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String boardList(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "board-list", false, true);
+    public String boardList(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "board-list");
     }
 
     @RequestMapping(value = {"/en/admin/content/board_add"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String boardAddEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "board-add", true, true);
+    public String boardAddEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "board-add");
     }
 
     @RequestMapping(value = {"/en/admin/content/board_list"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String boardListEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "board-list", true, true);
+    public String boardListEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "board-list");
     }
 
     @GetMapping("/admin/api/admin/content/board/list")

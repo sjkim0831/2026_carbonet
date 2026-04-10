@@ -1,4 +1,5 @@
-import { fetchJoinSession, JoinSessionPayload } from "../../lib/api/client";
+import { fetchJoinSession } from "../../lib/api/joinSession";
+import type { JoinSessionPayload } from "../../lib/api/joinTypes";
 import { useAsyncValue } from "./useAsyncValue";
 
 type UseJoinSessionOptions = {

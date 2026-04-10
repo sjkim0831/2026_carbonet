@@ -1,17 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
+import { createAdminAccount } from "../../lib/api/adminActions";
+import { fetchAdminAccountCreatePage, checkAdminAccountId, searchAdminCompanies } from "../../lib/api/adminMember";
+import { fetchFrontendSession } from "../../lib/api/adminShell";
+import type { FrontendSession } from "../../lib/api/adminShellTypes";
+import type { AdminAccountCreatePagePayload, CompanySearchPayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
-import {
-  AdminAccountCreatePagePayload,
-  checkAdminAccountId,
-  CompanySearchPayload,
-  createAdminAccount,
-  fetchAdminAccountCreatePage,
-  fetchFrontendSession,
-  FrontendSession,
-  searchAdminCompanies
-} from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
 import {

@@ -1,4 +1,4 @@
-import type { FrontendSession } from "../../lib/api/client";
+import type { FrontendSession } from "../../lib/api/adminShellTypes";
 import type {
   GovernanceActorContext,
   GovernanceComponentContext,

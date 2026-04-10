@@ -24,12 +24,16 @@ After this family is accepted as closed, continue from:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 
 If continuation state later changes blocker count, active row, next review target, or partial-closeout wording, update both continuation docs in the same turn.
 
 ## Current Wave Owner Decision
 
 The current wave closes only the builder structure-governance family.
+
+For `2026-04-09`, completion-owner judgment for builder structure work must stop at that family boundary.
+Do not treat progress in builder resource ownership, shim removal, or later implementation families as part of this wave's completion answer.
 
 It does not claim closure for:
 
@@ -158,6 +162,8 @@ The wave is considered complete only when all of the following are true.
 - the current wave does not claim broader completion than it actually closes
 - this wave names what is done, what is still transitional, and what family moves next
 - completion is judged by ownership closure, not by “many files were already moved”
+- `large-move-completion-contract.md` is satisfied for this wave only when the answer stays scoped to `BUILDER_STRUCTURE_GOVERNANCE`
+- later family blockers do not reopen this wave unless they change the source-of-truth or shim/delete rule frozen here
 
 ## Done / Not Done For 2026-04-09
 
@@ -177,7 +183,8 @@ The wave is considered complete only when all of the following are true.
 
 ## Next Family After This Wave
 
-The next family should be selected from these, in order:
+Close only one builder family at a time after this wave.
+The current active continuation family should be selected from these, in order:
 
 1. `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`
 2. `BUILDER_COMPATIBILITY_SHIM_REMOVAL`
@@ -190,4 +197,4 @@ For the live continuation entry, use:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
-Treat those two docs as the `single live entry pair` for the next family.
+Treat those two docs as the `single live entry pair` for the current active continuation family only.

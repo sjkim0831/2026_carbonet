@@ -3,12 +3,10 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
-import {
-  fetchTradeApprovePage,
-  readBootstrappedTradeApprovePageData,
-  submitTradeApproveAction,
-  type TradeApprovePagePayload
-} from "../../lib/api/client";
+import { submitTradeApproveAction } from "../../lib/api/adminActions";
+import { readBootstrappedTradeApprovePageData } from "../../lib/api/bootstrap";
+import { fetchTradeApprovePage } from "../../lib/api/trade";
+import type { TradeApprovePagePayload } from "../../lib/api/tradeTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import {

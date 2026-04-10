@@ -6,8 +6,10 @@
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
 3. `docs/architecture/builder-resource-ownership-status-tracker.md`
 
-Use this review card only after the live family entry confirms row `4` is the active target.
+Use this review card as supporting non-blocking review context for row `4`, not as the current active-target opener.
 Treat the first two docs above as the `single live entry pair`.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
 If this review changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
 
 ## Family
@@ -34,17 +36,58 @@ If this review changes blocker count, active row, next review target, or partial
   - `src/main/resources/egovframework/mapper/com/platform/**`
   - `src/main/resources/framework/**`
 
-## Why This Is Review-Next
+Current bounded read:
+
+- row `4` is now narrowed to:
+  - `src/main/resources/egovframework/mapper/com/feature/admin/**`
+  - `src/main/resources/egovframework/mapper/com/platform/**`
+  - `src/main/resources/framework/**`
+- current concrete root directories are:
+  - `src/main/resources/egovframework/mapper/com/feature/admin`
+  - `src/main/resources/egovframework/mapper/com/platform`
+  - `src/main/resources/framework`
+- current concrete file set observed from this docs-only check:
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AdminBannerManagementMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AdminBannerManagementMetaMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AdminCodeManageMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AdminEmissionGwpValueMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AdminEmissionManagementMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AdminEmissionSurveyDraftMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AdminLoginHistoryMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AdminNotificationHistoryMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AdminSummarySnapshotMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/AuthGroupManageMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/BlocklistPersistenceMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/IpWhitelistPersistenceMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/MenuFeatureManageMapper.xml`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/MenuInfoMapper.xml`
+- current relevance filter:
+  - no builder-specific file was observed under the feature-admin root mapper tree in this docs-only check
+  - architecture docs already say legacy root `feature/admin/screenbuilder` and `feature/admin/framework/builder` copies have been removed
+  - generic feature-admin mapper files should therefore not be treated as the live builder-owned blocker by default
+- current negative boundary:
+  - `src/main/resources/egovframework/mapper/com/platform/runtimecontrol` is not a live blocker candidate in the current docs baseline
+  - no concrete file was observed under `src/main/resources/egovframework/mapper/com/platform` or `src/main/resources/framework` in this docs-only check
+- current decision gate:
+  - row `4` is now an empty-root-surface question under `src/main/resources/egovframework/mapper/com/platform` and `src/main/resources/framework`
+  - the next decision is whether those empty root surfaces justify a stronger non-blocker note or still require a conservative blocker reading
+- current preferred next decision:
+  - stronger non-blocker note
+- current safe provisional state:
+  - `NON_BLOCKING_PARTIAL`
+
+## Why This Review Still Matters
 
 - this family is about packaging behavior, not one isolated file
 - the main question is whether app assembly and ownership docs tell the same story
-- it sits one level above rows `1` to `3` and therefore should not be treated as a simple delete check
+- it remains the bounded non-blocking comparison row that should stay below blocker rows unless later proof contradicts the current empty-root-surface read
 
 ## Evidence To Check
 
 - `docs/architecture/screenbuilder-module-source-inventory.md` says `apps/carbonet-app` explicitly excludes builder-owned root resources from its legacy root resource import
 - `docs/architecture/screenbuilder-multimodule-cutover-plan.md` says builder-owned root resources are excluded so the executable app jar must consume them from dedicated builder modules
 - `docs/architecture/builder-resource-ownership-status-tracker.md` row `4` should eventually state whether app packaging and ownership docs actually match
+- `docs/architecture/builder-resource-app-packaging-evidence-checklist.md` should be used to narrow the broad packaging family into a path-bounded review set before row `4` is upgraded
 
 ## Decision Rule
 
@@ -72,13 +115,13 @@ This review is closed only when the owner can leave one sentence of the form:
 
 - `App packaging excludes builder-owned root resource lines and resolves builder resources from dedicated module owners; remaining root packaging lines are <deleted | explicit shim with one named reason | blocker>.`
 
-## Provisional Read
+## Current Non-Blocking Read
 
-Before packaging lines are bounded path-by-path, the safe default reading is:
+On the current docs set, the safe default reading is:
 
 - exclusion intent is explicit
 - module ownership anchors are known
-- the row should lean `TODO` until the owner narrows which root lines are still transitional or already excluded in practice
+- the row should remain a stronger non-blocker note on the current docs set unless one concrete blocker-grade dependency is newly documented
 
 This is a review default, not a final decision.
 
@@ -86,7 +129,31 @@ This is a review default, not a final decision.
 
 If the owner reviewed this family boundary but did not yet narrow the exact packaging lines under review, use:
 
-- `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, but the exact root resource lines still need to be narrowed before a delete-versus-shim verdict.`
+- `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, and row 4 remains a stronger non-blocker note because no concrete blocker-grade dependency is documented yet.`
+
+If the owner already applied the first bounded evidence note, use:
+
+- `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, and row 4 remains non-blocking while the root packaging surface is now narrowed to src/main/resources/egovframework/mapper/com/feature/admin/**, src/main/resources/egovframework/mapper/com/platform/**, and src/main/resources/framework/**.`
+
+If the owner also applied the second bounded evidence note, use:
+
+- `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, and row 4 remains non-blocking while the root packaging surface is now narrowed to the concrete root directories src/main/resources/egovframework/mapper/com/feature/admin, src/main/resources/egovframework/mapper/com/platform, and src/main/resources/framework, with runtimecontrol excluded as a live blocker candidate.`
+
+If the owner also applied the third bounded evidence note, use:
+
+- `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, and row 4 remains non-blocking while the review is narrowed to the concrete root feature-admin mapper file set plus still-unresolved root directory surfaces under src/main/resources/egovframework/mapper/com/platform and src/main/resources/framework.`
+
+If the owner also applied the fourth bounded evidence note, use:
+
+- `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, and row 4 remains non-blocking while the review is narrowed away from generic feature-admin mapper files toward the still-unresolved root directory surfaces under src/main/resources/egovframework/mapper/com/platform and src/main/resources/framework.`
+
+If the owner also applied the fifth bounded evidence note, use:
+
+- `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, and row 4 is now reduced to an empty-root-surface decision under src/main/resources/egovframework/mapper/com/platform and src/main/resources/framework; the preferred next move is still a stronger non-blocker note.`
+
+If the owner also applied the sixth bounded evidence note, use:
+
+- `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, and row 4 is now reduced to empty root surfaces under src/main/resources/egovframework/mapper/com/platform and src/main/resources/framework, so the preferred next docs-only move is a stronger non-blocker note rather than a blocker promotion.`
 
 ## Required Handoff Output
 
@@ -106,3 +173,4 @@ If the owner reviewed this family boundary but did not yet narrow the exact pack
 - `docs/architecture/builder-resource-ownership-priority-board.md`
 - `docs/architecture/screenbuilder-module-source-inventory.md`
 - `docs/architecture/screenbuilder-multimodule-cutover-plan.md`
+- `docs/architecture/builder-resource-app-packaging-evidence-checklist.md`

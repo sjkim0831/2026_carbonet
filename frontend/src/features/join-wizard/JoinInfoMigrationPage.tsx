@@ -14,13 +14,15 @@ import {
   UserPortalHeader
 } from "../../components/user-shell/UserPortalChrome";
 import {
-  type CompanySearchPayload,
   checkJoinEmail,
   checkJoinMemberId,
+  searchJoinCompanies
+} from "../../lib/api/join";
+import {
   resetJoinSession,
-  searchJoinCompanies,
   submitJoinStep4
-} from "../../lib/api/client";
+} from "../../lib/api/joinSession";
+import type { CompanySearchPayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type JoinFormState = {

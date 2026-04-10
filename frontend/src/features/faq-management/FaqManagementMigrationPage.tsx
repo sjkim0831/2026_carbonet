@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchFaqManagementPage, saveFaqManagementPage, type FaqManagementPagePayload } from "../../lib/api/client";
+import { fetchFaqManagementPage, saveFaqManagementPage } from "../../lib/api/content";
+import type { FaqManagementPagePayload } from "../../lib/api/contentTypes";
 import { buildLocalizedPath, isEnglish, replace } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, LookupContextStrip, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

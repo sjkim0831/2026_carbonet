@@ -21,6 +21,14 @@ Confirm:
 - `08` started or has a valid blocker
 - `09` started or has a valid blocker
 
+If the unfinished active family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting maintenance-contract guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+- `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+- `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+
 If one of these lanes did not start, record the blocker explicitly.
 
 ## 2. Secondary Lane Readiness

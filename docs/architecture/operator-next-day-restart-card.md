@@ -18,12 +18,28 @@ Open in this order:
 5. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` if the next owner is resuming the latest builder resource ownership state
 6. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md` if the next owner is resuming builder resource ownership closure
 7. `docs/architecture/builder-resource-ownership-status-tracker.md` if the next owner must resume builder resource ownership family status from yesterday
-8. `docs/architecture/builder-resource-review-builder-observability.md` if the next review target is row `3` after the current provisional closeout is accepted
+8. `docs/architecture/builder-resource-row5-owner-packet.md` if the next blocker-resolution target remains row `5` after the current provisional closeout is accepted
 
 For this family, the single live entry pair is:
 
 1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Use this as supporting maintenance-contract guidance only:
+
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
+Current active continuation target:
+
+- row `5`
+- `executable app resource assembly fallback`
+- blocker-resolution state with row `5` as the remaining blocker
+- `docs/architecture/builder-resource-row5-owner-packet.md`
+- compressed blocker control docs:
+  - `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+  - `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+- canonical partial phrase:
+  - `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
 
 If restart work changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
 
@@ -54,7 +70,7 @@ Confirm:
 - no pending reopen request was left unresolved
 - `05` and `09` still have a valid theme-set/template-line/parity baseline from `03`
 - any builder resource ownership closeout from yesterday left updated tracker rows and an explicit blocker count
-- if rows `1` and `2` remain provisional blockers, the next review target for the resumed owner is clearly named
+- if blocker rows remain, the next review target for the resumed owner is clearly named
 
 ## 4. Drift Check
 

@@ -33,29 +33,37 @@ import java.util.Map;
 public class AdminMemberController {
 
     private final AdminReactRouteSupport adminReactRouteSupport;
-    private final AdminMainController adminMainController;
+    private final AdminMemberPagePayloadService adminMemberPagePayloadService;
+    private final AdminMemberSupportService adminMemberSupportService;
+    private final AdminMemberRegisterCommandService adminMemberRegisterCommandService;
+    private final AdminMemberEditCommandService adminMemberEditCommandService;
+    private final AdminAdminPermissionCommandService adminAdminPermissionCommandService;
+    private final AdminAdminAccountCreateCommandService adminAdminAccountCreateCommandService;
+    private final AdminMemberPasswordResetCommandService adminMemberPasswordResetCommandService;
+    private final AdminCompanyAccountCommandService adminCompanyAccountCommandService;
+    private final AdminMemberFileAccessService adminMemberFileAccessService;
     private final PlatformObservabilityHistoryPagePayloadPort platformObservabilityHistoryPagePayloadPort;
 
     @RequestMapping(value = "/member/stats", method = { RequestMethod.GET, RequestMethod.POST })
     public String memberStatsPage(HttpServletRequest request, Locale locale) {
-        return adminMainController.member_stats(request, locale);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "member-stats");
     }
 
     @GetMapping("/member/stats/page-data")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> memberStatsPageApi(HttpServletRequest request, Locale locale) {
-        return adminMainController.memberStatsPageApi(request, locale);
+        return ResponseEntity.ok(adminMemberPagePayloadService.buildMemberStatsPagePayload(request, locale));
     }
 
     @RequestMapping(value = "/member/register", method = { RequestMethod.GET, RequestMethod.POST })
     public String memberRegisterPage(HttpServletRequest request, Locale locale) {
-        return adminMainController.member_register(request, locale);
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "member-register");
     }
 
     @GetMapping("/member/register/page-data")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> memberRegisterPageApi(HttpServletRequest request, Locale locale) {
-        return adminMainController.memberRegisterPageApi(request, locale);
+        return ResponseEntity.ok(adminMemberPagePayloadService.buildMemberRegisterPagePayload(request, locale));
     }
 
     @GetMapping("/api/admin/member/register/check-id")
@@ -64,7 +72,7 @@ public class AdminMemberController {
             @RequestParam(value = "memberId", required = false) String memberId,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.memberRegisterCheckIdApi(memberId, request, locale);
+        return adminMemberSupportService.checkMemberId(memberId, request, locale);
     }
 
     @PostMapping("/api/admin/member/register")
@@ -73,7 +81,7 @@ public class AdminMemberController {
             @RequestBody AdminMemberRegisterSaveRequestDTO payload,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.memberRegisterSubmitApi(payload, request, locale);
+        return adminMemberRegisterCommandService.submit(payload, request, locale);
     }
 
     @RequestMapping(value = "/member/edit", method = RequestMethod.GET)
@@ -82,7 +90,7 @@ public class AdminMemberController {
                                  HttpServletRequest request,
                                  Locale locale,
                                  Model model) {
-        return adminMainController.member_edit(memberId, updated, request, locale, model);
+        return forwardReactMigration(request, locale, "member-edit");
     }
 
     @GetMapping("/api/admin/member/edit")
@@ -91,7 +99,7 @@ public class AdminMemberController {
                                                              @RequestParam(value = "updated", required = false) String updated,
                                                              HttpServletRequest request,
                                                              Locale locale) {
-        return adminMainController.memberEditApi(memberId, updated, request, locale);
+        return ResponseEntity.ok(adminMemberPagePayloadService.buildMemberEditPagePayload(memberId, updated, request, locale));
     }
 
     @PostMapping("/api/admin/member/edit")
@@ -99,7 +107,7 @@ public class AdminMemberController {
     public ResponseEntity<Map<String, Object>> memberEditSubmitApi(@RequestBody AdminMemberEditSaveRequestDTO payload,
                                                                    HttpServletRequest request,
                                                                    Locale locale) {
-        return adminMainController.memberEditSubmitApi(payload, request, locale);
+        return adminMemberEditCommandService.submitApi(payload, request, locale);
     }
 
     @RequestMapping(value = "/member/edit", method = RequestMethod.POST)
@@ -119,8 +127,23 @@ public class AdminMemberController {
                                    HttpServletRequest request,
                                    Locale locale,
                                    Model model) {
-        return adminMainController.member_editSubmit(memberId, applcntNm, applcntEmailAdres, phoneNumber, entrprsSeCode,
-                entrprsMberSttus, authorCode, featureCodes, zip, adres, detailAdres, marketingYn, deptNm, request, locale, model);
+        return adminMemberEditCommandService.submitForm(
+                memberId,
+                applcntNm,
+                applcntEmailAdres,
+                phoneNumber,
+                entrprsSeCode,
+                entrprsMberSttus,
+                authorCode,
+                featureCodes,
+                zip,
+                adres,
+                detailAdres,
+                marketingYn,
+                deptNm,
+                request,
+                locale,
+                model);
     }
 
     @RequestMapping(value = "/member/detail", method = RequestMethod.GET)
@@ -128,7 +151,7 @@ public class AdminMemberController {
                                    HttpServletRequest request,
                                    Locale locale,
                                    Model model) {
-        return adminMainController.member_detail(memberId, request, locale, model);
+        return forwardReactMigration(request, locale, "member-detail");
     }
 
     @GetMapping("/api/admin/member/detail/page")
@@ -136,7 +159,15 @@ public class AdminMemberController {
     public ResponseEntity<Map<String, Object>> memberDetailPageApi(@RequestParam(value = "memberId", required = false) String memberId,
                                                                    HttpServletRequest request,
                                                                    Locale locale) {
-        return adminMainController.memberDetailPageApi(memberId, request, locale);
+        Map<String, Object> response = adminMemberPagePayloadService.buildMemberDetailPagePayload(memberId, request, locale);
+        boolean canView = Boolean.TRUE.equals(response.get("canViewMemberDetail"));
+        String status = String.valueOf(response.getOrDefault("memberDetailStatus", ""));
+        if (canView) {
+            return ResponseEntity.ok(response);
+        }
+        return "FORBIDDEN".equalsIgnoreCase(status)
+                ? ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response)
+                : ResponseEntity.status(HttpServletResponse.SC_NOT_FOUND).body(response);
     }
 
     @RequestMapping(value = "/member/reset_password", method = RequestMethod.GET)
@@ -147,7 +178,7 @@ public class AdminMemberController {
                                           HttpServletRequest request,
                                           Locale locale,
                                           Model model) {
-        return adminMainController.member_resetPassword(pageIndexParam, searchKeyword, resetSource, memberId, request, locale, model);
+        return forwardReactMigration(request, locale, "password-reset");
     }
 
     @GetMapping("/api/admin/member/reset-password")
@@ -159,7 +190,14 @@ public class AdminMemberController {
                                                                           @RequestParam(value = "memberId", required = false) String memberId,
                                                                           HttpServletRequest request,
                                                                           Locale locale) {
-        return adminMainController.memberResetPasswordPageApi(pageIndexParam, searchKeyword, resetSource, insttId, memberId, request, locale);
+        return ResponseEntity.ok(adminMemberPagePayloadService.buildPasswordResetPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                resetSource,
+                insttId,
+                memberId,
+                request,
+                locale));
     }
 
     @RequestMapping(value = "/member/reset_password", method = RequestMethod.POST, produces = "application/json")
@@ -167,7 +205,7 @@ public class AdminMemberController {
     public ResponseEntity<Map<String, Object>> resetMemberPassword(@RequestParam(value = "memberId", required = false) String memberId,
                                                                    HttpServletRequest request,
                                                                    Locale locale) {
-        return adminMainController.resetMemberPassword(memberId, request, locale);
+        return adminMemberPasswordResetCommandService.reset(memberId, request, locale);
     }
 
     @RequestMapping(value = "/member/security", method = { RequestMethod.GET, RequestMethod.POST })
@@ -209,14 +247,15 @@ public class AdminMemberController {
                                    HttpServletRequest request,
                                    Locale locale,
                                    Model model) {
-        return adminMainController.admin_account(emplyrId, updated, mode, request, locale, model);
+        return forwardReactMigration(request, locale,
+                (emplyrId == null || emplyrId.trim().isEmpty()) ? "admin-create" : "admin-permission");
     }
 
     @GetMapping("/api/admin/member/admin-account/page")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> adminAccountCreatePageApi(HttpServletRequest request,
                                                                          Locale locale) {
-        return adminMainController.adminAccountCreatePageApi(request, locale);
+        return ResponseEntity.ok(adminMemberPagePayloadService.buildAdminAccountCreatePagePayload(request, locale));
     }
 
     @GetMapping("/api/admin/member/admin-account/check-id")
@@ -224,7 +263,7 @@ public class AdminMemberController {
     public ResponseEntity<Map<String, Object>> adminAccountCheckIdApi(@RequestParam(value = "adminId", required = false) String adminId,
                                                                       HttpServletRequest request,
                                                                       Locale locale) {
-        return adminMainController.adminAccountCheckIdApi(adminId, request, locale);
+        return adminMemberSupportService.checkAdminAccountId(adminId, request, locale);
     }
 
     @GetMapping("/api/admin/companies/search")
@@ -236,7 +275,7 @@ public class AdminMemberController {
                                                                           @RequestParam(value = "membershipType", defaultValue = "") String membershipType,
                                                                           HttpServletRequest request,
                                                                           Locale locale) {
-        return adminMainController.adminCompanySearchApi(keyword, page, size, status, membershipType, request, locale);
+        return adminMemberSupportService.searchCompanies(keyword, page, size, status, membershipType, request, locale);
     }
 
     @PostMapping("/api/admin/member/admin-account")
@@ -244,7 +283,7 @@ public class AdminMemberController {
     public ResponseEntity<Map<String, Object>> adminAccountCreateSubmitApi(@RequestBody AdminAdminAccountCreateRequestDTO payload,
                                                                            HttpServletRequest request,
                                                                            Locale locale) {
-        return adminMainController.adminAccountCreateSubmitApi(payload, request, locale);
+        return adminAdminAccountCreateCommandService.submitApi(payload, request, locale);
     }
 
     @GetMapping("/api/admin/member/admin-account/permissions")
@@ -254,7 +293,12 @@ public class AdminMemberController {
                                                                          @RequestParam(value = "mode", required = false) String mode,
                                                                          HttpServletRequest request,
                                                                          Locale locale) {
-        return adminMainController.adminAccountPermissionApi(emplyrId, updated, mode, request, locale);
+        return ResponseEntity.ok(adminMemberPagePayloadService.buildAdminAccountPermissionPagePayload(
+                emplyrId,
+                updated,
+                mode,
+                request,
+                locale));
     }
 
     @PostMapping("/api/admin/member/admin-account/permissions")
@@ -262,7 +306,7 @@ public class AdminMemberController {
     public ResponseEntity<Map<String, Object>> adminAccountPermissionsSubmitApi(@RequestBody AdminPermissionSaveRequestDTO payload,
                                                                                 HttpServletRequest request,
                                                                                 Locale locale) {
-        return adminMainController.adminAccountPermissionsSubmitApi(payload, request, locale);
+        return adminAdminPermissionCommandService.submitApi(payload, request, locale);
     }
 
     private String forwardReactMigration(HttpServletRequest request, Locale locale, String route) {
@@ -287,7 +331,14 @@ public class AdminMemberController {
                                                 HttpServletRequest request,
                                                 Locale locale,
                                                 Model model) {
-        return adminMainController.admin_accountPermissionsSubmit(emplyrId, authorCode, featureCodes, language, request, locale, model);
+        return adminAdminPermissionCommandService.submitForm(
+                emplyrId,
+                authorCode,
+                featureCodes,
+                language,
+                request,
+                locale,
+                model);
     }
 
     @RequestMapping(value = "/member/list", method = { RequestMethod.GET, RequestMethod.POST })
@@ -298,7 +349,7 @@ public class AdminMemberController {
                                  HttpServletRequest request,
                                  Locale locale,
                                  Model model) {
-        return adminMainController.member_list(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, request, locale, model);
+        return forwardReactMigration(request, locale, "member-list");
     }
 
     @RequestMapping(value = "/member/withdrawn", method = { RequestMethod.GET, RequestMethod.POST })
@@ -309,7 +360,7 @@ public class AdminMemberController {
                                           HttpServletRequest request,
                                           Locale locale,
                                           Model model) {
-        return adminMainController.withdrawn_member_list(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, request, locale, model);
+        return forwardReactMigration(request, locale, "member-list");
     }
 
     @RequestMapping(value = "/member/activate", method = { RequestMethod.GET, RequestMethod.POST })
@@ -320,7 +371,7 @@ public class AdminMemberController {
                                          HttpServletRequest request,
                                          Locale locale,
                                          Model model) {
-        return adminMainController.activate_member_list(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, request, locale, model);
+        return forwardReactMigration(request, locale, "member-list");
     }
 
     @GetMapping("/api/admin/member/list/page")
@@ -331,7 +382,13 @@ public class AdminMemberController {
                                                                  @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
                                                                  HttpServletRequest request,
                                                                  Locale locale) {
-        return adminMainController.memberListPageApi(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, request, locale);
+        return ResponseEntity.ok(adminMemberPagePayloadService.buildMemberListPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                membershipType,
+                sbscrbSttus,
+                request,
+                locale));
     }
 
     @RequestMapping(value = { "/member/admin_list", "/member/admin-list" }, method = { RequestMethod.GET, RequestMethod.POST })
@@ -341,7 +398,7 @@ public class AdminMemberController {
                                 HttpServletRequest request,
                                 Locale locale,
                                 Model model) {
-        return adminMainController.admin_list(pageIndexParam, searchKeyword, sbscrbSttus, request, locale, model);
+        return forwardReactMigration(request, locale, "admin-list");
     }
 
     @RequestMapping(value = "/member/company_list", method = { RequestMethod.GET, RequestMethod.POST })
@@ -351,7 +408,7 @@ public class AdminMemberController {
                                   HttpServletRequest request,
                                   Locale locale,
                                   Model model) {
-        return adminMainController.company_list(pageIndexParam, searchKeyword, sbscrbSttus, request, locale, model);
+        return forwardReactMigration(request, locale, "company-list");
     }
 
     @GetMapping("/api/admin/member/admin-list/page")
@@ -361,7 +418,12 @@ public class AdminMemberController {
                                                                 @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
                                                                 HttpServletRequest request,
                                                                 Locale locale) {
-        return adminMainController.adminListPageApi(pageIndexParam, searchKeyword, sbscrbSttus, request, locale);
+        return ResponseEntity.ok(adminMemberPagePayloadService.buildAdminListPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                sbscrbSttus,
+                request,
+                locale));
     }
 
     @GetMapping("/api/admin/member/company-list/page")
@@ -371,7 +433,14 @@ public class AdminMemberController {
                                                                   @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
                                                                   HttpServletRequest request,
                                                                   Locale locale) {
-        return adminMainController.companyListPageApi(pageIndexParam, searchKeyword, sbscrbSttus, request, locale);
+        Map<String, Object> response = adminMemberPagePayloadService.buildCompanyListPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                sbscrbSttus,
+                request,
+                locale);
+        boolean canView = Boolean.TRUE.equals(response.get("canViewCompanyList"));
+        return canView ? ResponseEntity.ok(response) : ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
     }
 
     @RequestMapping(value = "/member/company_detail", method = RequestMethod.GET)
@@ -379,7 +448,7 @@ public class AdminMemberController {
                                     HttpServletRequest request,
                                     Locale locale,
                                     Model model) {
-        return adminMainController.company_detail(insttId, request, locale, model);
+        return forwardReactMigration(request, locale, "company-detail");
     }
 
     @GetMapping("/api/admin/member/company-detail/page")
@@ -387,7 +456,13 @@ public class AdminMemberController {
     public ResponseEntity<Map<String, Object>> companyDetailPageApi(@RequestParam(value = "insttId", required = false) String insttId,
                                                                     HttpServletRequest request,
                                                                     Locale locale) {
-        return adminMainController.companyDetailPageApi(insttId, request, locale);
+        Map<String, Object> response = adminMemberPagePayloadService.buildCompanyDetailPagePayload(insttId, request, locale);
+        if (!Boolean.TRUE.equals(response.get("canViewCompanyDetail"))) {
+            return "FORBIDDEN".equals(response.get("companyDetailStatus"))
+                    ? ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response)
+                    : ResponseEntity.status(HttpServletResponse.SC_NOT_FOUND).body(response);
+        }
+        return ResponseEntity.ok(response);
     }
 
     @RequestMapping(value = "/member/company_account", method = RequestMethod.GET)
@@ -396,7 +471,7 @@ public class AdminMemberController {
                                      HttpServletRequest request,
                                      Locale locale,
                                      Model model) {
-        return adminMainController.company_account(insttId, saved, request, locale, model);
+        return forwardReactMigration(request, locale, "company-account");
     }
 
     @GetMapping("/api/admin/member/company-account/page")
@@ -405,7 +480,15 @@ public class AdminMemberController {
                                                                      @RequestParam(value = "saved", required = false) String saved,
                                                                      HttpServletRequest request,
                                                                      Locale locale) {
-        return adminMainController.companyAccountPageApi(insttId, saved, request, locale);
+        Map<String, Object> response = adminMemberPagePayloadService.buildCompanyAccountPagePayload(
+                insttId,
+                saved,
+                request,
+                locale);
+        if (!Boolean.TRUE.equals(response.get("canViewCompanyAccount"))) {
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping(value = "/api/admin/member/company-account", consumes = "multipart/form-data")
@@ -425,8 +508,21 @@ public class AdminMemberController {
             @RequestParam(value = "fileUploads", required = false) List<MultipartFile> fileUploads,
             HttpServletRequest request,
             Locale locale) {
-        return adminMainController.companyAccountSubmitApi(insttId, membershipType, agencyName, representativeName, bizRegistrationNumber, zipCode,
-                companyAddress, companyAddressDetail, chargerName, chargerEmail, chargerTel, fileUploads, request, locale);
+        return adminCompanyAccountCommandService.submitApi(
+                insttId,
+                membershipType,
+                agencyName,
+                representativeName,
+                bizRegistrationNumber,
+                zipCode,
+                companyAddress,
+                companyAddressDetail,
+                chargerName,
+                chargerEmail,
+                chargerTel,
+                fileUploads,
+                request,
+                locale);
     }
 
     @RequestMapping(value = "/member/company_account", method = RequestMethod.POST, params = "agencyName")
@@ -447,8 +543,22 @@ public class AdminMemberController {
             HttpSession session,
             Locale locale,
             Model model) {
-        return adminMainController.company_accountSubmit(insttId, membershipType, agencyName, representativeName, bizRegistrationNumber, zipCode,
-                companyAddress, companyAddressDetail, chargerName, chargerEmail, chargerTel, fileUploads, request, session, locale, model);
+        return adminCompanyAccountCommandService.submitForm(
+                insttId,
+                membershipType,
+                agencyName,
+                representativeName,
+                bizRegistrationNumber,
+                zipCode,
+                companyAddress,
+                companyAddressDetail,
+                chargerName,
+                chargerEmail,
+                chargerTel,
+                fileUploads,
+                request,
+                locale,
+                model);
     }
 
     @RequestMapping(value = "/member/company-file", method = RequestMethod.GET)
@@ -456,7 +566,7 @@ public class AdminMemberController {
                             @RequestParam(value = "download", required = false) String download,
                             HttpServletRequest request,
                             HttpServletResponse response) throws Exception {
-        adminMainController.companyFile(fileId, download, request, response);
+        adminMemberFileAccessService.serveCompanyFile(fileId, download, request, response);
     }
 
     @RequestMapping(value = "/member/file", method = RequestMethod.GET)
@@ -464,6 +574,6 @@ public class AdminMemberController {
                            @RequestParam(value = "download", required = false) String download,
                            HttpServletRequest request,
                            HttpServletResponse response) throws Exception {
-        adminMainController.memberFile(fileId, download, request, response);
+        adminMemberFileAccessService.serveMemberFile(fileId, download, request, response);
     }
 }

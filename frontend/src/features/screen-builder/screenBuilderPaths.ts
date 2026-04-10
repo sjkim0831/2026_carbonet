@@ -6,6 +6,7 @@ type BuilderRouteQuery = {
   menuTitle?: string;
   menuUrl?: string;
   snapshotVersionId?: string;
+  projectId?: string;
 };
 
 function appendQuery(basePath: string, params: Record<string, string>) {
@@ -26,22 +27,24 @@ function buildBuilderScopedPath(koPath: string, enPath: string, query: BuilderRo
       pageId: query.pageId || "",
       menuTitle: query.menuTitle || "",
       menuUrl: query.menuUrl || "",
-      snapshotVersionId: query.snapshotVersionId || ""
+      snapshotVersionId: query.snapshotVersionId || "",
+      projectId: query.projectId || ""
     }),
     appendQuery(enPath, {
       menuCode: query.menuCode || "",
       pageId: query.pageId || "",
       menuTitle: query.menuTitle || "",
       menuUrl: query.menuUrl || "",
-      snapshotVersionId: query.snapshotVersionId || ""
+      snapshotVersionId: query.snapshotVersionId || "",
+      projectId: query.projectId || ""
     })
   );
 }
 
-export function buildEnvironmentManagementPath(menuCode = "") {
+export function buildEnvironmentManagementPath(menuCode = "", projectId = "") {
   return buildLocalizedPath(
-    appendQuery("/admin/system/environment-management", { menuCode }),
-    appendQuery("/en/admin/system/environment-management", { menuCode })
+    appendQuery("/admin/system/environment-management", { menuCode, projectId }),
+    appendQuery("/en/admin/system/environment-management", { menuCode, projectId })
   );
 }
 

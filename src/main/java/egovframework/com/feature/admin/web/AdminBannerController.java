@@ -1,12 +1,9 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.service.AdminBannerManagementService;
-import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
@@ -22,26 +20,26 @@ import java.util.Map;
 public class AdminBannerController {
 
     private final AdminBannerManagementService adminBannerManagementService;
-    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final AdminReactRouteSupport adminReactRouteSupport;
 
     @RequestMapping(value = {"/admin/content/banner_list"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String bannerList(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "banner-list", false, true);
+    public String bannerList(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "banner-list");
     }
 
     @RequestMapping(value = {"/en/admin/content/banner_list"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String bannerListEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "banner-list", true, true);
+    public String bannerListEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "banner-list");
     }
 
     @RequestMapping(value = {"/admin/content/banner_edit"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String bannerEdit(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "banner-edit", false, true);
+    public String bannerEdit(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "banner-edit");
     }
 
     @RequestMapping(value = {"/en/admin/content/banner_edit"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String bannerEditEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "banner-edit", true, true);
+    public String bannerEditEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "banner-edit");
     }
 
     @GetMapping("/admin/api/admin/content/banner")

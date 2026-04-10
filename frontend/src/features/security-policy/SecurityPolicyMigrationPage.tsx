@@ -1,7 +1,19 @@
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { clearSecurityPolicySuppressions, dispatchSecurityPolicyNotifications, fetchSecurityPolicyPage, readBootstrappedSecurityPolicyPageData, runMenuPermissionAutoCleanup, runSecurityPolicyAutoFix, runSecurityPolicyBulkAutoFix, runSecurityPolicyRollback, saveSecurityPolicyFindingState, saveSecurityPolicyNotificationConfig, type MenuPermissionAutoCleanupResponse, type SecurityPolicyPagePayload } from "../../lib/api/client";
+import {
+  clearSecurityPolicySuppressions,
+  dispatchSecurityPolicyNotifications,
+  fetchSecurityPolicyPage,
+  runMenuPermissionAutoCleanup,
+  runSecurityPolicyAutoFix,
+  runSecurityPolicyBulkAutoFix,
+  runSecurityPolicyRollback,
+  saveSecurityPolicyFindingState,
+  saveSecurityPolicyNotificationConfig
+} from "../../lib/api/security";
+import { readBootstrappedSecurityPolicyPageData } from "../../lib/api/bootstrap";
+import type { MenuPermissionAutoCleanupResponse, SecurityPolicyPagePayload } from "../../lib/api/securityTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";

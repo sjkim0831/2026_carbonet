@@ -17,9 +17,11 @@ public class AdminCertificateApprovalService {
 
     private static final int PAGE_SIZE = 10;
 
+    private final AdminPayloadSelectionSupport adminPayloadSelectionSupport;
     private final Map<String, CertificateApprovalRecord> recordStore = new ConcurrentHashMap<>();
 
-    AdminCertificateApprovalService() {
+    AdminCertificateApprovalService(AdminPayloadSelectionSupport adminPayloadSelectionSupport) {
+        this.adminPayloadSelectionSupport = adminPayloadSelectionSupport;
         register(seed(
                 "CERT-2026-0008", "CA-2026-0008", "에코카본테크", "123-81-45210", "김지운",
                 "2025년 4분기 순감축량 산정보고서", "2025.10 - 2025.12", "신규 발급", "ISSUE",
@@ -93,12 +95,11 @@ public class AdminCertificateApprovalService {
             Object selectedIds,
             Object rejectReason,
             boolean isEn,
-            boolean hasAccess,
-            AdminMainController controller) {
+            boolean hasAccess) {
         AdminApprovalActionService.ActionResult result = AdminApprovalActionService.ActionResult.certificate(
                 normalizeAction(action),
-                controller.extractPayloadIds(selectedIds, stringValue(certificateId)),
-                controller.trimToLen(controller.safeString(stringValue(rejectReason)), 1000));
+                adminPayloadSelectionSupport.extractPayloadIds(selectedIds, stringValue(certificateId)),
+                trimToLen(safeTrim(stringValue(rejectReason)), 1000));
         if (!hasAccess) {
             return result.forbidden(isEn
                     ? "Only master administrators can approve certificates."
@@ -226,6 +227,14 @@ public class AdminCertificateApprovalService {
             return isEn ? "The certificate request has been rejected." : "인증서 반려 처리가 완료되었습니다.";
         }
         return "";
+    }
+
+    private String trimToLen(String value, int maxLen) {
+        String normalized = safeTrim(value);
+        if (normalized.length() <= maxLen) {
+            return normalized;
+        }
+        return normalized.substring(0, maxLen);
     }
 
     private String normalizeCode(Object value) {

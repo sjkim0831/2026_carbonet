@@ -1,4 +1,4 @@
-import type { ScreenBuilderComponentPromptSurface } from "../../../../lib/api/client";
+import type { ScreenBuilderComponentPromptSurface } from "../../../../lib/api/platformTypes";
 import { GridToolbar, MemberButton } from "../../../admin-ui/common";
 
 type Props = {

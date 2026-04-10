@@ -34,6 +34,12 @@ Confirm:
 - reopen requests name a contract-level reason
 - family-scoped closeout claims name both the closed family and the family source-of-truth path
 
+For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also confirm the operator can reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
 ## 4. Surface Discipline
 
 Confirm:
@@ -83,4 +89,5 @@ For active builder resource-ownership continuation checks, use in this order:
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
 
 Treat the first two docs above as the single live entry pair before opening tracker rows, review cards, or examples.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` only as supporting guidance when continuation state changes.
 If health-check review changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.

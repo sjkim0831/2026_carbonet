@@ -12,11 +12,29 @@ For this family, always resume from:
 
 1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
-3. `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 
 Do not start from review cards or partial examples unless this entry pair already points you there.
-Treat this entry pair as the `single live entry pair` for the active family.
+Treat the first two docs above as the `single live entry pair` for the active family.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
 If kickoff refresh changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
+
+Current active continuation target:
+
+- row `5`
+- `executable app resource assembly fallback`
+- blocker-resolution state with row `5` as the remaining blocker
+- `docs/architecture/builder-resource-row5-owner-packet.md`
+- compressed blocker control docs:
+  - `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+  - `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+- canonical partial phrase:
+  - `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
+
+Remaining docs-only valid work for row `5` is only:
+
+- whether a watched source doc changed
+- whether that changed source adds the exact missing sentence bundle
 
 ## Prerequisite
 
@@ -34,6 +52,7 @@ Source-of-truth set for that prerequisite:
 
 1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
+3. `docs/architecture/builder-resource-row5-owner-packet.md` when row `5` is the active continuation target
 4. `docs/architecture/builder-resource-ownership-owner-checklist.md`
 5. `docs/architecture/builder-resource-ownership-status-tracker.md`
 6. `docs/architecture/builder-resource-ownership-closure-plan.md`
@@ -44,12 +63,15 @@ Source-of-truth set for that prerequisite:
 11. one matching start-now review card:
    - `docs/architecture/builder-resource-review-framework-builder-compatibility-xml.md`
    - `docs/architecture/builder-resource-review-framework-contract-metadata.md`
-12. for the next review-next family:
+12. if row `3` is reopened later as supporting non-blocking context:
    - `docs/architecture/builder-resource-review-builder-observability.md`
-13. for the app-packaging exclusion family after row `3`:
+13. if row `4` is revisited inside the same family:
    - `docs/architecture/builder-resource-review-app-packaging-exclusion.md`
-14. for the executable-app fallback blocker sink after row `4`:
+14. if row `5` remains the same family's active row:
    - `docs/architecture/builder-resource-review-executable-app-fallback.md`
+15. for compressed blocker reopen control before any docs-only retry on rows `2`, `3`, or `5`:
+   - `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+   - `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
 
 ## Current Objective
 

@@ -7,6 +7,15 @@ Generated on 2026-03-21 for the secondary implementation wave.
 These checklists are the final short checks before code changes begin in the
 secondary implementation lanes.
 
+If `04` is continuing `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Treat those two docs as the single live entry pair for this continuation.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
+
 ## 07 DB SQL Migration Rollback Checklist
 
 Confirm before editing:

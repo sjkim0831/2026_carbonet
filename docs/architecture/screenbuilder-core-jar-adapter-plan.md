@@ -30,6 +30,8 @@ For the live builder continuation after structure-governance closure, use:
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Treat those two docs as the single live entry pair for that continuation.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
 If continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 ## Direct Answer

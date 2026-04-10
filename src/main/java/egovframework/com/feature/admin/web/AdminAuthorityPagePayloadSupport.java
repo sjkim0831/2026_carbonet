@@ -9,6 +9,7 @@ import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 import egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
+import egovframework.com.feature.admin.model.vo.AuthorRoleProfileVO;
 import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
 import egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -51,7 +53,24 @@ public class AdminAuthorityPagePayloadSupport {
     private final PlatformObservabilityAuditQueryPort platformObservabilityAuditQueryPort;
     private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
     private final CurrentUserContextService currentUserContextService;
+    private final AdminRequestContextSupport adminRequestContextSupport;
     private final ObjectMapper objectMapper;
+
+    public boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
+        return adminRequestContextSupport.isEnglishRequest(request, locale);
+    }
+
+    public String extractCurrentUserId(HttpServletRequest request) {
+        return adminRequestContextSupport.extractCurrentUserId(request);
+    }
+
+    public void primeCsrfToken(HttpServletRequest request) {
+        adminRequestContextSupport.primeCsrfToken(request);
+    }
+
+    public String safeValue(String value) {
+        return safeString(value);
+    }
 
     public List<FeatureCatalogSectionVO> buildFeatureCatalogSections(List<FeatureCatalogItemVO> featureRows, boolean isEn) {
         Map<String, FeatureCatalogSectionVO> sectionMap = new LinkedHashMap<>();
@@ -148,6 +167,70 @@ public class AdminAuthorityPagePayloadSupport {
             }
         }
         return selectedPageCount;
+    }
+
+    public Map<String, Object> toAuthorRoleProfileMap(AuthorRoleProfileVO profile) {
+        if (profile == null || safeString(profile.getAuthorCode()).isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("authorCode", safeString(profile.getAuthorCode()).toUpperCase(Locale.ROOT));
+        row.put("displayTitle", safeString(profile.getDisplayTitle()));
+        row.put("priorityWorks", profile.getPriorityWorks() == null ? Collections.emptyList() : profile.getPriorityWorks());
+        row.put("description", safeString(profile.getDescription()));
+        row.put("memberEditVisibleYn", safeString(profile.getMemberEditVisibleYn()));
+        row.put("roleType", safeString(profile.getRoleType()));
+        row.put("baseRoleYn", safeString(profile.getBaseRoleYn()));
+        row.put("parentAuthorCode", safeString(profile.getParentAuthorCode()).toUpperCase(Locale.ROOT));
+        row.put("assignmentScope", safeString(profile.getAssignmentScope()));
+        row.put("defaultMemberTypes", profile.getDefaultMemberTypes() == null ? Collections.emptyList() : profile.getDefaultMemberTypes());
+        row.put("updatedAt", safeString(profile.getUpdatedAt()));
+        return row;
+    }
+
+    public Map<String, Map<String, Object>> toAuthorRoleProfileMapCollection(Map<String, AuthorRoleProfileVO> profiles) {
+        if (profiles == null || profiles.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Map<String, Object>> rows = new LinkedHashMap<>();
+        for (Map.Entry<String, AuthorRoleProfileVO> entry : profiles.entrySet()) {
+            rows.put(safeString(entry.getKey()).toUpperCase(Locale.ROOT), toAuthorRoleProfileMap(entry.getValue()));
+        }
+        return rows;
+    }
+
+    public Set<String> collectRoleProfileAuthorCodes(List<Map<String, String>> departmentRows,
+                                                     List<AuthorInfoVO> departmentAuthorGroups,
+                                                     List<AuthorInfoVO> memberAssignableAuthorGroups,
+                                                     List<?> companyMembers) {
+        LinkedHashSet<String> authorCodes = new LinkedHashSet<>();
+        if (departmentRows != null) {
+            for (Map<String, String> row : departmentRows) {
+                authorCodes.add(safeString(row.get("authorCode")).toUpperCase(Locale.ROOT));
+                authorCodes.add(safeString(row.get("recommendedRoleCode")).toUpperCase(Locale.ROOT));
+            }
+        }
+        if (departmentAuthorGroups != null) {
+            for (AuthorInfoVO group : departmentAuthorGroups) {
+                authorCodes.add(safeString(group.getAuthorCode()).toUpperCase(Locale.ROOT));
+            }
+        }
+        if (memberAssignableAuthorGroups != null) {
+            for (AuthorInfoVO group : memberAssignableAuthorGroups) {
+                authorCodes.add(safeString(group.getAuthorCode()).toUpperCase(Locale.ROOT));
+            }
+        }
+        if (companyMembers != null) {
+            for (Object companyMember : companyMembers) {
+                if (!(companyMember instanceof UserAuthorityTargetVO)) {
+                    continue;
+                }
+                UserAuthorityTargetVO target = (UserAuthorityTargetVO) companyMember;
+                authorCodes.add(safeString(target.getAuthorCode()).toUpperCase(Locale.ROOT));
+            }
+        }
+        authorCodes.remove("");
+        return authorCodes;
     }
 
     public String resolveCurrentUserAuthorCode(String currentUserId) {
@@ -958,6 +1041,29 @@ public class AdminAuthorityPagePayloadSupport {
                     : "회사별 권한 데이터를 불러오지 못했습니다.");
         }
         return context;
+    }
+
+    public String resolveAuthChangeMessage(String error, boolean isEn) {
+        String normalized = safeString(error).toLowerCase(Locale.ROOT);
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        if ("save_failed".equals(normalized)) {
+            return isEn ? "Failed to save the administrator role." : "관리자 권한 변경 저장에 실패했습니다.";
+        }
+        return isEn ? "Failed to process the role change." : "권한 변경 처리에 실패했습니다.";
+    }
+
+    public String resolveAuthGroupBasePath(HttpServletRequest request, Locale locale) {
+        String prefix = isEnglishRequest(request, locale) ? "/en/admin" : "/admin";
+        String requestUri = safeString(request == null ? null : request.getRequestURI());
+        if (requestUri.startsWith(prefix + "/member/auth-group")) {
+            return prefix + "/member/auth-group";
+        }
+        if (requestUri.startsWith(prefix + "/auth/group")) {
+            return prefix + "/auth/group";
+        }
+        return prefix + "/system/role";
     }
 
     public List<Map<String, String>> buildAssignmentAuthorities(boolean isEn) {

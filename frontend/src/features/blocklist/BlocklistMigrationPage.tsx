@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchBlocklistPage, type BlocklistPagePayload, updateSecurityMonitoringBlockCandidate } from "../../lib/api/client";
+import { fetchBlocklistPage, updateSecurityMonitoringBlockCandidate } from "../../lib/api/security";
+import type { BlocklistPagePayload } from "../../lib/api/securityTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import {

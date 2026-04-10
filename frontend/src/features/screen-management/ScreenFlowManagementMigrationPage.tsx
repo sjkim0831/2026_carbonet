@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import {
-  fetchScreenCommandPage,
-  type ScreenCommandApi,
-  type ScreenCommandEvent,
-  type ScreenCommandPagePayload,
-  type ScreenCommandSchema,
-  type ScreenCommandSurface
-} from "../../lib/api/client";
+import { fetchScreenCommandPage } from "../../lib/api/platform";
+import type {
+  ScreenCommandApi,
+  ScreenCommandEvent,
+  ScreenCommandPagePayload,
+  ScreenCommandSchema,
+  ScreenCommandSurface
+} from "../../lib/api/platformTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { GridToolbar, KeyValueGridPanel, PageStatusNotice } from "../admin-ui/common";

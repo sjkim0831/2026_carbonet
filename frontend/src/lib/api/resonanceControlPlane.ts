@@ -1,7 +1,8 @@
-import { apiFetch, buildAdminApiPath, buildResilientCsrfHeaders, readJsonResponse } from "./core";
+import { buildAdminApiPath, buildQueryString, fetchPageJson, postValidatedJson } from "./core";
 
 export const RESONANCE_PROJECT_ID = "carbonet-main";
 const RESONANCE_PROJECT_PARAM_KEYS = ["resonanceProjectId", "projectId"];
+type ResonanceQueryParams = Record<string, string | number | boolean | null | undefined>;
 
 function readProjectIdFromSearch() {
   if (typeof window === "undefined") {
@@ -20,6 +21,10 @@ function readProjectIdFromSearch() {
 export function resolveResonanceProjectId(explicitProjectId?: string) {
   const candidate = (explicitProjectId || "").trim();
   return candidate || readProjectIdFromSearch() || RESONANCE_PROJECT_ID;
+}
+
+function buildResonanceUrl(path: string, params?: ResonanceQueryParams) {
+  return `${buildAdminApiPath(path)}${buildQueryString(params)}`;
 }
 
 export type ResonanceParityCompareRow = {
@@ -195,26 +200,34 @@ export async function fetchParityCompare(params: {
   requestedBy?: string;
   requestedByType?: string;
 }) {
-  const search = new URLSearchParams();
-  search.set("projectId", params.projectId);
-  search.set("guidedStateId", params.guidedStateId);
-  search.set("templateLineId", params.templateLineId);
-  search.set("screenFamilyRuleId", params.screenFamilyRuleId);
-  search.set("ownerLane", params.ownerLane);
-  search.set("selectedScreenId", params.selectedScreenId);
-  if (params.releaseUnitId) search.set("releaseUnitId", params.releaseUnitId);
-  if (params.compareBaseline) search.set("compareBaseline", params.compareBaseline);
-  if (params.requestedBy) search.set("requestedBy", params.requestedBy);
-  if (params.requestedByType) search.set("requestedByType", params.requestedByType);
+  return fetchPageJson<ResonanceParityCompareResponse & { message?: string }>(
+    buildResonanceUrl("/api/platform/runtime/parity/compare", params),
+    {
+      fallbackMessage: "Failed to load parity compare",
+      resolveError: (body, status) => String(body.message || `Failed to load parity compare: ${status}`)
+    }
+  ) as Promise<ResonanceParityCompareResponse>;
+}
 
-  const response = await apiFetch(`${buildAdminApiPath("/api/platform/runtime/parity/compare")}?${search.toString()}`, {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ResonanceParityCompareResponse & { message?: string }>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to load parity compare: ${response.status}`));
-  }
-  return body as ResonanceParityCompareResponse;
+async function postResonanceJson<T extends Record<string, unknown>>(
+  path: string,
+  payload: unknown,
+  fallbackMessage: string
+) {
+  return postValidatedJson<T>(
+    buildAdminApiPath(path),
+    payload,
+    {
+      fallbackMessage,
+      init: {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      },
+      resolveError: (body, status) => String(body.message || `${fallbackMessage}: ${status}`)
+    }
+  );
 }
 
 export async function fetchRepairOpen(payload: {
@@ -235,20 +248,11 @@ export async function fetchRepairOpen(payload: {
   requestedByType: string;
   requestNote?: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/platform/runtime/repair/open"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<ResonanceRepairOpenResponse & { message?: string }>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to open repair session: ${response.status}`));
-  }
-  return body as ResonanceRepairOpenResponse;
+  return postResonanceJson<ResonanceRepairOpenResponse & { message?: string }>(
+    "/api/platform/runtime/repair/open",
+    payload,
+    "Failed to open repair session"
+  );
 }
 
 export async function fetchRepairApply(payload: {
@@ -273,20 +277,11 @@ export async function fetchRepairApply(payload: {
   requestedByType: string;
   changeSummary: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/platform/runtime/repair/apply"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<ResonanceRepairApplyResponse & { message?: string }>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to apply repair session: ${response.status}`));
-  }
-  return body as ResonanceRepairApplyResponse;
+  return postResonanceJson<ResonanceRepairApplyResponse & { message?: string }>(
+    "/api/platform/runtime/repair/apply",
+    payload,
+    "Failed to apply repair session"
+  );
 }
 
 export async function runProjectPipeline(payload: {
@@ -307,20 +302,11 @@ export async function runProjectPipeline(payload: {
   deploymentTarget?: string;
   operator?: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/platform/runtime/project-pipeline/run"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<ResonanceProjectPipelineResponse & { message?: string }>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to run project pipeline: ${response.status}`));
-  }
-  return body as ResonanceProjectPipelineResponse;
+  return postResonanceJson<ResonanceProjectPipelineResponse & { message?: string }>(
+    "/api/platform/runtime/project-pipeline/run",
+    payload,
+    "Failed to run project pipeline"
+  );
 }
 
 export async function fetchProjectPipelineStatus(payload: {
@@ -328,18 +314,9 @@ export async function fetchProjectPipelineStatus(payload: {
   pipelineRunId?: string;
   releaseUnitId?: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/platform/runtime/project-pipeline/status"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<ResonanceProjectPipelineResponse & { message?: string }>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to load project pipeline status: ${response.status}`));
-  }
-  return body as ResonanceProjectPipelineResponse;
+  return postResonanceJson<ResonanceProjectPipelineResponse & { message?: string }>(
+    "/api/platform/runtime/project-pipeline/status",
+    payload,
+    "Failed to load project pipeline status"
+  );
 }

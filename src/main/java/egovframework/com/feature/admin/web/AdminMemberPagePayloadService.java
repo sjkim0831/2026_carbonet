@@ -1,15 +1,17 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.service.AuthorRoleProfileService;
+import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
+import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
+import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.util.ObjectUtils;
@@ -21,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -32,45 +35,51 @@ public class AdminMemberPagePayloadService {
     private static final String MEMBER_REGISTER_ORG_SEARCH_FEATURE_CODE = "MEMBER_REGISTER_ORG_SEARCH";
     private static final String MEMBER_REGISTER_SAVE_FEATURE_CODE = "MEMBER_REGISTER_SAVE";
 
-    private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final EnterpriseMemberService entrprsManageService;
+    private final EmployeeMemberRepository employMemberRepository;
     private final AuthGroupManageService authGroupManageService;
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
     private final AdminCompanyScopeService adminCompanyScopeService;
-
-    private AdminMainController adminMainController() {
-        return adminMainControllerProvider.getObject();
-    }
+    private final AdminRequestContextSupport adminRequestContextSupport;
+    private final AdminMemberAccessSupport adminMemberAccessSupport;
+    private final AdminListPageModelAssembler adminListPageModelAssembler;
+    private final AdminMemberPageModelAssembler adminMemberPageModelAssembler;
+    private final AdminShellBootstrapPageService adminShellBootstrapPageService;
+    private final AdminMemberRegisterSupportService adminMemberRegisterSupportService;
+    private final AdminAdminAccountAccessService adminAdminAccountAccessService;
 
     public Map<String, Object> buildMemberEditPagePayload(
             String memberId,
             String updated,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
         Map<String, Object> response = new LinkedHashMap<>();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        String normalizedMemberId = controller.safeString(memberId);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        String normalizedMemberId = authorityPagePayloadSupport.safeValue(memberId);
         ExtendedModelMap model = new ExtendedModelMap();
         model.addAttribute("memberId", normalizedMemberId);
-        model.addAttribute("member_editUpdated", "true".equalsIgnoreCase(controller.safeString(updated)));
-        controller.primeCsrfToken(request);
-        controller.ensureMemberEditDefaults(model, isEn);
+        model.addAttribute("member_editUpdated", "true".equalsIgnoreCase(authorityPagePayloadSupport.safeValue(updated)));
+        adminRequestContextSupport.primeCsrfToken(request);
+        adminMemberPageModelAssembler.ensureMemberEditDefaults(model, isEn);
 
         if (normalizedMemberId.isEmpty()) {
             model.addAttribute("member_editError", isEn ? "Member ID was not provided." : "회원 ID가 전달되지 않았습니다.");
         } else {
             try {
                 EntrprsManageVO member = entrprsManageService.selectEntrprsmberByMberId(normalizedMemberId);
-                if (member == null || controller.safeString(member.getEntrprsmberId()).isEmpty()) {
+                if (member == null || authorityPagePayloadSupport.safeValue(member.getEntrprsmberId()).isEmpty()) {
                     model.addAttribute("member_editError", isEn ? "Member information was not found." : "회원 정보를 찾을 수 없습니다.");
-                } else if (!controller.canCurrentAdminAccessMember(request, member)) {
+                } else if (!adminMemberAccessSupport.canCurrentAdminAccessMember(request, member)) {
                     model.addAttribute("member_editError", isEn
                             ? "You can only edit members in your own company."
                             : "본인 회사 소속 회원만 수정할 수 있습니다.");
                 } else {
-                    controller.populateMemberEditModel(model, member, isEn, controller.extractCurrentUserId(request));
+                    adminMemberPageModelAssembler.populateMemberEditModel(
+                            model,
+                            member,
+                            isEn,
+                            adminRequestContextSupport.extractCurrentUserId(request));
                 }
             } catch (Exception e) {
                 log.error("Failed to load member edit page api. memberId={}", normalizedMemberId, e);
@@ -82,7 +91,7 @@ public class AdminMemberPagePayloadService {
 
         response.putAll(model);
         response.put("assignedRoleProfile",
-                controller.toAuthorRoleProfileMap(
+                authorityPagePayloadSupport.toAuthorRoleProfileMap(
                         authorRoleProfileService.getProfile(String.valueOf(model.get("permissionSelectedAuthorCode")))));
         response.put("canViewMemberEdit", model.get("member") != null && model.get("member_editError") == null);
         response.put("canUseMemberSave", ObjectUtils.isEmpty(model.get("member_editError")));
@@ -97,11 +106,10 @@ public class AdminMemberPagePayloadService {
             String sbscrbSttus,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.primeCsrfToken(request);
-        controller.populateMemberList(
+        adminRequestContextSupport.primeCsrfToken(request);
+        adminListPageModelAssembler.populateMemberList(
                 pageIndexParam,
                 searchKeyword,
                 membershipType,
@@ -110,7 +118,7 @@ public class AdminMemberPagePayloadService {
                 request);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
-        String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         AdminCompanyScopeService.CompanyScope scope = adminCompanyScopeService.resolve(currentUserId);
         boolean canView = authorityPagePayloadSupport.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)
@@ -127,15 +135,14 @@ public class AdminMemberPagePayloadService {
             String sbscrbSttus,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.primeCsrfToken(request);
-        String currentUserId = controller.extractCurrentUserId(request);
+        adminRequestContextSupport.primeCsrfToken(request);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         boolean canView = authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
         if (canView) {
-            controller.populateCompanyList(
+            adminListPageModelAssembler.populateCompanyList(
                     pageIndexParam,
                     searchKeyword,
                     sbscrbSttus,
@@ -157,12 +164,11 @@ public class AdminMemberPagePayloadService {
             String insttId,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        String currentUserId = controller.extractCurrentUserId(request);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.primeCsrfToken(request);
+        adminRequestContextSupport.primeCsrfToken(request);
         if (!authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             model.addAttribute("companyDetailError", isEn ? "Only global administrators can view company details." : "회원사 상세는 전체 관리자만 조회할 수 있습니다.");
             Map<String, Object> forbiddenResponse = new LinkedHashMap<>();
@@ -172,7 +178,12 @@ public class AdminMemberPagePayloadService {
             forbiddenResponse.put("companyDetailStatus", "FORBIDDEN");
             return forbiddenResponse;
         }
-        controller.populateCompanyDetailModel(controller.safeString(insttId), isEn, request, locale, model);
+        adminMemberPageModelAssembler.populateCompanyDetailModel(
+                authorityPagePayloadSupport.safeValue(insttId),
+                isEn,
+                request,
+                locale,
+                model);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         boolean canView = model.getAttribute("company") != null && model.getAttribute("companyDetailError") == null;
@@ -187,9 +198,8 @@ public class AdminMemberPagePayloadService {
             String saved,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        String currentUserId = controller.extractCurrentUserId(request);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         Map<String, Object> response = new LinkedHashMap<>();
         if (!authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
@@ -200,12 +210,12 @@ public class AdminMemberPagePayloadService {
             return response;
         }
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.populateCompanyAccountModel(controller.safeString(insttId), isEn, model);
-        model.addAttribute("companyAccountSaved", "Y".equalsIgnoreCase(controller.safeString(saved)));
+        adminMemberPageModelAssembler.populateCompanyAccountModel(authorityPagePayloadSupport.safeValue(insttId), isEn, model);
+        model.addAttribute("companyAccountSaved", "Y".equalsIgnoreCase(authorityPagePayloadSupport.safeValue(saved)));
         response.putAll(model);
         response.put("canViewCompanyAccount", true);
         response.put("canUseCompanyAccountSave", true);
-        response.put("isEditMode", !controller.safeString(insttId).isEmpty());
+        response.put("isEditMode", !authorityPagePayloadSupport.safeValue(insttId).isEmpty());
         return response;
     }
 
@@ -215,11 +225,10 @@ public class AdminMemberPagePayloadService {
             String sbscrbSttus,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.primeCsrfToken(request);
-        controller.populateAdminMemberList(
+        adminRequestContextSupport.primeCsrfToken(request);
+        adminListPageModelAssembler.populateAdminMemberList(
                 pageIndexParam,
                 searchKeyword,
                 sbscrbSttus,
@@ -228,8 +237,8 @@ public class AdminMemberPagePayloadService {
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         boolean canViewAdminList = authorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(
-                controller.extractCurrentUserId(request),
-                authorityPagePayloadSupport.resolveCurrentUserAuthorCode(controller.extractCurrentUserId(request)));
+                adminRequestContextSupport.extractCurrentUserId(request),
+                authorityPagePayloadSupport.resolveCurrentUserAuthorCode(adminRequestContextSupport.extractCurrentUserId(request)));
         response.put("canViewAdminList", canViewAdminList);
         response.put("canUseAdminListActions", Boolean.TRUE.equals(model.getAttribute("canUseAdminListActions")));
         return response;
@@ -239,11 +248,10 @@ public class AdminMemberPagePayloadService {
             String memberId,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.primeCsrfToken(request);
-        controller.populateMemberDetailModel(memberId, request, model, isEn);
+        adminRequestContextSupport.primeCsrfToken(request);
+        adminMemberPageModelAssembler.populateMemberDetailModel(memberId, request, model, isEn);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         boolean canView = model.getAttribute("member") != null && model.getAttribute("member_detailError") == null;
@@ -259,10 +267,9 @@ public class AdminMemberPagePayloadService {
             HttpServletRequest request,
             boolean isEn,
             Object memberObject) {
-        AdminMainController controller = adminMainController();
-        String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         AdminCompanyScopeService.CompanyScope scope = adminCompanyScopeService.resolve(currentUserId);
-        String actorInsttId = controller.safeString(scope.getInsttId());
+        String actorInsttId = authorityPagePayloadSupport.safeValue(scope.getInsttId());
         boolean canManageAllCompanies = scope.isMasterLike();
         boolean canManageOwnCompany = !canManageAllCompanies && scope.canManageMemberScope();
         response.put("currentUserInsttId", actorInsttId);
@@ -275,9 +282,9 @@ public class AdminMemberPagePayloadService {
         response.put("allowedMembershipTypes", List.of("E", "P", "C", "G"));
         if (memberObject instanceof EntrprsManageVO) {
             EntrprsManageVO member = (EntrprsManageVO) memberObject;
-            response.put("targetMemberInsttId", controller.safeString(member.getInsttId()));
-            response.put("targetMemberType", controller.normalizeMembershipCode(
-                    controller.safeString(member.getEntrprsSeCode()).toUpperCase(Locale.ROOT)));
+            response.put("targetMemberInsttId", authorityPagePayloadSupport.safeValue(member.getInsttId()));
+            response.put("targetMemberType", normalizeMembershipCode(
+                    authorityPagePayloadSupport.safeValue(member.getEntrprsSeCode()).toUpperCase(Locale.ROOT)));
         }
     }
 
@@ -312,26 +319,24 @@ public class AdminMemberPagePayloadService {
     public Map<String, Object> buildMemberStatsPagePayload(
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        controller.primeCsrfToken(request);
-        return controller.buildMemberStatsPageData(isEn);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        adminRequestContextSupport.primeCsrfToken(request);
+        return adminShellBootstrapPageService.buildMemberStatsPageData(isEn);
     }
 
     public Map<String, Object> buildMemberRegisterPagePayload(
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        controller.primeCsrfToken(request);
-        Map<String, Object> response = new LinkedHashMap<>(controller.buildMemberRegisterPageData(isEn));
-        String currentUserId = controller.extractCurrentUserId(request);
-        boolean webmaster = "webmaster".equalsIgnoreCase(controller.safeString(currentUserId));
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        adminRequestContextSupport.primeCsrfToken(request);
+        Map<String, Object> response = new LinkedHashMap<>(adminMemberRegisterSupportService.buildMemberRegisterPageData(isEn));
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
+        boolean webmaster = "webmaster".equalsIgnoreCase(authorityPagePayloadSupport.safeValue(currentUserId));
         java.util.Set<String> grantableFeatureCodes;
         try {
             grantableFeatureCodes = authorityPagePayloadSupport.resolveGrantableFeatureCodeSet(currentUserId, webmaster);
         } catch (Exception e) {
-            log.error("Failed to resolve member-register feature grants. userId={}", controller.safeString(currentUserId), e);
+            log.error("Failed to resolve member-register feature grants. userId={}", authorityPagePayloadSupport.safeValue(currentUserId), e);
             grantableFeatureCodes = Collections.emptySet();
         }
         response.put("canViewMemberRegister", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_VIEW_FEATURE_CODE));
@@ -340,19 +345,19 @@ public class AdminMemberPagePayloadService {
         response.put("canUseMemberRegisterSave", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_SAVE_FEATURE_CODE));
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         String currentUserInsttId = authorityPagePayloadSupport.resolveCurrentUserInsttId(currentUserId);
-        boolean canManageAllCompanies = controller.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
-        boolean canManageOwnCompany = controller.requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode);
+        boolean canManageAllCompanies = authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        boolean canManageOwnCompany = authorityPagePayloadSupport.requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode);
         List<Map<String, String>> departmentRows = Collections.emptyList();
         List<AuthorInfoVO> memberAssignableAuthorGroups = Collections.emptyList();
         try {
             List<DepartmentRoleMappingVO> mappings = authGroupManageService.selectDepartmentRoleMappings();
             departmentRows = new ArrayList<>(authorityPagePayloadSupport.buildDepartmentRoleRows(mappings, isEn));
             if (!canManageAllCompanies) {
-                departmentRows.removeIf(row -> !currentUserInsttId.equals(controller.safeString(row.get("insttId"))));
+                departmentRows.removeIf(row -> !currentUserInsttId.equals(authorityPagePayloadSupport.safeValue(row.get("insttId"))));
             }
-            memberAssignableAuthorGroups = controller.loadGrantableMemberAuthorGroups(currentUserId, currentUserAuthorCode);
+            memberAssignableAuthorGroups = adminMemberRegisterSupportService.loadGrantableMemberAuthorGroups(currentUserId, currentUserAuthorCode);
         } catch (Exception e) {
-            log.error("Failed to resolve member-register role mapping payload. userId={}", controller.safeString(currentUserId), e);
+            log.error("Failed to resolve member-register role mapping payload. userId={}", authorityPagePayloadSupport.safeValue(currentUserId), e);
         }
         response.put("currentUserInsttId", currentUserInsttId);
         response.put("canManageAllCompanies", canManageAllCompanies);
@@ -360,8 +365,8 @@ public class AdminMemberPagePayloadService {
         response.put("departmentMappings", departmentRows);
         response.put("memberAssignableAuthorGroups", memberAssignableAuthorGroups);
         response.put("roleProfilesByAuthorCode",
-                controller.toAuthorRoleProfileMapCollection(authorRoleProfileService.getProfiles(
-                        controller.collectRoleProfileAuthorCodes(
+                authorityPagePayloadSupport.toAuthorRoleProfileMapCollection(authorRoleProfileService.getProfiles(
+                        authorityPagePayloadSupport.collectRoleProfileAuthorCodes(
                                 departmentRows,
                                 Collections.emptyList(),
                                 memberAssignableAuthorGroups,
@@ -389,21 +394,20 @@ public class AdminMemberPagePayloadService {
             String memberId,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.primeCsrfToken(request);
-        String currentUserId = controller.extractCurrentUserId(request);
+        adminRequestContextSupport.primeCsrfToken(request);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         boolean requiresOwnCompanyAccess = authorityPagePayloadSupport.requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode);
-        if (requiresOwnCompanyAccess && controller.safeString(memberId).isEmpty()) {
+        if (requiresOwnCompanyAccess && authorityPagePayloadSupport.safeValue(memberId).isEmpty()) {
             model.addAttribute("passwordResetError", isEn
                     ? "Member ID is required for company-scoped administrators."
                     : "회사 범위 관리자에게는 회원 ID가 필요합니다.");
         } else {
-            controller.populatePasswordResetHistory(
+            adminMemberPageModelAssembler.populatePasswordResetHistory(
                     pageIndexParam,
-                    controller.preferredResetHistoryKeyword(memberId, searchKeyword),
+                    preferredResetHistoryKeyword(memberId, searchKeyword),
                     resetSource,
                     insttId,
                     request,
@@ -413,48 +417,124 @@ public class AdminMemberPagePayloadService {
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         response.put("canViewResetHistory", true);
-        response.put("canUseResetPassword", !requiresOwnCompanyAccess || !controller.safeString(memberId).isEmpty());
+        response.put("canUseResetPassword", !requiresOwnCompanyAccess || !authorityPagePayloadSupport.safeValue(memberId).isEmpty());
         return response;
+    }
+
+    private String normalizeMembershipCode(String membershipType) {
+        String normalized = authorityPagePayloadSupport.safeValue(membershipType).toUpperCase(Locale.ROOT);
+        if ("EMITTER".equals(normalized) || "EMITTER_COMPANY".equals(normalized)) {
+            return "E";
+        }
+        if ("PROJECT".equals(normalized) || "PROJECT_COMPANY".equals(normalized)) {
+            return "P";
+        }
+        if ("CENTER".equals(normalized) || "PROMOTION_CENTER".equals(normalized)) {
+            return "C";
+        }
+        if ("GOVERNMENT".equals(normalized) || "AGENCY".equals(normalized)) {
+            return "G";
+        }
+        return normalized;
+    }
+
+    private String preferredResetHistoryKeyword(String memberId, String searchKeyword) {
+        String keyword = authorityPagePayloadSupport.safeValue(searchKeyword).trim();
+        if (!keyword.isEmpty()) {
+            return keyword;
+        }
+        return authorityPagePayloadSupport.safeValue(memberId).trim();
     }
 
     public Map<String, Object> buildAdminAccountCreatePagePayload(
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        String currentUserId = controller.extractCurrentUserId(request);
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.primeCsrfToken(request);
-        controller.ensureAdminAccountCreateDefaults(model, isEn);
-        controller.populateAdminAccountCreatePageModel(model, isEn);
+        adminRequestContextSupport.primeCsrfToken(request);
+        adminMemberPageModelAssembler.populateAdminAccountCreatePageModel(model, isEn);
         java.util.List<String> allowedPresets = new java.util.ArrayList<>();
-        if (controller.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, "MASTER")) {
+        if (adminAdminAccountAccessService.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, "MASTER")) {
             allowedPresets.add("MASTER");
         }
-        if (controller.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, "SYSTEM")) {
+        if (adminAdminAccountAccessService.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, "SYSTEM")) {
             allowedPresets.add("SYSTEM");
         }
-        if (controller.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, "OPERATION")) {
+        if (adminAdminAccountAccessService.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, "OPERATION")) {
             allowedPresets.add("OPERATION");
         }
-        String currentUserInsttId = controller.resolveCurrentUserInsttId(currentUserId);
-        egovframework.com.feature.member.model.vo.InstitutionStatusVO actorInstitution = controller.loadInstitutionInfoByInsttId(currentUserInsttId);
+        String currentUserInsttId = authorityPagePayloadSupport.resolveCurrentUserInsttId(currentUserId);
+        egovframework.com.feature.member.model.vo.InstitutionStatusVO actorInstitution =
+                adminAdminAccountAccessService.loadInstitutionInfoByInsttId(currentUserInsttId);
         model.addAttribute("adminAccountCreateAllowedPresets", allowedPresets);
         model.addAttribute("adminAccountCreateCanSearchCompanies",
-                controller.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode));
+                authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode));
         model.addAttribute("adminAccountCreateCurrentInsttId", currentUserInsttId);
-        model.addAttribute("adminAccountCreateCurrentCompanyName", actorInstitution == null ? "" : controller.safeString(actorInstitution.getInsttNm()));
-        model.addAttribute("adminAccountCreateCurrentBizrno", actorInstitution == null ? "" : controller.safeString(actorInstitution.getBizrno()));
-        model.addAttribute("adminAccountCreateCurrentRepresentativeName", actorInstitution == null ? "" : controller.safeString(actorInstitution.getReprsntNm()));
+        model.addAttribute("adminAccountCreateCurrentCompanyName", actorInstitution == null ? "" : authorityPagePayloadSupport.safeValue(actorInstitution.getInsttNm()));
+        model.addAttribute("adminAccountCreateCurrentBizrno", actorInstitution == null ? "" : authorityPagePayloadSupport.safeValue(actorInstitution.getBizrno()));
+        model.addAttribute("adminAccountCreateCurrentRepresentativeName", actorInstitution == null ? "" : authorityPagePayloadSupport.safeValue(actorInstitution.getReprsntNm()));
         model.addAttribute("canUseAdminAccountCreate",
-                controller.canCreateAdminAccounts(currentUserId, currentUserAuthorCode));
+                adminAdminAccountAccessService.canCreateAdminAccounts(currentUserId, currentUserAuthorCode));
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         response.put("currentUserId", currentUserId);
         response.put("canViewAdminAccountCreate",
                 authorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode));
         response.put("canUseAdminAccountCreate", Boolean.TRUE.equals(model.getAttribute("canUseAdminAccountCreate")));
+        return response;
+    }
+
+    public Map<String, Object> buildAdminAccountPermissionPagePayload(
+            String emplyrId,
+            String updated,
+            String mode,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = adminRequestContextSupport.isEnglishRequest(request, locale);
+        ExtendedModelMap model = new ExtendedModelMap();
+        adminRequestContextSupport.primeCsrfToken(request);
+        model.addAttribute("adminPermissionUpdated", "true".equalsIgnoreCase(authorityPagePayloadSupport.safeValue(updated)));
+        model.addAttribute("adminAccountMode", authorityPagePayloadSupport.safeValue(mode));
+        String normalizedEmplyrId = authorityPagePayloadSupport.safeValue(emplyrId);
+        boolean canView = false;
+        boolean canSave = false;
+        if (!normalizedEmplyrId.isEmpty()) {
+            try {
+                Optional<EmplyrInfo> adminMemberOpt = employMemberRepository.findById(normalizedEmplyrId);
+                if (!adminMemberOpt.isPresent()) {
+                    model.addAttribute("adminPermissionError", isEn
+                            ? "Administrator information was not found."
+                            : "관리자 정보를 찾을 수 없습니다.");
+                } else if (!adminAdminAccountAccessService.canCurrentAdminAccessAdmin(request, adminMemberOpt.get())) {
+                    model.addAttribute("adminPermissionError", isEn
+                            ? "You can only view administrators in your own company."
+                            : "본인 회사에 속한 관리자만 조회할 수 있습니다.");
+                } else {
+                    adminMemberPageModelAssembler.populateAdminAccountEditModel(
+                            model,
+                            adminMemberOpt.get(),
+                            isEn,
+                            null,
+                            adminRequestContextSupport.extractCurrentUserId(request));
+                    canView = true;
+                    String currentUserId = adminRequestContextSupport.extractCurrentUserId(request);
+                    String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
+                    canSave = !Boolean.TRUE.equals(model.getAttribute("adminAccountReadOnly"))
+                            && authorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode);
+                }
+            } catch (Exception e) {
+                log.error("Failed to load admin account edit page api. emplyrId={}", normalizedEmplyrId, e);
+                model.addAttribute("adminPermissionError", isEn
+                        ? "An error occurred while retrieving administrator information."
+                        : "관리자 정보 조회 중 오류가 발생했습니다.");
+            }
+        }
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.putAll(model);
+        response.put("canViewAdminPermissionEdit", canView);
+        response.put("canUseAdminPermissionSave", canSave);
         return response;
     }
 }

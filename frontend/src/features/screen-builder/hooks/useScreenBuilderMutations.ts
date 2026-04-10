@@ -7,7 +7,7 @@ import type {
   ScreenBuilderNode,
   ScreenBuilderPagePayload,
   ScreenBuilderRegistryScanItem
-} from "../../../lib/api/client";
+} from "../../../lib/api/platformTypes";
 import {
   addScreenBuilderNodeFromComponent,
   addScreenBuilderNodeTreeFromComponents,
@@ -23,7 +23,7 @@ import {
   saveScreenBuilderDraft,
   scanScreenBuilderRegistryDiagnostics,
   updateScreenBuilderComponentRegistry
-} from "../../../lib/api/screenBuilder";
+} from "../../../lib/api/platform";
 import { sortScreenBuilderNodes } from "../shared/screenBuilderUtils";
 import type { AiNodeTreeInputRow, BuilderTemplateType } from "../shared/screenBuilderShared";
 

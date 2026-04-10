@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -27,7 +26,7 @@ class AdminCompanyAccountService {
     private static final Logger log = LoggerFactory.getLogger(AdminCompanyAccountService.class);
 
     private final EnterpriseMemberService entrprsManageService;
-    private final ObjectProvider<AdminMainController> adminMainControllerProvider;
+    private final AdminCompanyAccountSupportService adminCompanyAccountSupportService;
 
     SaveResult saveCompanyAccount(
             String insttId,
@@ -45,9 +44,8 @@ class AdminCompanyAccountService {
             boolean isEn,
             boolean hasAccess,
             boolean apiRequest) {
-        AdminMainController controller = adminMainControllerProvider.getObject();
         SaveResult result = SaveResult.normalize(
-                controller,
+                adminCompanyAccountSupportService,
                 insttId,
                 membershipType,
                 agencyName,
@@ -70,19 +68,22 @@ class AdminCompanyAccountService {
                     : "회원사 관리는 전체 관리자만 처리할 수 있습니다.");
         }
 
-        InstitutionStatusVO existingInstitution = controller.loadInstitutionInfoByInsttId(result.insttId);
-        List<InsttFileVO> existingFiles = controller.loadInsttFilesByInsttId(result.insttId);
+        InstitutionStatusVO existingInstitution = adminCompanyAccountSupportService.loadInstitutionInfoByInsttId(result.insttId);
+        List<InsttFileVO> existingFiles = adminCompanyAccountSupportService.loadInsttFilesByInsttId(result.insttId);
         result.existingFiles = existingFiles == null ? Collections.emptyList() : existingFiles;
         boolean hasExistingFiles = !result.existingFiles.isEmpty();
         boolean exists = existingInstitution != null && !existingInstitution.isEmpty();
 
         if (exists) {
-            result.agencyName = controller.trimToLen(controller.safeString(existingInstitution.getInsttNm()), 100);
-            result.representativeName = controller.trimToLen(controller.safeString(existingInstitution.getReprsntNm()), 60);
-            result.bizRegistrationNumber = controller.trimToLen(controller.digitsOnly(existingInstitution.getBizrno()), 10);
+            result.agencyName = adminCompanyAccountSupportService.trimToLen(
+                    adminCompanyAccountSupportService.safeString(existingInstitution.getInsttNm()), 100);
+            result.representativeName = adminCompanyAccountSupportService.trimToLen(
+                    adminCompanyAccountSupportService.safeString(existingInstitution.getReprsntNm()), 60);
+            result.bizRegistrationNumber = adminCompanyAccountSupportService.trimToLen(
+                    adminCompanyAccountSupportService.digitsOnly(existingInstitution.getBizrno()), 10);
         }
 
-        validate(result, controller, fileUploads, hasExistingFiles, isEn);
+        validate(result, fileUploads, hasExistingFiles, isEn);
         if (!result.errors.isEmpty()) {
             return result.invalid();
         }
@@ -90,7 +91,7 @@ class AdminCompanyAccountService {
         try {
             String targetInsttId = result.insttId;
             if (targetInsttId.isEmpty()) {
-                targetInsttId = controller.createInstitutionId();
+                targetInsttId = adminCompanyAccountSupportService.createInstitutionId();
             }
 
             InsttInfoVO vo = new InsttInfoVO();
@@ -106,13 +107,15 @@ class AdminCompanyAccountService {
             vo.setChargerTel(result.chargerTel);
             vo.setEntrprsSeCode(result.membershipType);
             vo.setInsttSttus(exists
-                    ? controller.safeString(existingInstitution.getInsttSttus()).isEmpty() ? "A" : controller.safeString(existingInstitution.getInsttSttus())
+                    ? adminCompanyAccountSupportService.safeString(existingInstitution.getInsttSttus()).isEmpty()
+                        ? "A"
+                        : adminCompanyAccountSupportService.safeString(existingInstitution.getInsttSttus())
                     : "A");
 
             int nextFileSn = hasExistingFiles ? result.existingFiles.size() + 1 : 1;
-            List<InsttFileVO> newFiles = controller.saveAdminInsttEvidenceFiles(targetInsttId, fileUploads, nextFileSn);
+            List<InsttFileVO> newFiles = adminCompanyAccountSupportService.saveAdminInsttEvidenceFiles(targetInsttId, fileUploads, nextFileSn);
             if (!newFiles.isEmpty()) {
-                vo.setBizRegFilePath(controller.joinInsttEvidencePaths(newFiles));
+                vo.setBizRegFilePath(adminCompanyAccountSupportService.joinInsttEvidencePaths(newFiles));
             } else if (exists) {
                 vo.setBizRegFilePath(existingInstitution.getBizRegFilePath());
             }
@@ -135,7 +138,6 @@ class AdminCompanyAccountService {
 
     private void validate(
             SaveResult result,
-            AdminMainController controller,
             List<MultipartFile> fileUploads,
             boolean hasExistingFiles,
             boolean isEn) {
@@ -160,13 +162,13 @@ class AdminCompanyAccountService {
         if (result.chargerName.isEmpty()) {
             result.errors.add(isEn ? "Please enter the contact name." : "담당자 성명을 입력해 주세요.");
         }
-        if (!controller.isValidEmail(result.chargerEmail)) {
+        if (!adminCompanyAccountSupportService.isValidEmail(result.chargerEmail)) {
             result.errors.add(isEn ? "Please enter a valid email address." : "올바른 담당자 이메일을 입력해 주세요.");
         }
-        if (controller.digitsOnly(result.chargerTel).length() < 9) {
+        if (adminCompanyAccountSupportService.digitsOnly(result.chargerTel).length() < 9) {
             result.errors.add(isEn ? "Please enter a valid contact number." : "올바른 담당자 연락처를 입력해 주세요.");
         }
-        if (!controller.hasValidInsttEvidenceFiles(fileUploads) && !hasExistingFiles) {
+        if (!adminCompanyAccountSupportService.hasValidInsttEvidenceFiles(fileUploads) && !hasExistingFiles) {
             result.errors.add(isEn ? "Please upload at least one supporting document." : "증빙 서류를 1개 이상 업로드해 주세요.");
         }
     }
@@ -201,7 +203,7 @@ class AdminCompanyAccountService {
         }
 
         static SaveResult normalize(
-                AdminMainController controller,
+                AdminCompanyAccountSupportService support,
                 String insttId,
                 String membershipType,
                 String agencyName,
@@ -215,17 +217,17 @@ class AdminCompanyAccountService {
                 String chargerTel,
                 boolean apiRequest) {
             SaveResult result = new SaveResult(apiRequest);
-            result.insttId = controller.safeString(insttId);
-            result.membershipType = controller.normalizeMembershipCode(membershipType);
-            result.agencyName = controller.trimToLen(controller.safeString(agencyName), 100);
-            result.representativeName = controller.trimToLen(controller.safeString(representativeName), 60);
-            result.bizRegistrationNumber = controller.trimToLen(controller.digitsOnly(bizRegistrationNumber), 10);
-            result.zipCode = controller.trimToLen(controller.digitsOnly(zipCode), 6);
-            result.companyAddress = controller.trimToLen(controller.safeString(companyAddress), 200);
-            result.companyAddressDetail = controller.trimToLen(controller.safeString(companyAddressDetail), 200);
-            result.chargerName = controller.trimToLen(controller.safeString(chargerName), 60);
-            result.chargerEmail = controller.trimToLen(controller.safeString(chargerEmail), 100);
-            result.chargerTel = controller.trimToLen(controller.safeString(chargerTel), 30);
+            result.insttId = support.safeString(insttId);
+            result.membershipType = support.normalizeMembershipCode(membershipType);
+            result.agencyName = support.trimToLen(support.safeString(agencyName), 100);
+            result.representativeName = support.trimToLen(support.safeString(representativeName), 60);
+            result.bizRegistrationNumber = support.trimToLen(support.digitsOnly(bizRegistrationNumber), 10);
+            result.zipCode = support.trimToLen(support.digitsOnly(zipCode), 6);
+            result.companyAddress = support.trimToLen(support.safeString(companyAddress), 200);
+            result.companyAddressDetail = support.trimToLen(support.safeString(companyAddressDetail), 200);
+            result.chargerName = support.trimToLen(support.safeString(chargerName), 60);
+            result.chargerEmail = support.trimToLen(support.safeString(chargerEmail), 100);
+            result.chargerTel = support.trimToLen(support.safeString(chargerTel), 30);
             return result;
         }
 

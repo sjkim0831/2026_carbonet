@@ -4,7 +4,8 @@ import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, getNavigationEventName } from "../../lib/navigation/runtime";
-import { fetchMemberListPage, MemberListPagePayload } from "../../lib/api/client";
+import { fetchMemberListPage } from "../../lib/api/adminMember";
+import type { MemberListPagePayload } from "../../lib/api/memberTypes";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import {
   MEMBER_STATUS_OPTIONS,

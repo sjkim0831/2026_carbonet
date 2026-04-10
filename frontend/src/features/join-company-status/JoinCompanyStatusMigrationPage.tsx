@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchJoinCompanyStatusDetail } from "../../lib/api/client";
+import { fetchJoinCompanyStatusDetail } from "../../lib/api/join";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { HomeButton, HomeCheckbox, HomeInput, HomeLinkButton } from "../home-ui/common";
 

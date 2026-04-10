@@ -190,6 +190,12 @@ If these do not move together, the page cannot be reliably:
 - regenerated safely
 - deployed and verified as part of a runtime package
 
+Use these operating documents when closing a page family:
+
+- `docs/architecture/page-systemization-checklist.md`
+- `docs/architecture/builder-install-deploy-closeout-checklist.md`
+- `docs/architecture/project-binding-patterns.md`
+
 ## Why Authority Scope Matters
 
 Authority scope plays a central role in this upgrade direction.
@@ -211,6 +217,8 @@ At minimum, every installable page or page family should declare:
 - project-binding overrides, if any
 
 Pages without explicit authority scope may still run, but they are not safe targets for governed install, cross-project reuse, or builder regeneration.
+
+Use `docs/architecture/authority-scope-application-checklist.md` when deciding whether authority scope is only declared or actually applied across runtime behavior.
 
 ## Member Process Example
 

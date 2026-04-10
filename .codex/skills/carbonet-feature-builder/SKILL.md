@@ -12,6 +12,11 @@ Use this as the default implementation skill for normal Carbonet features. If th
 If the request explicitly wants common-platform extraction, project-common separation, reversible common/project switching, shared jar preparation, or "make this easy to move later", use `carbonet-common-project-boundary-switcher` first and only then return here for repository implementation.
 
 If the request asks whether an existing page is really systemized, builder-ready, installable, or authority-scope-complete, read `docs/architecture/page-systemization-minimum-contract.md` first before deciding where code should land.
+If the request needs page-by-page closure rather than broad structure cleanup, read these too before implementation:
+- `docs/architecture/page-systemization-checklist.md`
+- `docs/architecture/builder-install-deploy-closeout-checklist.md`
+- `docs/architecture/authority-scope-application-checklist.md`
+- `docs/architecture/project-binding-patterns.md`
 
 If the request is likely to create new common/platform/backend/frontend folder ownership rather than a simple feature edit, read `docs/architecture/system-folder-structure-alignment.md` first before placing new files.
 
@@ -155,6 +160,7 @@ Incremental cleanup rule:
 - Do duplicated design outputs disagree? If so, prefer the workspace root files and `설계HTML_완성본_v8`, and mention the conflict explicitly.
 - Does the request imply new tables, columns, or domain terms that should be cross-checked against `DB_설계서_DDL.txt` and the standard-term CSV?
 - Did the change create new local-only artifacts or generated outputs that require a `.gitignore` update?
+- If this page is supposed to be reusable or installable, does it satisfy the page-systemization, authority-scope, and install/deploy closeout checklists?
 
 ## Delivery Shape
 

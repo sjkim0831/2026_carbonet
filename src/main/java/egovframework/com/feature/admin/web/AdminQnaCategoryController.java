@@ -3,12 +3,9 @@ package egovframework.com.feature.admin.web;
 import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.feature.admin.dto.request.AdminQnaCategorySaveRequestDTO;
 import egovframework.com.feature.admin.service.AdminQnaCategoryService;
-import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
@@ -29,17 +27,17 @@ public class AdminQnaCategoryController {
     private static final String MENU_CODE = "A0040302";
 
     private final AdminQnaCategoryService adminQnaCategoryService;
-    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final AuditTrailService auditTrailService;
 
     @RequestMapping(value = {"/admin/content/qna"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String qnaCategory(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "qna-category", false, true);
+    public String qnaCategory(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "qna-category");
     }
 
     @RequestMapping(value = {"/en/admin/content/qna"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String qnaCategoryEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupportProvider.getObject().render(model, "qna-category", true, true);
+    public String qnaCategoryEn(HttpServletRequest request, Locale locale) {
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "qna-category");
     }
 
     @GetMapping("/admin/api/admin/content/qna")

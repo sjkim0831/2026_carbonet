@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { resolveAuthorityScope } from "../../app/policy/authorityScope";
+import { getCurrentRuntimePathname, getCurrentRuntimeSearch } from "../../app/routes/runtime";
 import { fetchAuditEvents } from "../../platform/observability/observability";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
@@ -14,24 +17,28 @@ import {
   type ResonanceRepairOpenResponse,
   type ResonanceProjectPipelineResponse
 } from "../../lib/api/resonanceControlPlane";
-import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
-import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
+import { fetchScreenBuilderPage, fetchScreenBuilderPreview, fetchScreenCommandPage } from "../../lib/api/platform";
+import type { ScreenCommandPagePayload } from "../../lib/api/platformTypes";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { buildCurrentRuntimeComparePath, buildScreenBuilderPath } from "./screenBuilderPaths";
 import {
   AdminSelect,
   AdminTextarea,
+  CopyableCodeBlock,
   GridToolbar,
   KeyValueGridPanel,
-  MemberButton,
   MemberLinkButton,
+  MemberPermissionButton,
   PageStatusNotice,
   SummaryMetricCard
 } from "../admin-ui/common";
 import { resolveRepairWorkbenchContextKeys } from "../admin-ui/contextKeyPresets";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { MemberStateCard } from "../member/sections";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
+import { buildScreenBuilderOperatorFlowPaths, buildScreenBuilderOperatorFlowSteps, buildScreenBuilderRouteVerifyCommands } from "./operatorFlow";
 
 type CompareRow = {
   label: string;
@@ -107,6 +114,22 @@ type LoopStatusItem = {
   value: string;
 };
 
+function getRepairWorkbenchRoutePath() {
+  return getCurrentRuntimePathname();
+}
+
+function getRepairWorkbenchSearchParam(name: string) {
+  return new URLSearchParams(getCurrentRuntimeSearch()).get(name);
+}
+
+function getRepairWorkbenchProjectId() {
+  return getRepairWorkbenchSearchParam("projectId");
+}
+
+function getRepairWorkbenchSnapshotVersionId() {
+  return getRepairWorkbenchSearchParam("snapshotVersionId");
+}
+
 function buildRepairContextStripItems(
   baseItems: Array<{ label: string; value: string }>,
   rows: CompareRow[],
@@ -171,11 +194,36 @@ function buildDeployEvidence(options: {
 
 export function RepairWorkbenchMigrationPage() {
   const en = isEnglish();
-  const query = useMemo(() => resolveScreenBuilderQuery({ get: getSearchParam }), []);
-  const snapshotVersionId = getSearchParam("snapshotVersionId") || "";
+  const sessionState = useFrontendSession();
+  const query = useMemo(() => resolveScreenBuilderQuery({ get: getRepairWorkbenchSearchParam }), []);
+  const commandState = useAsyncValue<ScreenCommandPagePayload>(
+    () => (query.pageId ? fetchScreenCommandPage(query.pageId) : Promise.resolve({ selectedPageId: "", pages: [], page: {} as ScreenCommandPagePayload["page"] })),
+    [query.pageId],
+    { enabled: Boolean(query.pageId) }
+  );
+  const repairWorkbenchAuthority = useMemo(() => resolveAuthorityScope({
+    scopeName: "repair-workbench",
+    routePath: getRepairWorkbenchRoutePath(),
+    session: sessionState.value,
+    menuCode: commandState.value?.page?.menuPermission?.menuCode || query.menuCode,
+    requiredViewFeatureCode: commandState.value?.page?.menuPermission?.requiredViewFeatureCode,
+    featureCodes: commandState.value?.page?.menuPermission?.featureCodes,
+    featureRows: commandState.value?.page?.menuPermission?.featureRows
+  }), [
+    commandState.value?.page?.menuPermission?.featureCodes,
+    commandState.value?.page?.menuPermission?.featureRows,
+    commandState.value?.page?.menuPermission?.menuCode,
+    commandState.value?.page?.menuPermission?.requiredViewFeatureCode,
+    query.menuCode,
+    sessionState.value
+  ]);
+  const pagePermissionDenied = !sessionState.loading && !commandState.loading && !repairWorkbenchAuthority.entryAllowed;
+  const pageQueryEnabled = (!query.pageId || !commandState.loading) && repairWorkbenchAuthority.entryAllowed;
+  const snapshotVersionId = getRepairWorkbenchSnapshotVersionId() || "";
   const pageState = useAsyncValue(
     () => fetchScreenBuilderPage(query),
-    [query.menuCode, query.pageId, query.menuTitle, query.menuUrl]
+    [query.menuCode, query.pageId, query.menuTitle, query.menuUrl],
+    { enabled: pageQueryEnabled }
   );
   const page = pageState.value;
   const focusedSnapshot = useMemo(
@@ -187,24 +235,24 @@ export function RepairWorkbenchMigrationPage() {
   const publishedPreviewState = useAsyncValue(
     () => fetchScreenBuilderPreview({ ...query, versionStatus: "PUBLISHED" }),
     [query.menuCode, query.pageId, query.menuTitle, query.menuUrl, page?.publishedVersionId || ""],
-    { enabled: Boolean(page?.publishedVersionId) }
+    { enabled: pageQueryEnabled && Boolean(page?.publishedVersionId) }
   );
   const currentPreviewState = useAsyncValue(
     () => fetchScreenBuilderPreview(query),
     [query.menuCode, query.pageId, query.menuTitle, query.menuUrl, page?.versionId || ""],
-    { enabled: Boolean(query.menuCode || query.pageId) }
+    { enabled: pageQueryEnabled && Boolean(query.menuCode || query.pageId) }
   );
   const auditState = useAsyncValue(
     () => fetchAuditEvents({ menuCode: query.menuCode, pageId: query.pageId, pageSize: 8 }),
     [query.menuCode, query.pageId],
-    { enabled: Boolean(query.menuCode || query.pageId) }
+    { enabled: pageQueryEnabled && Boolean(query.menuCode || query.pageId) }
   );
 
   const compareContextKeys = useMemo(() => resolveRepairWorkbenchContextKeys({
     menuUrl: page?.menuUrl || query.menuUrl,
     templateType: currentPreviewState.value?.templateType || publishedPreviewState.value?.templateType || page?.templateType
   }), [currentPreviewState.value?.templateType, page?.menuUrl, page?.templateType, publishedPreviewState.value?.templateType, query.menuUrl]);
-  const resonanceProjectId = useMemo(() => resolveResonanceProjectId(getSearchParam("projectId") || ""), []);
+  const resonanceProjectId = useMemo(() => resolveResonanceProjectId(getRepairWorkbenchProjectId() || ""), []);
   const guidedStateId = findContextKeyValue(compareContextKeys, "Guided State");
   const templateLineId = findContextKeyValue(compareContextKeys, "Template Line");
   const screenFamilyRuleId = findContextKeyValue(compareContextKeys, "Screen Family Rule");
@@ -230,7 +278,7 @@ export function RepairWorkbenchMigrationPage() {
       requestedByType: "ADMIN_UI"
     }),
     [guidedStateId, ownerLane, releaseUnitId, resonanceProjectId, screenFamilyRuleId, selectedScreenId, templateLineId],
-    { enabled: Boolean(guidedStateId && templateLineId && screenFamilyRuleId && ownerLane && selectedScreenId) }
+    { enabled: pageQueryEnabled && Boolean(guidedStateId && templateLineId && screenFamilyRuleId && ownerLane && selectedScreenId) }
   );
 
   const compareRows = compareState.value?.compareTargetSet?.length ? mapParityRows(compareState.value.compareTargetSet) : [];
@@ -305,6 +353,17 @@ export function RepairWorkbenchMigrationPage() {
     }),
     [artifactEvidence, ownerLane, releaseUnitId, repairRuntimeEvidence, selectedScreenId]
   );
+  const operatorFlowQuery = useMemo(() => ({
+    menuCode: page?.menuCode || query.menuCode,
+    pageId: page?.pageId || query.pageId,
+    menuTitle: page?.menuTitle || query.menuTitle,
+    menuUrl: page?.menuUrl || query.menuUrl,
+    snapshotVersionId,
+    projectId: resonanceProjectId
+  }), [page?.menuCode, page?.menuTitle, page?.menuUrl, page?.pageId, query.menuCode, query.menuTitle, query.menuUrl, query.pageId, resonanceProjectId, snapshotVersionId]);
+  const operatorFlowPaths = useMemo(() => buildScreenBuilderOperatorFlowPaths(operatorFlowQuery), [operatorFlowQuery]);
+  const operatorFlowSteps = useMemo(() => buildScreenBuilderOperatorFlowSteps(operatorFlowQuery), [operatorFlowQuery]);
+  const routeVerifyCommands = useMemo(() => buildScreenBuilderRouteVerifyCommands(operatorFlowQuery), [operatorFlowQuery]);
   const snapshotMatchesPublished = Boolean(snapshotVersionId && snapshotVersionId === String(page?.publishedVersionId || ""));
   const snapshotMatchesDraft = Boolean(snapshotVersionId && snapshotVersionId === String(page?.versionId || ""));
   const snapshotAnchorState = !snapshotVersionId
@@ -320,6 +379,7 @@ export function RepairWorkbenchMigrationPage() {
 
   useEffect(() => {
     logGovernanceScope("PAGE", "repair-workbench", {
+      route: getRepairWorkbenchRoutePath(),
       language: en ? "en" : "ko",
       selectedScreenId,
       releaseUnitId,
@@ -346,6 +406,11 @@ export function RepairWorkbenchMigrationPage() {
   ]);
 
   async function handleOpenRepair() {
+    if (!repairWorkbenchAuthority.allowsAction("execute")) {
+      repairWorkbenchAuthority.logAuthorityDenied("execute", { component: "repair-workbench-open-repair", menuCode: page?.menuCode || query.menuCode });
+      setOpenError(repairWorkbenchAuthority.getActionReason("execute", en));
+      return;
+    }
     logGovernanceScope("ACTION", "repair-workbench-open", {
       selectedScreenId,
       releaseUnitId,
@@ -383,6 +448,11 @@ export function RepairWorkbenchMigrationPage() {
 
   async function handleApplyRepair() {
     if (!repairOpenResponse) {
+      return;
+    }
+    if (!repairWorkbenchAuthority.allowsAction("execute")) {
+      repairWorkbenchAuthority.logAuthorityDenied("execute", { component: "repair-workbench-apply-repair", menuCode: page?.menuCode || query.menuCode });
+      setApplyError(repairWorkbenchAuthority.getActionReason("execute", en));
       return;
     }
     logGovernanceScope("ACTION", "repair-workbench-apply", {
@@ -553,6 +623,11 @@ export function RepairWorkbenchMigrationPage() {
   );
 
   async function handleRunProjectPipeline(repairCandidate?: ResonanceRepairApplyResponse | null) {
+    if (!repairWorkbenchAuthority.allowsAction("execute")) {
+      repairWorkbenchAuthority.logAuthorityDenied("execute", { component: "repair-workbench-run-pipeline", menuCode: page?.menuCode || query.menuCode });
+      setPipelineRunError(repairWorkbenchAuthority.getActionReason("execute", en));
+      return;
+    }
     setPipelineRunLoading(true);
     setPipelineRunError("");
     setPipelineRunSuccess("");
@@ -591,6 +666,11 @@ export function RepairWorkbenchMigrationPage() {
   }
 
   async function handleRefreshProjectPipeline() {
+    if (!repairWorkbenchAuthority.allowsAction("query")) {
+      repairWorkbenchAuthority.logAuthorityDenied("query", { component: "repair-workbench-refresh-pipeline", menuCode: page?.menuCode || query.menuCode });
+      setPipelineRunError(repairWorkbenchAuthority.getActionReason("query", en));
+      return;
+    }
     setPipelineRunSuccess("");
     await pipelineStatusState.reload();
   }
@@ -606,12 +686,12 @@ export function RepairWorkbenchMigrationPage() {
       title={en ? "Rollback History Console" : "롤백 이력 콘솔"}
       subtitle={en ? "Carry validator blockers into governed repair, rollback, and handoff flows without losing builder/runtime identity." : "검증 차단 항목을 빌더/런타임 식별 키를 유지한 채 governed 복구, 롤백, 인계 흐름으로 넘깁니다."}
       contextStrip={<ContextKeyStrip items={repairContextStripItems} />}
-      loading={(pageState.loading && !page) || (currentPreviewState.loading && !currentPreviewState.value)}
+      loading={(commandState.loading && !commandState.value) || (pageState.loading && !page) || (currentPreviewState.loading && !currentPreviewState.value)}
       loadingLabel={en ? "Loading repair workbench..." : "복구 워크벤치를 불러오는 중입니다."}
     >
-      {pageState.error || currentPreviewState.error || publishedPreviewState.error || compareState.error ? (
+      {commandState.error || pageState.error || currentPreviewState.error || publishedPreviewState.error || compareState.error ? (
         <PageStatusNotice tone="error">
-          {pageState.error || currentPreviewState.error || publishedPreviewState.error || compareState.error}
+          {commandState.error || pageState.error || currentPreviewState.error || publishedPreviewState.error || compareState.error}
         </PageStatusNotice>
       ) : null}
       {pipelineRunError ? <PageStatusNotice tone="error">{pipelineRunError}</PageStatusNotice> : null}
@@ -644,6 +724,18 @@ export function RepairWorkbenchMigrationPage() {
       {pipelineRunSuccess ? <PageStatusNotice tone="success">{pipelineRunSuccess}</PageStatusNotice> : null}
 
       <AdminWorkspacePageFrame>
+        {pagePermissionDenied ? (
+          <MemberStateCard
+            description={en
+              ? `You need ${repairWorkbenchAuthority.requiredViewFeatureCode || `${commandState.value?.page?.menuPermission?.menuCode || page?.menuCode || query.menuCode}_VIEW`} permission to open repair and rollback evidence for this page.`
+              : `이 페이지의 복구 및 롤백 증거 화면을 열려면 ${repairWorkbenchAuthority.requiredViewFeatureCode || `${commandState.value?.page?.menuPermission?.menuCode || page?.menuCode || query.menuCode}_VIEW`} 권한이 필요합니다.`}
+            icon="lock"
+            title={en ? "Permission denied." : "권한이 없습니다."}
+            tone="danger"
+          />
+        ) : null}
+        {pagePermissionDenied ? null : (
+        <>
         {snapshotVersionId ? (
           <section className="grid grid-cols-1 gap-4 md:grid-cols-4" data-help-id="repair-workbench-snapshot-focus">
             <SummaryMetricCard
@@ -729,12 +821,12 @@ export function RepairWorkbenchMigrationPage() {
               : "복구 결과를 installable product, artifact 중심 배포 계약, rollback anchor로 승격합니다."}
             actions={(
               <div className="flex flex-wrap gap-2">
-                <MemberButton disabled={pipelineRunLoading} onClick={handleRefreshProjectPipeline} size="sm" type="button" variant="secondary">
+                <MemberPermissionButton allowed={repairWorkbenchAuthority.allowsAction("query")} disabled={pipelineRunLoading} onClick={handleRefreshProjectPipeline} reason={repairWorkbenchAuthority.getActionReason("query", en)} size="sm" type="button" variant="secondary">
                   {pipelineStatusState.loading ? (en ? "Loading..." : "불러오는 중...") : (en ? "Load Latest" : "최신 실행 조회")}
-                </MemberButton>
-                <MemberButton disabled={pipelineRunLoading} onClick={() => { void handleRunProjectPipeline(); }} size="sm" type="button">
+                </MemberPermissionButton>
+                <MemberPermissionButton allowed={repairWorkbenchAuthority.allowsAction("execute")} disabled={pipelineRunLoading} onClick={() => { void handleRunProjectPipeline(); }} reason={repairWorkbenchAuthority.getActionReason("execute", en)} size="sm" type="button" variant="primary">
                   {pipelineRunLoading ? (en ? "Running..." : "실행 중...") : (en ? "Run Pipeline" : "파이프라인 실행")}
-                </MemberButton>
+                </MemberPermissionButton>
               </div>
             )}
           />
@@ -949,6 +1041,35 @@ export function RepairWorkbenchMigrationPage() {
             ]}
           />
         </div>
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2" data-help-id="repair-workbench-operator-flow">
+          <KeyValueGridPanel
+            title={en ? "Repair / Rollback Operator Flow" : "복구 / 롤백 운영자 플로우"}
+            description={en ? "Repair workbench closes the operator path from deploy freshness into compare, repair, and rollback evidence for the screen-builder pilot family." : "repair workbench는 screen-builder pilot family에서 deploy freshness부터 compare, repair, rollback evidence까지의 운영자 경로를 닫습니다."}
+            items={[
+              { label: "pageFamily", value: "screen-builder" },
+              { label: "installScope", value: "COMMON_DEF_PROJECT_BIND" },
+              { label: en ? "Runtime Target" : "런타임 대상", value: operatorFlowPaths.runtime },
+              { label: en ? "Compare Target" : "비교 대상", value: operatorFlowPaths.compare },
+              { label: en ? "Repair Target" : "복구 대상", value: operatorFlowPaths.repair },
+              { label: en ? "Repair Session" : "복구 세션", value: repairOpenResponse?.repairSessionId || "-" },
+              { label: en ? "Apply Run" : "적용 실행", value: repairApplyResponse?.repairApplyRunId || "-" },
+              { label: en ? "Rollback Anchor" : "롤백 앵커", value: deployEvidence.rollbackAnchorYn }
+            ]}
+          />
+          <KeyValueGridPanel
+            title={en ? "Deploy / Verify / Rollback Commands" : "배포 / 검증 / 롤백 명령"}
+            description={en ? "Use the same command chain before and after repair apply so rollback evidence remains operator-readable." : "repair apply 전후에 같은 명령 체인을 사용해 rollback evidence를 운영자 가독 상태로 유지합니다."}
+            items={operatorFlowSteps.map((step) => ({
+              label: step.label,
+              value: `${step.command} -> ${step.evidence}`
+            }))}
+          >
+            <div className="grid grid-cols-1 gap-3">
+              <CopyableCodeBlock title={en ? "Build / Package / Restart" : "빌드 / 패키지 / 재시작"} value={operatorFlowSteps[0]?.command || ""} />
+              <CopyableCodeBlock title={en ? "Freshness / Compare / Repair Verify" : "freshness / compare / repair 검증"} value={`${operatorFlowSteps[1]?.command || ""}\n${routeVerifyCommands.runtime}\n${routeVerifyCommands.compare}\n${routeVerifyCommands.repair}`} />
+            </div>
+          </KeyValueGridPanel>
+        </section>
 
         <div data-help-id="repair-workbench-closure-checklist">
           <KeyValueGridPanel
@@ -1005,9 +1126,9 @@ export function RepairWorkbenchMigrationPage() {
                 >
                   {en ? "Open Repair Validator" : "복구 검증 열기"}
                 </MemberLinkButton>
-                <MemberButton disabled={openingRepair || !selectedElementSet.length} onClick={handleOpenRepair} size="sm" type="button">
+                <MemberPermissionButton allowed={repairWorkbenchAuthority.allowsAction("execute")} disabled={openingRepair || !selectedElementSet.length} onClick={handleOpenRepair} reason={repairWorkbenchAuthority.getActionReason("execute", en)} size="sm" type="button" variant="primary">
                   {openingRepair ? (en ? "Opening..." : "여는 중...") : (en ? "Open Rollback Session" : "롤백 세션 열기")}
-                </MemberButton>
+                </MemberPermissionButton>
               </>
             )}
           />
@@ -1144,9 +1265,9 @@ export function RepairWorkbenchMigrationPage() {
               title={en ? "Rollback Apply" : "롤백 적용"}
               meta={en ? "Close the current session into parity recheck and smoke verification readiness." : "현재 세션을 parity 재검증과 smoke 검증 준비 상태로 닫습니다."}
               actions={(
-                <MemberButton disabled={!repairOpenResponse || applyingRepair} onClick={handleApplyRepair} size="sm" type="button">
+                <MemberPermissionButton allowed={repairWorkbenchAuthority.allowsAction("execute")} disabled={!repairOpenResponse || applyingRepair} onClick={handleApplyRepair} reason={repairWorkbenchAuthority.getActionReason("execute", en)} size="sm" type="button" variant="primary">
                   {applyingRepair ? (en ? "Applying..." : "적용 중...") : (en ? "Apply Rollback" : "롤백 적용")}
-                </MemberButton>
+                </MemberPermissionButton>
               )}
             />
             <div className="space-y-4 bg-white px-5 py-4">
@@ -1212,6 +1333,8 @@ export function RepairWorkbenchMigrationPage() {
             </div>
           </section>
         </section>
+        </>
+        )}
       </AdminWorkspacePageFrame>
     </AdminPageShell>
   );

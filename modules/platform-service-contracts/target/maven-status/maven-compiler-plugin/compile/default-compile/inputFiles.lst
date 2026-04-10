@@ -18,15 +18,18 @@
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/common/menu/model/SiteMapNode.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/history/LoginHistoryDatasetSnapshot.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/ExternalRetryPayloadPort.java
+/opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/PlatformObservabilityAuditQueryPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/PlatformObservabilitySummaryReadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/feature/admin/model/vo/EmissionResultSummaryView.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/audit/AuditTrailPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/common/logging/RequestExecutionLogVO.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/RequestExecutionLogQueryPort.java
+/opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/common/audit/AuditEventSearchVO.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/observability/model/EmissionResultSummaryView.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/SrWorkbenchPagePort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/feature/admin/service/ScreenCommandCenterService.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/ExternalUsagePayloadPort.java
+/opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/PlatformObservabilityHistoryPagePayloadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/feature/admin/model/vo/EmissionResultFilterSnapshot.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/AdminApprovalPagePayloadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/history/PlatformObservabilityHistoryDataPort.java
@@ -39,6 +42,8 @@
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/ExternalSchemaPayloadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/PlatformObservabilityPagePayloadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/BackupConfigManagementPort.java
+/opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/workbench/SrTicketWorkbenchPort.java
+/opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/common/audit/AuditEventRecordVO.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/common/logging/RequestExecutionLogPage.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/ExternalKeysPayloadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/observability/model/SecurityAuditAggregate.java
@@ -46,4 +51,5 @@
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/AdminActionRateLimitPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/ExternalMonitoringPayloadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/AdminSecurityBootstrapReadPort.java
+/opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/BatchManagementPagePayloadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/CurrentUserContextReadPort.java

@@ -22,6 +22,16 @@
         LIMIT 1
     </select>
 
+    <select id="selectProjectRegistry" parameterType="string" resultType="map">
+        SELECT
+            PROJECT_ID AS projectId,
+            PROJECT_ID AS projectCode,
+            '' AS deploymentTarget
+        FROM PROJECT_REGISTRY
+        WHERE PROJECT_ID = #{projectId}
+        LIMIT 1
+    </select>
+
     <select id="selectInstalledArtifactList" parameterType="string" resultType="map">
         SELECT
             A.ARTIFACT_ID AS artifactId,
@@ -91,6 +101,21 @@
         SELECT COUNT(*)
         FROM RELEASE_UNIT_REGISTRY
         WHERE PROJECT_ID = #{projectId}
+    </select>
+
+    <select id="countArtifactVersionRegistry" resultType="int">
+        SELECT COUNT(*)
+        FROM ARTIFACT_VERSION_REGISTRY
+    </select>
+
+    <select id="countProjectArtifactInstall" resultType="int">
+        SELECT COUNT(*)
+        FROM PROJECT_ARTIFACT_INSTALL
+    </select>
+
+    <select id="countReleaseUnitRegistry" resultType="int">
+        SELECT COUNT(*)
+        FROM RELEASE_UNIT_REGISTRY
     </select>
 
     <select id="selectServerDeploymentStateList" parameterType="string" resultType="map">
@@ -211,6 +236,13 @@
           )
     </update>
 
+    <update id="deactivateProjectArtifactInstalls" parameterType="string">
+        UPDATE PROJECT_ARTIFACT_INSTALL
+        SET ACTIVE_YN = 'N'
+        WHERE PROJECT_ID = #{projectId}
+          AND ACTIVE_YN = 'Y'
+    </update>
+
     <insert id="insertReleaseUnitRegistry" parameterType="map">
         INSERT INTO RELEASE_UNIT_REGISTRY (
             RELEASE_UNIT_ID,
@@ -292,6 +324,30 @@
             #{relatedReleaseUnitId},
             CURRENT_DATETIME,
             #{recordedBy}
+        )
+    </insert>
+
+    <insert id="insertServerDeploymentState" parameterType="map">
+        INSERT INTO SERVER_DEPLOYMENT_STATE (
+            SERVER_DEPLOYMENT_ID,
+            SERVER_ID,
+            SERVER_ROLE,
+            PROJECT_ID,
+            RELEASE_UNIT_ID,
+            DEPLOY_TRACE_ID,
+            HEALTH_STATUS,
+            DEPLOYED_AT,
+            DEPLOYED_BY
+        ) VALUES (
+            #{serverDeploymentId},
+            #{serverId},
+            #{serverRole},
+            #{projectId},
+            #{releaseUnitId},
+            #{deployTraceId},
+            #{healthStatus},
+            CURRENT_DATETIME,
+            #{deployedBy}
         )
     </insert>
 

@@ -17,8 +17,10 @@ After the closed structure-governance family, continue from:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 
 Treat those two docs as the single live entry pair for the next active builder continuation.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` only as supporting guidance when continuation state changes.
 
 If continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both continuation docs in the same turn.
 

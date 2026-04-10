@@ -33,6 +33,11 @@ If any of the following changes, update both entry-pair documents in the same tu
 
 Do not force same-turn updates for wording-only cleanups that do not change continuation state.
 
+## Rollout Status
+
+- the maintenance contract has been linked into the active builder resource-ownership entry, queue, tracker, review-card, partial-closeout, session, skill, and operator routing documents
+- remaining work in this family should change live continuation state only when the paired entry docs are updated in the same turn
+
 ## Reading Order
 
 1. Read the current live state in `builder-resource-ownership-current-closeout.md`.

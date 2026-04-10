@@ -1,6 +1,6 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
+import egovframework.com.platform.trade.service.TradeControlPlanePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -23,7 +23,7 @@ import java.util.Map;
 public class AdminTradeController {
 
     private final AdminReactRouteSupport adminReactRouteSupport;
-    private final AdminShellBootstrapPageService adminShellBootstrapPageService;
+    private final TradeControlPlanePort tradeControlPlanePort;
 
     @RequestMapping(value = "/trade/list", method = { RequestMethod.GET, RequestMethod.POST })
     public String tradeListPage(
@@ -57,7 +57,7 @@ public class AdminTradeController {
             @RequestParam(value = "settlementStatus", required = false) String settlementStatus,
             HttpServletRequest request,
             Locale locale) {
-        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildTradeListPageData(
+        return ResponseEntity.ok(new LinkedHashMap<>(tradeControlPlanePort.buildTradeListPageData(
                 pageIndexParam,
                 searchKeyword,
                 tradeStatus,
@@ -87,7 +87,7 @@ public class AdminTradeController {
             @RequestParam(value = "settlementStatus", required = false) String settlementStatus,
             HttpServletRequest request,
             Locale locale) {
-        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildTradeStatisticsPageData(
+        return ResponseEntity.ok(new LinkedHashMap<>(tradeControlPlanePort.buildTradeStatisticsPageData(
                 pageIndexParam,
                 searchKeyword,
                 periodFilter,
@@ -106,7 +106,7 @@ public class AdminTradeController {
             @RequestParam(value = "riskLevel", required = false) String riskLevel,
             HttpServletRequest request,
             Locale locale) {
-        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildTradeDuplicatePageData(
+        return ResponseEntity.ok(new LinkedHashMap<>(tradeControlPlanePort.buildTradeDuplicatePageData(
                 pageIndexParam,
                 searchKeyword,
                 detectionType,
@@ -135,7 +135,7 @@ public class AdminTradeController {
             @RequestParam(value = "tradeType", required = false) String tradeType,
             HttpServletRequest request,
             Locale locale) {
-        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildTradeApprovePageData(
+        return ResponseEntity.ok(new LinkedHashMap<>(tradeControlPlanePort.buildTradeApprovePageData(
                 pageIndexParam,
                 searchKeyword,
                 approvalStatus,
@@ -165,7 +165,7 @@ public class AdminTradeController {
             @RequestParam(value = "riskLevel", required = false) String riskLevel,
             HttpServletRequest request,
             Locale locale) {
-        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildSettlementCalendarPageData(
+        return ResponseEntity.ok(new LinkedHashMap<>(tradeControlPlanePort.buildSettlementCalendarPageData(
                 pageIndexParam,
                 selectedMonth,
                 searchKeyword,
@@ -180,7 +180,7 @@ public class AdminTradeController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        Map<String, Object> response = new LinkedHashMap<>(adminShellBootstrapPageService.submitTradeApproveAction(
+        Map<String, Object> response = new LinkedHashMap<>(tradeControlPlanePort.submitTradeApproveAction(
                 payload,
                 adminReactRouteSupport.isEnglishRequest(request, locale)));
         boolean success = Boolean.TRUE.equals(response.get("success"));
@@ -203,7 +203,7 @@ public class AdminTradeController {
             @RequestParam(value = "returnUrl", required = false) String returnUrl,
             HttpServletRequest request,
             Locale locale) {
-        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildTradeRejectPageData(
+        return ResponseEntity.ok(new LinkedHashMap<>(tradeControlPlanePort.buildTradeRejectPageData(
                 tradeId,
                 returnUrl,
                 adminReactRouteSupport.isEnglishRequest(request, locale))));
@@ -215,7 +215,7 @@ public class AdminTradeController {
             @RequestBody(required = false) Map<String, Object> payload,
             HttpServletRequest request,
             Locale locale) {
-        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.submitTradeRejectAction(
+        return ResponseEntity.ok(new LinkedHashMap<>(tradeControlPlanePort.submitTradeRejectAction(
                 payload,
                 adminReactRouteSupport.isEnglishRequest(request, locale))));
     }

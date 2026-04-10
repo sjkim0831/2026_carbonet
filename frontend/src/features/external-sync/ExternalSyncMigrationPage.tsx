@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchExternalSyncPage, type ExternalSyncPagePayload } from "../../lib/api/client";
+import { fetchExternalSyncPage } from "../../lib/api/ops";
+import type { ExternalSyncPagePayload } from "../../lib/api/opsTypes";
 import { buildLocalizedPath, isEnglish, replace } from "../../lib/navigation/runtime";
 import { stringOf } from "../admin-system/adminSystemShared";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";

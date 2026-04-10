@@ -7,7 +7,7 @@ import type {
   ScreenBuilderComponentRegistryItem,
   ScreenBuilderComponentUsage,
   ScreenBuilderRegistryScanItem
-} from "../../../lib/api/client";
+} from "../../../lib/api/platformTypes";
 import { type SystemComponentCatalogType } from "../catalog/buttonCatalogCore";
 import { type AiNodeTreeInputRow } from "../shared/screenBuilderShared";
 import GovernanceAuthoritySection from "./governance/GovernanceAuthoritySection";

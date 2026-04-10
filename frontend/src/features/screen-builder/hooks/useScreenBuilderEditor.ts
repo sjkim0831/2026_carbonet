@@ -6,7 +6,7 @@ import type {
   ScreenBuilderPagePayload,
   ScreenBuilderPaletteItem,
   ScreenCommandPagePayload
-} from "../../../lib/api/client";
+} from "../../../lib/api/platformTypes";
 import {
   blankPropsFor,
   buildNodeTreeRows,

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Define the next family after the builder structure-governance close:
+Define the current active family after the builder structure-governance close:
 
 - `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`
 
@@ -14,18 +14,25 @@ For quick execution, also use:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
-- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 - `docs/architecture/builder-resource-ownership-matrix.md`
 - `docs/architecture/builder-resource-ownership-owner-checklist.md`
 - `docs/architecture/builder-resource-ownership-priority-board.md`
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
 
 Treat the first two docs above as the single live entry pair for this family.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
 
 Maintenance rule:
 
 - if active row, blocker count, or next review target changes, update both documents in the same turn
 - do not treat one as the live source while the other still reflects older queue state
+
+Routing status:
+
+- the single live entry pair is `builder-resource-ownership-current-closeout.md` plus `builder-resource-ownership-queue-map.md`
+- `builder-resource-entry-pair-maintenance-contract.md` remains supporting guidance only when continuation state changes
+- the next closure gains must come from row-by-row review progress
 
 ## Comes After
 

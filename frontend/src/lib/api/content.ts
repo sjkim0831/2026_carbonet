@@ -1,5 +1,5 @@
 import { buildLocalizedPath } from "../navigation/runtime";
-import { apiFetch, buildResilientCsrfHeaders, readJsonResponse } from "./core";
+import { buildFormUrlEncoded, buildQueryParams, fetchLocalizedPageJson, postFormData, postFormUrlEncoded, postJson } from "./core";
 import type { SitemapPagePayload } from "./appBootstrapTypes";
 import type {
   BannerEditPagePayload,
@@ -20,72 +20,46 @@ import type {
   QnaCategoryPagePayload,
   QnaCategorySavePayload,
   TagManagementPagePayload
-} from "./client";
+} from "./contentTypes";
 
-function buildQueryString(params?: Record<string, string | number | boolean | null | undefined>): string {
-  if (!params) {
-    return "";
-  }
-  const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") {
-      return;
-    }
-    search.set(key, String(value));
-  });
-  const query = search.toString();
-  return query ? `?${query}` : "";
+type ContentQueryParams = Record<string, string | number | boolean | null | undefined>;
+
+function buildContentPath(path: string) {
+  return path.startsWith("/") ? path : `/${path}`;
 }
 
-async function fetchContentPageJson<T>(path: string, params?: Record<string, string | number | boolean | null | undefined>): Promise<T> {
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  const response = await apiFetch(`${buildLocalizedPath(`/admin/api/admin/content${normalized}`, `/en/admin/api/admin/content${normalized}`)}${buildQueryString(params)}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<T>(response);
-}
-
-async function postContentJson<T>(path: string, payload: unknown): Promise<T> {
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  const response = await apiFetch(buildLocalizedPath(`/admin/api/admin/content${normalized}`, `/en/admin/api/admin/content${normalized}`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<T>(response);
+async function fetchContentPageJson<T>(path: string, params?: ContentQueryParams): Promise<T> {
+  const normalized = buildContentPath(path);
+  return fetchLocalizedPageJson<T>(
+    `/admin/api/admin/content${normalized}`,
+    `/en/admin/api/admin/content${normalized}`,
+    { query: buildQueryParams(params) }
+  );
 }
 
 async function postContentForm<T>(path: string, payload: Record<string, string>): Promise<T> {
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  const response = await apiFetch(buildLocalizedPath(`/admin/api/admin/content${normalized}`, `/en/admin/api/admin/content${normalized}`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: new URLSearchParams(payload).toString()
-  });
-  return readJsonResponse<T>(response);
+  const normalized = buildContentPath(path);
+  return postFormUrlEncoded<T>(
+    buildLocalizedPath(`/admin/api/admin/content${normalized}`, `/en/admin/api/admin/content${normalized}`),
+    buildFormUrlEncoded(payload)
+  );
+}
+
+async function postContentJson<T>(path: string, payload?: unknown): Promise<T> {
+  const normalized = buildContentPath(path);
+  return postJson<T>(
+    buildLocalizedPath(`/admin/api/admin/content${normalized}`, `/en/admin/api/admin/content${normalized}`),
+    payload,
+    { headers: { "X-Requested-With": "XMLHttpRequest" } }
+  );
 }
 
 async function postContentFormData<T>(path: string, formData: FormData): Promise<T> {
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  const headers = await buildResilientCsrfHeaders({
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  delete headers["Content-Type"];
-  const response = await apiFetch(buildLocalizedPath(`/admin/api/admin/content${normalized}`, `/en/admin/api/admin/content${normalized}`), {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: formData
-  });
-  return readJsonResponse<T>(response);
+  const normalized = buildContentPath(path);
+  return postFormData<T>(
+    buildLocalizedPath(`/admin/api/admin/content${normalized}`, `/en/admin/api/admin/content${normalized}`),
+    formData
+  );
 }
 
 export async function fetchAdminSitemapPage(): Promise<SitemapPagePayload> {
@@ -214,11 +188,11 @@ export async function fetchQnaCategoryPage(params?: { searchKeyword?: string; us
 }
 
 export async function saveQnaCategory(payload: QnaCategorySavePayload): Promise<{ success: boolean; message: string; categoryId?: string; category?: Record<string, string> }> {
-  return postContentJson("/qna/save", payload);
+  return postContentJson<{ success: boolean; message: string; categoryId?: string; category?: Record<string, string> }>("/qna/save", payload);
 }
 
 export async function deleteQnaCategory(categoryId: string): Promise<{ success: boolean; message: string; categoryId?: string }> {
-  return postContentJson("/qna/delete", { categoryId });
+  return postContentJson<{ success: boolean; message: string; categoryId?: string }>("/qna/delete", { categoryId });
 }
 
 export async function fetchBannerManagementPage(params?: {

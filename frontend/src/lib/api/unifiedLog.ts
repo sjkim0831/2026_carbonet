@@ -1,4 +1,4 @@
-import { apiFetch, buildAdminApiPath, readJsonResponse } from "./core";
+import { buildAdminApiPath, buildQueryString, fetchJson } from "./core";
 
 export type UnifiedLogTab =
   | "all"
@@ -70,34 +70,10 @@ export interface UnifiedLogSearchPayload {
 }
 
 export async function fetchUnifiedLog(params?: UnifiedLogSearchParams): Promise<UnifiedLogSearchPayload> {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.pageSize) search.set("pageSize", String(params.pageSize));
-  if (params?.tab) search.set("tab", params.tab);
-  if (params?.logType) search.set("logType", params.logType);
-  if (params?.detailType) search.set("detailType", params.detailType);
-  if (params?.resultCode) search.set("resultCode", params.resultCode);
-  if (params?.actorId) search.set("actorId", params.actorId);
-  if (params?.actorRole) search.set("actorRole", params.actorRole);
-  if (params?.insttId) search.set("insttId", params.insttId);
-  if (params?.memberType) search.set("memberType", params.memberType);
-  if (params?.menuCode) search.set("menuCode", params.menuCode);
-  if (params?.pageId) search.set("pageId", params.pageId);
-  if (params?.componentId) search.set("componentId", params.componentId);
-  if (params?.functionId) search.set("functionId", params.functionId);
-  if (params?.apiId) search.set("apiId", params.apiId);
-  if (params?.actionCode) search.set("actionCode", params.actionCode);
-  if (params?.targetType) search.set("targetType", params.targetType);
-  if (params?.targetId) search.set("targetId", params.targetId);
-  if (params?.traceId) search.set("traceId", params.traceId);
-  if (params?.requestUri) search.set("requestUri", params.requestUri);
-  if (params?.remoteAddr) search.set("remoteAddr", params.remoteAddr);
-  if (params?.fromDate) search.set("fromDate", params.fromDate);
-  if (params?.toDate) search.set("toDate", params.toDate);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const response = await apiFetch(`${buildAdminApiPath("/api/platform/observability/unified-log")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include",
-    apiId: "admin.observability.unified-log.search"
-  });
-  return readJsonResponse<UnifiedLogSearchPayload>(response);
+  return fetchJson<UnifiedLogSearchPayload>(
+    `${buildAdminApiPath("/api/platform/observability/unified-log")}${buildQueryString(params)}`,
+    {
+      apiId: "admin.observability.unified-log.search"
+    }
+  );
 }

@@ -10,11 +10,11 @@ import {
 } from "../../components/user-shell/UserPortalChrome";
 import {
   fetchMypage,
-  MypagePayload,
-  readBootstrappedMypagePayload,
   saveMypageEmail,
   saveMypageStaff
-} from "../../lib/api/client";
+} from "../../lib/api/portal";
+import { readBootstrappedMypagePayload } from "../../lib/api/bootstrap";
+import type { MypagePayload } from "../../lib/api/portalTypes";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { HomeButton, HomeInput, HomeLinkButton } from "../home-ui/common";
 

@@ -10,6 +10,8 @@ Read first:
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Treat those two docs as the single live entry pair before choosing any row.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
 If priority-board use changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 This board does not redefine ownership.
@@ -17,67 +19,62 @@ It only decides which resource families should be reviewed first.
 
 ## Start Now
 
-### 1. Framework-builder compatibility mapper XML
+### 1. Executable App Resource Assembly Fallback
 
-- canonical owner:
-  - `modules/screenbuilder-carbonet-adapter/src/main/resources/egovframework/mapper/com/feature/admin/framework/builder/**`
 - review card:
-  - `docs/architecture/builder-resource-review-framework-builder-compatibility-xml.md`
+  - `docs/architecture/builder-resource-review-executable-app-fallback.md`
 - why first:
-  - the canonical module resource path is already explicit
-  - cutover ambiguity is narrow and visible
-  - this is the cleanest first candidate for `DELETE_NOW` versus `BLOCKS_CLOSEOUT`
-
-### 2. Framework contract metadata resource
-
-- canonical owner:
-  - `modules/carbonet-contract-metadata/src/main/resources/framework/contracts/framework-contract-metadata.json`
-- review card:
-  - `docs/architecture/builder-resource-review-framework-contract-metadata.md`
-- why second:
-  - the canonical owner is explicit
-  - drift against root `src/main/resources/framework/**` is easy to reason about
-  - this family directly affects whether builder metadata is still silently rooted in the legacy tree
+  - this is now the only remaining blocker row on the current docs set
+  - executable assembly attribution is still ambiguous under the broader shared-root closure baseline
+  - watched-source change detection plus exact missing-sentence confirmation should happen here first
 
 ## Review Next
 
-### 3. Builder observability metadata/resource family
+### 2. Builder Observability Metadata/Resource Family
 
 - review card:
   - `docs/architecture/builder-resource-review-builder-observability.md`
 - why next:
-  - ownership is known at module level but resource-family boundaries are broader
-  - explicit shim proof may still be needed before delete decisions are safe
+  - this row now carries a stronger non-blocker note
+  - reopen it only if a later docs set reintroduces one concrete root-dependent row-`3` registry read-shape
+  - it is no longer part of the active blocker queue
 
-### 4. Builder-owned root resource line excluded by app packaging
+### 3. Builder-owned root resource line excluded by app packaging
 
 - review card:
   - `docs/architecture/builder-resource-review-app-packaging-exclusion.md`
 - why next:
-  - this is more of an app-assembly fallback question than a single-file delete question
-  - it depends on proving that module resources fully cover what the app needs
+  - this row now carries a stronger non-blocker note rather than an active blocker state
+  - revisit it only if a later docs set turns the empty-root-surface reading into one concrete blocker-grade dependency
 
-## Likely Blocker Family
+## Resolved Historical Row
 
-### 5. Executable app resource assembly fallback
+### 4. Framework-builder compatibility mapper XML
 
 - review card:
-  - `docs/architecture/builder-resource-review-executable-app-fallback.md`
+  - `docs/architecture/builder-resource-review-framework-builder-compatibility-xml.md`
 - why later:
-  - this family is where silent root fallback is most likely to block closeout
-  - it is an integration-level answer, not just a file-location answer
-  - treat this as the blocker sink after narrower resource families are classified first
+  - this row now carries bounded `DELETE_NOW`
+  - reopen it only if a later docs set reintroduces legacy-root runtime dependence for the selected mapper family
+
+### 5. Framework Contract Metadata Resource
+
+- review card:
+  - `docs/architecture/builder-resource-review-framework-contract-metadata.md`
+- why later:
+  - this row now also carries bounded `DELETE_NOW`
+  - reopen it only if a later docs set reintroduces root framework metadata dependence for the selected metadata family
 
 ## Owner Rule
 
 When the next owner starts, prefer:
 
-1. classify one `Start Now` resource family fully
-2. record `DELETE_NOW`, `EXPLICIT_RESOURCE_SHIM`, or `BLOCKS_CLOSEOUT`
+1. start from the first unresolved blocker row in the live queue
+2. check watched source docs and exact missing-sentence availability first
 3. only then move to the next row
 
 Do not fan out across all resource families at once.
 
 ## Suggested First Handoff Phrase
 
-`HANDOFF READY: start builder resource ownership closure from framework-builder compatibility mapper XML, then move to framework contract metadata resource.`
+`HANDOFF READY: start builder resource ownership closure from executable app resource assembly fallback; builder observability metadata/resource family is now supporting non-blocking context.`

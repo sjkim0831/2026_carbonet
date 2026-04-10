@@ -38,6 +38,16 @@ public class AdminScreenBuilderController {
         return carbonetAdminRouteSource.forwardAdminRoute(request, locale, "screen-runtime");
     }
 
+    @RequestMapping(value = "/system/current-runtime-compare", method = RequestMethod.GET)
+    public String currentRuntimeComparePage(HttpServletRequest request, Locale locale) {
+        return carbonetAdminRouteSource.forwardAdminRoute(request, locale, "current-runtime-compare");
+    }
+
+    @RequestMapping(value = "/system/repair-workbench", method = RequestMethod.GET)
+    public String repairWorkbenchPage(HttpServletRequest request, Locale locale) {
+        return carbonetAdminRouteSource.forwardAdminRoute(request, locale, "repair-workbench");
+    }
+
     @GetMapping("/api/admin/screen-builder/page")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getScreenBuilderPage(
@@ -93,8 +103,9 @@ public class AdminScreenBuilderController {
     @GetMapping("/api/admin/screen-builder/versions")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getScreenBuilderVersions(
-            @RequestParam(value = "menuCode", required = false) String menuCode) throws Exception {
-        return platformScreenBuilderApiController.getScreenBuilderVersions(menuCode);
+            @RequestParam(value = "menuCode", required = false) String menuCode,
+            HttpServletRequest request) throws Exception {
+        return platformScreenBuilderApiController.getScreenBuilderVersions(menuCode, request);
     }
 
     @GetMapping("/api/admin/screen-builder/component-registry")

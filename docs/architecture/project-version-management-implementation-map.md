@@ -190,6 +190,29 @@ Optional later joins:
 - `INSTALL_UNIT`
 - `PROJECT_DB_MIGRATION_STATUS`
 
+## Release And Rollback Evidence Contract
+
+For the current platform-owned version-governance lane, the implementation must keep these evidence keys stable across overview, deploy, and rollback views:
+
+- `releaseUnitId`
+- `runtimePackageId`
+- `deployTraceId`
+- `rollbackTargetReleaseUnitId`
+
+The service output should remain compatible with the local runtime-proof line:
+
+- packaged runtime truth: `apps/carbonet-app/target/carbonet.jar`
+- running runtime truth: `var/run/carbonet-18000.jar`
+- local proof sequence:
+  1. `bash ops/scripts/build-restart-18000.sh`
+  2. `VERIFY_WAIT_SECONDS=20 bash ops/scripts/codex-verify-18000-freshness.sh`
+
+Rollback orchestration is not considered operator-ready unless the returned evidence can point to:
+
+- rollback script: `ops/scripts/codex-rollback-18000.sh`
+- backup roots: `var/backups/codex-deploy`, `var/backups/manual-deploy`
+- rollback log: `var/logs/codex-rollback-18000.log`
+
 ## Compatibility Decision Flow
 
 The service implementation should classify upgrade impact in this order:

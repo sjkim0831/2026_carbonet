@@ -154,10 +154,12 @@ public class AdminFileManagementService {
         fileStore.put(item.id, item);
         persistUploads();
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("fileId", item.id);
-        response.put("message", isEn ? "File uploaded." : "파일을 업로드했습니다.");
+        Map<String, Object> response = adminPagePayloadFactory.createStatusResponse(
+                "success",
+                true,
+                "fileId",
+                item.id,
+                isEn ? "File uploaded." : "파일을 업로드했습니다.");
         response.put("file", toRow(item, isEn));
         return response;
     }
@@ -183,11 +185,12 @@ public class AdminFileManagementService {
         writeDeletedHistory(archived);
         persistUploads();
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("fileId", normalizedId);
-        response.put("message", isEn ? "File deleted." : "파일을 삭제했습니다.");
-        return response;
+        return adminPagePayloadFactory.createStatusResponse(
+                "success",
+                true,
+                "fileId",
+                normalizedId,
+                isEn ? "File deleted." : "파일을 삭제했습니다.");
     }
 
     public synchronized Map<String, Object> updateFile(String fileId,
@@ -245,10 +248,12 @@ public class AdminFileManagementService {
         fileStore.put(updated.id, updated);
         persistUploads();
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("fileId", updated.id);
-        response.put("message", isEn ? "File metadata updated." : "파일 정보를 수정했습니다.");
+        Map<String, Object> response = adminPagePayloadFactory.createStatusResponse(
+                "success",
+                true,
+                "fileId",
+                updated.id,
+                isEn ? "File metadata updated." : "파일 정보를 수정했습니다.");
         response.put("file", toRow(updated, isEn));
         return response;
     }
@@ -314,10 +319,12 @@ public class AdminFileManagementService {
         fileStore.put(updated.id, updated);
         persistUploads();
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("fileId", updated.id);
-        response.put("message", isEn ? "File replaced." : "파일을 교체했습니다.");
+        Map<String, Object> response = adminPagePayloadFactory.createStatusResponse(
+                "success",
+                true,
+                "fileId",
+                updated.id,
+                isEn ? "File replaced." : "파일을 교체했습니다.");
         response.put("file", toRow(updated, isEn));
         return response;
     }
@@ -382,10 +389,12 @@ public class AdminFileManagementService {
         Files.deleteIfExists(backupPath);
         persistUploads();
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("fileId", restored.id);
-        response.put("message", isEn ? "Deleted file restored." : "삭제 파일을 복구했습니다.");
+        Map<String, Object> response = adminPagePayloadFactory.createStatusResponse(
+                "success",
+                true,
+                "fileId",
+                restored.id,
+                isEn ? "Deleted file restored." : "삭제 파일을 복구했습니다.");
         response.put("file", toRow(restored, isEn));
         return response;
     }

@@ -16,7 +16,8 @@ import {
   SummarySection
 } from "./HomeEntrySections";
 import { HomePayload } from "./homeEntryTypes";
-import { fetchHomePayload, readBootstrappedHomePayload } from "../../lib/api/client";
+import { fetchHomePayload } from "../../lib/api/appBootstrap";
+import { readBootstrappedHomePayload } from "../../lib/api/bootstrap";
 
 export function HomeLandingPage() {
   const en = isEnglish();

@@ -3,14 +3,16 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
   fetchEmissionSurveyAdminDataPage,
-  previewEmissionSurveySharedDataset,
-  replaceEmissionSurveySharedDataset,
   getEmissionSurveyTemplateDownloadUrl,
   getEmissionSurveySampleDownloadUrl,
-  type EmissionSurveyAdminDataPagePayload,
-  type EmissionSurveyAdminSection,
-  type EmissionSurveyAdminPagePayload
-} from "../../lib/api/client";
+  previewEmissionSurveySharedDataset,
+  replaceEmissionSurveySharedDataset
+} from "../../lib/api/emission";
+import type {
+  EmissionSurveyAdminDataPagePayload,
+  EmissionSurveyAdminSection,
+  EmissionSurveyAdminPagePayload
+} from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, MemberButton, PageStatusNotice } from "../admin-ui/common";

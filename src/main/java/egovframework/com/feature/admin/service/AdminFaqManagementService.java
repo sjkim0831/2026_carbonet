@@ -120,10 +120,12 @@ public class AdminFaqManagementService {
         item.lastChangedAt = LocalDateTime.now().format(DATE_TIME_FORMATTER);
         item.lastChangedBy = "codex-admin";
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("saved", true);
-        response.put("faqId", item.id);
-        response.put("message", isEn ? "FAQ draft saved." : "FAQ 초안을 저장했습니다.");
+        Map<String, Object> response = adminPagePayloadFactory.createStatusResponse(
+                "saved",
+                true,
+                "faqId",
+                item.id,
+                isEn ? "FAQ draft saved." : "FAQ 초안을 저장했습니다.");
         response.put("faq", toRow(item, isEn));
         return response;
     }

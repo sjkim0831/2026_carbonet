@@ -3,6 +3,8 @@ package egovframework.com.feature.admin.screenbuilder.web;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.feature.admin.screenbuilder.support.CarbonetScreenBuilderAuditSource;
+import egovframework.com.feature.admin.screenbuilder.support.CarbonetScreenBuilderAuthoritySource;
+import egovframework.com.feature.admin.screenbuilder.support.model.ScreenBuilderAuthorityDecision;
 import egovframework.com.platform.screenbuilder.model.ScreenBuilderComponentRegistryItemVO;
 import egovframework.com.platform.screenbuilder.model.ScreenBuilderComponentRegistrySaveRequestVO;
 import egovframework.com.platform.screenbuilder.model.ScreenBuilderComponentRegistryUpdateRequestVO;
@@ -24,7 +26,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -44,6 +45,7 @@ public class ScreenBuilderApiController {
     private final ScreenBuilderArtifactNamingPolicyPort screenBuilderArtifactNamingPolicyPort;
     private final ScreenBuilderRequestContextPolicyPort screenBuilderRequestContextPolicyPort;
     private final CarbonetScreenBuilderAuditSource carbonetScreenBuilderAuditSource;
+    private final CarbonetScreenBuilderAuthoritySource carbonetScreenBuilderAuthoritySource;
     private final ObjectMapper objectMapper;
 
     @GetMapping("/page")
@@ -55,6 +57,15 @@ public class ScreenBuilderApiController {
             @RequestParam(value = "menuUrl", required = false) String menuUrl,
             HttpServletRequest request,
             Locale locale) throws Exception {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(menuCode),
+                safe(menuUrl),
+                "VIEW",
+                request,
+                "SCREEN_BUILDER_PAGE_VIEW");
+        if (denied != null) {
+            return denied;
+        }
         return ok(screenBuilderDraftService.getPagePayload(menuCode, pageId, menuTitle, menuUrl, isEn(request, locale)));
     }
 
@@ -64,6 +75,15 @@ public class ScreenBuilderApiController {
             @RequestParam(value = "menuCode", required = false) List<String> menuCodes,
             HttpServletRequest request,
             Locale locale) throws Exception {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuBatch(
+                menuCodes,
+                "/admin/system/screen-builder",
+                "QUERY",
+                request,
+                "SCREEN_BUILDER_STATUS_SUMMARY_VIEW");
+        if (denied != null) {
+            return denied;
+        }
         return ok(screenBuilderDraftService.getStatusSummary(menuCodes, isEn(request, locale)));
     }
 
@@ -73,6 +93,15 @@ public class ScreenBuilderApiController {
             @RequestParam(value = "menuCode", required = false) List<String> menuCodes,
             HttpServletRequest request,
             Locale locale) throws Exception {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuBatch(
+                menuCodes,
+                "/admin/system/screen-builder",
+                "EXECUTE",
+                request,
+                "SCREEN_BUILDER_STATUS_SUMMARY_REBUILD");
+        if (denied != null) {
+            return denied;
+        }
         return ok(screenBuilderDraftService.rebuildStatusSummary(menuCodes, isEn(request, locale)));
     }
 
@@ -86,6 +115,15 @@ public class ScreenBuilderApiController {
             @RequestParam(value = "versionStatus", required = false) String versionStatus,
             HttpServletRequest request,
             Locale locale) throws Exception {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(menuCode),
+                safe(menuUrl),
+                "VIEW",
+                request,
+                "SCREEN_BUILDER_PREVIEW_VIEW");
+        if (denied != null) {
+            return denied;
+        }
         boolean isEn = isEn(request, locale);
         ScreenBuilderDraftDocumentVO draft = "PUBLISHED".equalsIgnoreCase(safe(versionStatus))
                 ? screenBuilderDraftService.getLatestPublishedDraft(menuCode)
@@ -121,6 +159,15 @@ public class ScreenBuilderApiController {
             @RequestBody ScreenBuilderSaveRequestVO request,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(request == null ? null : request.getMenuCode()),
+                safe(request == null ? null : request.getMenuUrl()),
+                "UPDATE",
+                httpServletRequest,
+                "SCREEN_BUILDER_DRAFT_SAVE");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             ScreenBuilderDraftDocumentVO before = screenBuilderDraftService.getDraft(
                     request == null ? "" : request.getMenuCode(),
@@ -151,7 +198,17 @@ public class ScreenBuilderApiController {
     @GetMapping("/versions")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getScreenBuilderVersions(
-            @RequestParam(value = "menuCode", required = false) String menuCode) throws Exception {
+            @RequestParam(value = "menuCode", required = false) String menuCode,
+            HttpServletRequest request) throws Exception {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(menuCode),
+                "",
+                "QUERY",
+                request,
+                "SCREEN_BUILDER_VERSIONS_VIEW");
+        if (denied != null) {
+            return denied;
+        }
         List<ScreenBuilderVersionSummaryVO> history = screenBuilderDraftService.getVersionHistory(menuCode);
         return ok(orderedMap(
                 "menuCode", safe(menuCode),
@@ -163,6 +220,15 @@ public class ScreenBuilderApiController {
     public ResponseEntity<Map<String, Object>> getScreenBuilderComponentRegistry(
             HttpServletRequest request,
             Locale locale) throws Exception {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                "",
+                "/admin/system/screen-builder",
+                "QUERY",
+                request,
+                "SCREEN_BUILDER_COMPONENT_REGISTRY_VIEW");
+        if (denied != null) {
+            return denied;
+        }
         return ok(orderedMap(
                 "items", screenBuilderDraftService.getComponentRegistry(isEn(request, locale))));
     }
@@ -173,6 +239,15 @@ public class ScreenBuilderApiController {
             @RequestBody ScreenBuilderComponentRegistrySaveRequestVO request,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(request == null ? null : request.getMenuCode()),
+                "/admin/system/screen-builder",
+                "CREATE",
+                httpServletRequest,
+                "SCREEN_BUILDER_COMPONENT_REGISTER");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             boolean isEn = isEn(httpServletRequest, locale);
             ScreenBuilderComponentRegistryItemVO item = screenBuilderDraftService.registerComponent(request, isEn);
@@ -197,6 +272,15 @@ public class ScreenBuilderApiController {
             @RequestBody ScreenBuilderComponentRegistryUpdateRequestVO request,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(request == null ? null : request.getMenuCode()),
+                "/admin/system/screen-builder",
+                "UPDATE",
+                httpServletRequest,
+                "SCREEN_BUILDER_COMPONENT_UPDATE");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             boolean isEn = isEn(httpServletRequest, locale);
             ScreenBuilderComponentRegistryItemVO item = screenBuilderDraftService.updateComponentRegistryItem(request, isEn);
@@ -221,6 +305,15 @@ public class ScreenBuilderApiController {
             @RequestParam("componentId") String componentId,
             HttpServletRequest request,
             Locale locale) throws Exception {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                "",
+                "/admin/system/screen-builder",
+                "QUERY",
+                request,
+                "SCREEN_BUILDER_COMPONENT_USAGE_VIEW");
+        if (denied != null) {
+            return denied;
+        }
         return ok(orderedMap(
                 "componentId", safe(componentId),
                 "items", screenBuilderDraftService.getComponentRegistryUsage(componentId, isEn(request, locale))));
@@ -232,6 +325,15 @@ public class ScreenBuilderApiController {
             @RequestParam("componentId") String componentId,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                "",
+                "/admin/system/screen-builder",
+                "DELETE",
+                httpServletRequest,
+                "SCREEN_BUILDER_COMPONENT_DELETE");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             Map<String, Object> response = screenBuilderDraftService.deleteComponentRegistryItem(componentId, isEn(httpServletRequest, locale));
             recordScreenBuilderAudit(
@@ -254,6 +356,15 @@ public class ScreenBuilderApiController {
             @RequestParam("toComponentId") String toComponentId,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                "",
+                "/admin/system/screen-builder",
+                "UPDATE",
+                httpServletRequest,
+                "SCREEN_BUILDER_COMPONENT_REMAP");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             Map<String, Object> response = screenBuilderDraftService.replaceComponentRegistryUsage(fromComponentId, toComponentId, isEn(httpServletRequest, locale));
             recordScreenBuilderAudit(
@@ -275,6 +386,15 @@ public class ScreenBuilderApiController {
             @RequestParam("menuCode") String menuCode,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(menuCode),
+                "/admin/system/screen-builder",
+                "EXECUTE",
+                httpServletRequest,
+                "SCREEN_BUILDER_COMPONENT_AUTO_REPLACE");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             Map<String, Object> response = screenBuilderDraftService.autoReplaceDeprecatedComponents(menuCode, isEn(httpServletRequest, locale));
             recordScreenBuilderAudit(
@@ -296,6 +416,15 @@ public class ScreenBuilderApiController {
             @RequestParam("menuCode") String menuCode,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(menuCode),
+                "/admin/system/screen-builder",
+                "QUERY",
+                httpServletRequest,
+                "SCREEN_BUILDER_COMPONENT_AUTO_REPLACE_PREVIEW");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> screenBuilderDraftService.previewAutoReplaceDeprecatedComponents(menuCode, isEn(httpServletRequest, locale)));
     }
 
@@ -304,6 +433,15 @@ public class ScreenBuilderApiController {
     public ResponseEntity<Map<String, Object>> scanScreenBuilderComponentRegistry(
             HttpServletRequest request,
             Locale locale) throws Exception {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                "",
+                "/admin/system/screen-builder",
+                "QUERY",
+                request,
+                "SCREEN_BUILDER_COMPONENT_SCAN");
+        if (denied != null) {
+            return denied;
+        }
         return ok(screenBuilderDraftService.scanAllDraftRegistryDiagnostics(isEn(request, locale)));
     }
 
@@ -316,6 +454,15 @@ public class ScreenBuilderApiController {
             @RequestBody(required = false) Map<String, Object> propsOverride,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(menuCode),
+                "/admin/system/screen-builder",
+                "UPDATE",
+                httpServletRequest,
+                "SCREEN_BUILDER_NODE_ADD");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             Map<String, Object> response = screenBuilderDraftService.addNodeFromComponent(menuCode, componentId, parentNodeId, propsOverride, isEn(httpServletRequest, locale));
             recordScreenBuilderAudit(
@@ -338,6 +485,15 @@ public class ScreenBuilderApiController {
             @RequestBody List<Map<String, Object>> items,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(menuCode),
+                "/admin/system/screen-builder",
+                "UPDATE",
+                httpServletRequest,
+                "SCREEN_BUILDER_NODE_ADD_TREE");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             Map<String, Object> response = screenBuilderDraftService.addNodeTreeFromComponents(menuCode, items, isEn(httpServletRequest, locale));
             recordScreenBuilderAudit(
@@ -360,6 +516,15 @@ public class ScreenBuilderApiController {
             @RequestParam("versionId") String versionId,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(menuCode),
+                "/admin/system/screen-builder",
+                "EXECUTE",
+                httpServletRequest,
+                "SCREEN_BUILDER_DRAFT_RESTORE");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             Map<String, Object> response = screenBuilderDraftService.restoreDraftVersion(menuCode, versionId, isEn(httpServletRequest, locale));
             recordScreenBuilderAudit(
@@ -381,6 +546,15 @@ public class ScreenBuilderApiController {
             @RequestParam("menuCode") String menuCode,
             HttpServletRequest httpServletRequest,
             Locale locale) {
+        ResponseEntity<Map<String, Object>> denied = authorizeMenuAccess(
+                safe(menuCode),
+                "/admin/system/screen-runtime",
+                "APPROVE",
+                httpServletRequest,
+                "SCREEN_BUILDER_DRAFT_PUBLISH");
+        if (denied != null) {
+            return denied;
+        }
         return execute(() -> {
             Map<String, Object> response = screenBuilderDraftService.publishDraft(menuCode, isEn(httpServletRequest, locale));
             recordScreenBuilderAudit(
@@ -402,6 +576,64 @@ public class ScreenBuilderApiController {
 
     private ResponseEntity<Map<String, Object>> serverError(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse(e));
+    }
+
+    private ResponseEntity<Map<String, Object>> authorizeMenuAccess(String menuCode,
+                                                                    String menuUrl,
+                                                                    String actionScope,
+                                                                    HttpServletRequest request,
+                                                                    String deniedActionCode) {
+        ScreenBuilderAuthorityDecision decision = carbonetScreenBuilderAuthoritySource.authorizeMenuAccess(
+                safe(menuCode),
+                safe(menuUrl),
+                safe(actionScope),
+                request);
+        return decision.isAllowed() ? null : forbidden(decision, request, deniedActionCode);
+    }
+
+    private ResponseEntity<Map<String, Object>> authorizeMenuBatch(List<String> menuCodes,
+                                                                   String menuUrl,
+                                                                   String actionScope,
+                                                                   HttpServletRequest request,
+                                                                   String deniedActionCode) {
+        ScreenBuilderAuthorityDecision decision = carbonetScreenBuilderAuthoritySource.authorizeMenuBatch(
+                menuCodes,
+                safe(menuUrl),
+                safe(actionScope),
+                request);
+        return decision.isAllowed() ? null : forbidden(decision, request, deniedActionCode);
+    }
+
+    private ResponseEntity<Map<String, Object>> forbidden(ScreenBuilderAuthorityDecision decision,
+                                                          HttpServletRequest request,
+                                                          String deniedActionCode) {
+        recordScreenBuilderAudit(
+                request,
+                safe(decision.getMenuCode()),
+                safe(deniedActionCode),
+                "SCREEN_BUILDER_AUTHORITY",
+                safe(decision.getRequiredFeatureCode()),
+                safe(decision.getMessage()),
+                "",
+                orderedMap(
+                        "reasonCode", safe(decision.getReasonCode()),
+                        "actionScope", safe(decision.getActionScope()),
+                        "requiredFeatureCode", safe(decision.getRequiredFeatureCode()),
+                        "menuUrl", safe(decision.getMenuUrl()),
+                        "actorId", safe(decision.getActorId()),
+                        "actorRole", safe(decision.getActorRole())),
+                "DENIED");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(orderedMap(
+                "success", false,
+                "blocked", true,
+                "message", safe(decision.getMessage()),
+                "reasonCode", safe(decision.getReasonCode()),
+                "requiredFeatureCode", safe(decision.getRequiredFeatureCode()),
+                "menuCode", safe(decision.getMenuCode()),
+                "menuUrl", safe(decision.getMenuUrl()),
+                "actionScope", safe(decision.getActionScope()),
+                "actorId", safe(decision.getActorId()),
+                "actorRole", safe(decision.getActorRole())));
     }
 
     private Map<String, Object> successResponse(String message, Object... fields) {
@@ -457,76 +689,32 @@ public class ScreenBuilderApiController {
                                           String summary,
                                           Object beforeState,
                                           Object afterState) {
+        recordScreenBuilderAudit(request, menuCode, actionCode, entityType, entityId, summary, beforeState, afterState, "SUCCESS");
+    }
+
+    private void recordScreenBuilderAudit(HttpServletRequest request,
+                                          String menuCode,
+                                          String actionCode,
+                                          String entityType,
+                                          String entityId,
+                                          String summary,
+                                          Object beforeState,
+                                          Object afterState,
+                                          String resultStatus) {
         carbonetScreenBuilderAuditSource.record(
-                resolveActorId(request),
-                resolveActorRole(request),
+                carbonetScreenBuilderAuthoritySource.resolveActorId(request),
+                carbonetScreenBuilderAuthoritySource.resolveActorRole(request),
                 safe(menuCode),
                 "screen-builder",
                 actionCode,
                 entityType,
                 safe(entityId),
-                "SUCCESS",
+                safe(resultStatus),
                 summary,
                 safeJson(beforeState),
                 safeJson(afterState),
-                resolveRequestIp(request),
+                carbonetScreenBuilderAuthoritySource.resolveRequestIp(request),
                 request == null ? "" : safe(request.getHeader("User-Agent")));
-    }
-
-    private String resolveActorId(HttpServletRequest request) {
-        if (request == null) {
-            return "anonymous";
-        }
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            return "anonymous";
-        }
-        Object loginVO = session.getAttribute("LoginVO");
-        if (loginVO == null) {
-            return "anonymous";
-        }
-        try {
-            Object uniqId = loginVO.getClass().getMethod("getUniqId").invoke(loginVO);
-            if (uniqId != null && !safe(String.valueOf(uniqId)).isEmpty()) {
-                return safe(String.valueOf(uniqId));
-            }
-            Object id = loginVO.getClass().getMethod("getId").invoke(loginVO);
-            return id == null ? "anonymous" : safe(String.valueOf(id));
-        } catch (Exception ignore) {
-            return "anonymous";
-        }
-    }
-
-    private String resolveActorRole(HttpServletRequest request) {
-        if (request == null) {
-            return "ROLE_ANONYMOUS";
-        }
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            return "ROLE_ANONYMOUS";
-        }
-        Object loginVO = session.getAttribute("LoginVO");
-        if (loginVO == null) {
-            return "ROLE_ANONYMOUS";
-        }
-        try {
-            Object authorCode = loginVO.getClass().getMethod("getAuthorCode").invoke(loginVO);
-            return authorCode == null ? "ROLE_ANONYMOUS" : safe(String.valueOf(authorCode));
-        } catch (Exception ignore) {
-            return "ROLE_ANONYMOUS";
-        }
-    }
-
-    private String resolveRequestIp(HttpServletRequest request) {
-        if (request == null) {
-            return "";
-        }
-        String forwarded = safe(request.getHeader("X-Forwarded-For"));
-        if (!forwarded.isEmpty()) {
-            int commaIndex = forwarded.indexOf(',');
-            return commaIndex >= 0 ? forwarded.substring(0, commaIndex).trim() : forwarded;
-        }
-        return safe(request.getRemoteAddr());
     }
 
     private String safeJson(Object value) {

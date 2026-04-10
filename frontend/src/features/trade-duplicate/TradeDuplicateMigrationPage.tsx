@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import {
-  fetchTradeDuplicatePage,
-  readBootstrappedTradeDuplicatePageData,
-  type TradeDuplicatePagePayload
-} from "../../lib/api/client";
+import { readBootstrappedTradeDuplicatePageData } from "../../lib/api/bootstrap";
+import { fetchTradeDuplicatePage } from "../../lib/api/trade";
+import type { TradeDuplicatePagePayload } from "../../lib/api/tradeTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import {

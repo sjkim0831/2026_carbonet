@@ -21,6 +21,19 @@ If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also open:
 
 4. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 5. `docs/architecture/builder-resource-ownership-queue-map.md`
+6. supporting maintenance-contract guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
+Current active continuation target:
+
+- row `5`
+- `executable app resource assembly fallback`
+- blocker-resolution state with row `5` as the remaining blocker
+- `docs/architecture/builder-resource-row5-owner-packet.md`
+- compressed blocker control docs:
+  - `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+  - `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+- canonical partial phrase:
+  - `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
 
 Treat these two docs as the single live entry pair for that family.
 

@@ -32,6 +32,26 @@ For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, treat these as the single live entry p
 
 - `builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Use this as supporting maintenance-contract guidance only:
+
 - `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
+Current active continuation target:
+
+- row `5`
+- `executable app resource assembly fallback`
+- blocker-resolution state with row `5` as the remaining blocker
+- `docs/architecture/builder-resource-row5-owner-packet.md`
+- compressed blocker control docs:
+  - `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+  - `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+- canonical partial phrase:
+  - `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
+
+Remaining docs-only valid work for row `5` is only:
+
+- whether a watched source doc changed
+- whether that changed source adds the exact missing sentence bundle
 
 If blocker count, active row, next review target, or partial-closeout wording changes, update both entry-pair docs in the same turn.

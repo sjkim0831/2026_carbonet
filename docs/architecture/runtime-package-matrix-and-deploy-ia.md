@@ -205,3 +205,31 @@ The handoff note should be readable without opening implementation code and must
 - which lane owns the deploy evidence
 - whether rollback is already anchored
 - whether `221` is still the runtime truth
+
+## 8. Carbonet Local Proof Line
+
+For the current Carbonet local owner flow, treat these as the fixed proof surfaces:
+
+- `releaseUnitId`
+- `runtimePackageId`
+- `deployTraceId`
+- rollback-anchor evidence
+- canonical packaged jar: `apps/carbonet-app/target/carbonet.jar`
+- canonical runtime jar: `var/run/carbonet-18000.jar`
+
+The minimum local operator proof sequence is:
+
+1. `bash ops/scripts/build-restart-18000.sh`
+2. `VERIFY_WAIT_SECONDS=20 bash ops/scripts/codex-verify-18000-freshness.sh`
+
+Do not mark the runtime package or deploy trace as locally verified when:
+
+- only `restart-18000.sh` ran
+- only the packaged jar exists under `target/`
+- only source diffs changed without runtime proof
+
+Rollback evidence remains incomplete unless the same release-unit line can point to:
+
+- `ops/scripts/codex-rollback-18000.sh`
+- `var/backups/codex-deploy` or `var/backups/manual-deploy`
+- `var/logs/codex-rollback-18000.log`

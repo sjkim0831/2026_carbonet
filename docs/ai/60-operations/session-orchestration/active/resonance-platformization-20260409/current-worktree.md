@@ -8,6 +8,7 @@ Reconciled on `2026-04-09` from `git status --short`.
 - this request should not assume a clean branch
 - new work should stay inside the owner paths defined in `session-plan.md`
 - for builder structure-governance decisions, treat `docs/architecture/builder-structure-wave-20260409-closure.md` as the current wave source of truth
+- for `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, use the single live entry pair first and keep `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` as supporting guidance only
 
 ## Shared Frontend Contract Families Already In Play
 
@@ -61,11 +62,20 @@ Reconciled on `2026-04-09` from `git status --short`.
 ## Builder Resource Ownership Provisional State
 
 - `BUILDER_RESOURCE_OWNERSHIP_CLOSURE` is now the active builder follow-up family after structure-governance close
-- tracker rows `1` and `2` are intentionally left at provisional `BLOCKS_CLOSEOUT`
-- current provisional blocker count from reviewed start-now rows is `2`
-- next owner should continue from the resource review cards and partial closeout example instead of reopening structure-governance
+- tracker row `1` now carries `DELETE_NOW`
+- tracker row `2` now records `DELETE_NOW`
+- tracker row `3` now carries a stronger non-blocker note
+- tracker row `5` is now also recorded as `BLOCKS_CLOSEOUT`
+- current provisional blocker count from reviewed start-now rows is `1`
+- active blocker-resolution target is now row `5`
+- the family is in blocker-resolution state
+- row `5` is now the only blocker row on the current docs set
+- remaining docs-only valid work is limited to watched-source change detection plus exact missing-sentence confirmation
+- next owner should continue from row-`5` blocker review state instead of reopening structure-governance or bounded replacement-note drafting
 - current resumable note is `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - single live entry pair for this family is:
   - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
   - `docs/architecture/builder-resource-ownership-queue-map.md`
+- canonical partial phrase is:
+  - `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
 - if worktree-note refresh changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn

@@ -27,6 +27,8 @@ For live continuation after the closed structure-governance family, use:
 
 Treat those two docs as the single live entry pair for
 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
 If continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 ## Current Wave Closure Scope
@@ -211,6 +213,8 @@ Current progress:
 - `carbonet-mapper-infra` remains the only extra module dependency the adapter can safely take today
 - `carbonet-web-support` is now also a safe adapter dependency for route forwarding and API-response helpers
 - `carbonet-contract-metadata` is now a safe adapter dependency for framework contract metadata loading
+- framework contract metadata runtime lookup now resolves through `carbonet-contract-metadata` and no longer depends on any root `framework/**` metadata copy
+- framework contract metadata packaging now also depends on the dedicated `carbonet-contract-metadata` module resource and no longer depends on any root `framework/**` metadata copy
 - `carbonet-builder-observability` is now a safe adapter dependency for builder-only UI manifest/component registry reads
 - `screenbuilder-runtime-common-adapter` now provides reusable property-backed policy ports for new projects
 - the adapter module remains live-compiled in the reactor

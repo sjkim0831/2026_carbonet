@@ -1,4 +1,4 @@
-import type { ScreenBuilderRegistryScanItem } from "../../../../lib/api/client";
+import type { ScreenBuilderRegistryScanItem } from "../../../../lib/api/platformTypes";
 import { GridToolbar } from "../../../admin-ui/common";
 
 type Props = {

@@ -12,9 +12,7 @@ import egovframework.com.platform.read.AdminSummaryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
@@ -32,16 +30,11 @@ public class AdminAuthorityPagePayloadService {
 
     private static final Logger log = LoggerFactory.getLogger(AdminAuthorityPagePayloadService.class);
 
-    private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final AuthGroupManageService authGroupManageService;
     private final AdminSummaryReadPort adminSummaryReadPort;
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
     private final AdminCompanyScopeService adminCompanyScopeService;
-
-    private AdminMainController adminMainController() {
-        return adminMainControllerProvider.getObject();
-    }
 
     public Map<String, Object> buildAuthGroupPagePayload(
             String authorCode,
@@ -52,11 +45,10 @@ public class AdminAuthorityPagePayloadService {
             String userSearchKeyword,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
         Map<String, Object> response = new LinkedHashMap<>();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        controller.primeCsrfToken(request);
-        String currentUserId = controller.extractCurrentUserId(request);
+        boolean isEn = authorityPagePayloadSupport.isEnglishRequest(request, locale);
+        authorityPagePayloadSupport.primeCsrfToken(request);
+        String currentUserId = authorityPagePayloadSupport.extractCurrentUserId(request);
         AdminCompanyScopeService.CompanyScope companyScope = adminCompanyScopeService.resolve(currentUserId);
         boolean webmaster = "webmaster".equalsIgnoreCase(currentUserId);
         String currentUserAuthorCode = companyScope.getAuthorCode();
@@ -119,7 +111,7 @@ public class AdminAuthorityPagePayloadService {
             }
             selectedAuthorName = authorityPagePayloadSupport.resolveSelectedAuthorName(selectedAuthorCode, filteredAuthorGroups);
             if (authGroupError.isEmpty()) {
-                authGroupError = controller.safeString(scopeContext.getErrorMessage());
+                authGroupError = authorityPagePayloadSupport.safeValue(scopeContext.getErrorMessage());
             }
         } catch (Exception e) {
             log.error("Failed to load auth group page api.", e);
@@ -164,23 +156,23 @@ public class AdminAuthorityPagePayloadService {
         response.put("selectedRoleCategory", selectedRoleCategory);
         response.put("selectedAuthorCode", selectedAuthorCode);
         response.put("selectedAuthorName", selectedAuthorName);
-        response.put("selectedAuthorProfile", controller.toAuthorRoleProfileMap(authorRoleProfileService.getProfile(selectedAuthorCode)));
+        response.put("selectedAuthorProfile", authorityPagePayloadSupport.toAuthorRoleProfileMap(authorRoleProfileService.getProfile(selectedAuthorCode)));
         response.put("referenceAuthorProfilesByCode",
-                controller.toAuthorRoleProfileMapCollection(authorRoleProfileService.getProfiles(
+                authorityPagePayloadSupport.toAuthorRoleProfileMapCollection(authorRoleProfileService.getProfiles(
                         filteredAuthorGroups.stream()
                                 .map(AuthorInfoVO::getAuthorCode)
                                 .collect(Collectors.toCollection(LinkedHashSet::new)))));
         response.put("selectedFeatureCodes", selectedFeatureCodes);
-        response.put("focusedMenuCode", controller.safeString(menuCode).toUpperCase(Locale.ROOT));
-        response.put("focusedFeatureCode", controller.safeString(featureCode).toUpperCase(Locale.ROOT));
+        response.put("focusedMenuCode", authorityPagePayloadSupport.safeValue(menuCode).toUpperCase(Locale.ROOT));
+        response.put("focusedFeatureCode", authorityPagePayloadSupport.safeValue(featureCode).toUpperCase(Locale.ROOT));
         response.put("featureCatalogDeferred", featureCatalogDeferred);
         response.put("canViewGeneralAuthorityGroups", canViewGeneralAuthorityGroups);
         response.put("canManageScopedAuthorityGroups", canManageScopedAuthorityGroups);
         response.put("canManageAllCompanies", globalAccess);
         response.put("canManageOwnCompany", !globalAccess && canManageScopedAuthorityGroups);
-        response.put("authGroupBasePath", controller.resolveAuthGroupBasePath(request, locale));
-        response.put("authGroupCreatePath", controller.resolveAuthGroupBasePath(request, locale) + "/create");
-        response.put("authGroupSaveFeaturesPath", controller.resolveAuthGroupBasePath(request, locale) + "/save-features");
+        response.put("authGroupBasePath", authorityPagePayloadSupport.resolveAuthGroupBasePath(request, locale));
+        response.put("authGroupCreatePath", authorityPagePayloadSupport.resolveAuthGroupBasePath(request, locale) + "/create");
+        response.put("authGroupSaveFeaturesPath", authorityPagePayloadSupport.resolveAuthGroupBasePath(request, locale) + "/save-features");
         response.put("authGroupCompanyOptions", scopeContext.getCompanyOptions());
         response.put("authGroupSelectedInsttId", scopeContext.getSelectedInsttId());
         response.put("authGroupDepartmentRows", scopeContext.getDepartmentRows());
@@ -199,11 +191,10 @@ public class AdminAuthorityPagePayloadService {
             String error,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
         Map<String, Object> response = new LinkedHashMap<>();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        controller.primeCsrfToken(request);
-        String currentUserId = controller.extractCurrentUserId(request);
+        boolean isEn = authorityPagePayloadSupport.isEnglishRequest(request, locale);
+        authorityPagePayloadSupport.primeCsrfToken(request);
+        String currentUserId = authorityPagePayloadSupport.extractCurrentUserId(request);
         AdminCompanyScopeService.CompanyScope companyScope = adminCompanyScopeService.resolve(currentUserId);
         String currentUserAuthorCode = companyScope.getAuthorCode();
         boolean globalDeptRoleAccess = companyScope.canManageAllCompanies();
@@ -258,7 +249,7 @@ public class AdminAuthorityPagePayloadService {
                     departmentRows);
             List<UserAuthorityTargetVO> allCompanyMembers = selectedInsttId.isEmpty()
                     ? Collections.emptyList()
-                    : authGroupManageService.selectUserAuthorityTargets(selectedInsttId, controller.safeString(memberSearchKeyword));
+                    : authGroupManageService.selectUserAuthorityTargets(selectedInsttId, authorityPagePayloadSupport.safeValue(memberSearchKeyword));
             memberAssignableAuthorGroups = authorityPagePayloadSupport.buildDeptMemberAssignableGroups(
                     allAuthorGroups,
                     authorScopeInsttId,
@@ -297,8 +288,8 @@ public class AdminAuthorityPagePayloadService {
         }
 
         response.put("isEn", isEn);
-        response.put("deptRoleUpdated", "true".equalsIgnoreCase(controller.safeString(updated)));
-        response.put("deptRoleTargetInsttId", controller.safeString(insttId));
+        response.put("deptRoleUpdated", "true".equalsIgnoreCase(authorityPagePayloadSupport.safeValue(updated)));
+        response.put("deptRoleTargetInsttId", authorityPagePayloadSupport.safeValue(insttId));
         response.put("deptRoleMessage", authorityPagePayloadSupport.resolveDeptRoleMessage(error, isEn));
         response.put("deptRoleError", deptRoleError);
         response.put("currentUserId", currentUserId);
@@ -309,8 +300,8 @@ public class AdminAuthorityPagePayloadService {
         response.put("departmentAuthorGroups", authorGroups);
         response.put("memberAssignableAuthorGroups", memberAssignableAuthorGroups);
         response.put("roleProfilesByAuthorCode",
-                controller.toAuthorRoleProfileMapCollection(authorRoleProfileService.getProfiles(
-                        controller.collectRoleProfileAuthorCodes(
+                authorityPagePayloadSupport.toAuthorRoleProfileMapCollection(authorRoleProfileService.getProfiles(
+                        authorityPagePayloadSupport.collectRoleProfileAuthorCodes(
                                 departmentRows, authorGroups, memberAssignableAuthorGroups, companyMembers))));
         response.put("departmentCompanyOptions", companyOptions);
         response.put("selectedInsttId", selectedInsttId);
@@ -319,7 +310,7 @@ public class AdminAuthorityPagePayloadService {
         response.put("companyMemberPageIndex", companyMemberPageIndex);
         response.put("companyMemberPageSize", companyMemberPageSize);
         response.put("companyMemberTotalPages", companyMemberTotalPages);
-        response.put("companyMemberSearchKeyword", controller.safeString(memberSearchKeyword));
+        response.put("companyMemberSearchKeyword", authorityPagePayloadSupport.safeValue(memberSearchKeyword));
         response.put("mappingCount", mappingCount);
         return response;
     }
@@ -332,11 +323,10 @@ public class AdminAuthorityPagePayloadService {
             String error,
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
         Map<String, Object> response = new LinkedHashMap<>();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        controller.primeCsrfToken(request);
-        String currentUserId = controller.extractCurrentUserId(request);
+        boolean isEn = authorityPagePayloadSupport.isEnglishRequest(request, locale);
+        authorityPagePayloadSupport.primeCsrfToken(request);
+        String currentUserId = authorityPagePayloadSupport.extractCurrentUserId(request);
         boolean isWebmaster = "webmaster".equalsIgnoreCase(currentUserId);
         AdminCompanyScopeService.CompanyScope companyScope = adminCompanyScopeService.resolve(currentUserId);
         String currentUserAuthorCode = companyScope.getAuthorCode();
@@ -357,7 +347,7 @@ public class AdminAuthorityPagePayloadService {
                         ? "The current administrator is not bound to a company."
                         : "현재 관리자 계정에 소속 회원사가 없습니다.");
             }
-            String normalizedSearchKeyword = controller.safeString(searchKeyword);
+            String normalizedSearchKeyword = authorityPagePayloadSupport.safeValue(searchKeyword);
             assignmentCount = authGroupManageService.countAdminRoleAssignments(scopedOrgnztId, scopedInsttId, normalizedSearchKeyword);
             assignmentPageSize = 10;
             assignmentTotalPages = Math.max(1, (int) Math.ceil((double) assignmentCount / (double) assignmentPageSize));
@@ -400,10 +390,10 @@ public class AdminAuthorityPagePayloadService {
         response.put("assignmentPageIndex", assignmentPageIndexValue);
         response.put("assignmentPageSize", assignmentPageSize);
         response.put("assignmentTotalPages", assignmentTotalPages);
-        response.put("assignmentSearchKeyword", controller.safeString(searchKeyword));
-        response.put("authChangeUpdated", "true".equalsIgnoreCase(controller.safeString(updated)));
-        response.put("authChangeTargetUserId", controller.safeString(targetUserId));
-        response.put("authChangeMessage", controller.resolveAuthChangeMessage(error, isEn));
+        response.put("assignmentSearchKeyword", authorityPagePayloadSupport.safeValue(searchKeyword));
+        response.put("authChangeUpdated", "true".equalsIgnoreCase(authorityPagePayloadSupport.safeValue(updated)));
+        response.put("authChangeTargetUserId", authorityPagePayloadSupport.safeValue(targetUserId));
+        response.put("authChangeMessage", authorityPagePayloadSupport.resolveAuthChangeMessage(error, isEn));
         response.put("authChangeError", authChangeError);
         response.put("recentRoleChangeHistory", Collections.emptyList());
         return response;
@@ -412,10 +402,9 @@ public class AdminAuthorityPagePayloadService {
     public Map<String, Object> buildAuthChangeHistoryPayload(
             HttpServletRequest request,
             Locale locale) {
-        AdminMainController controller = adminMainController();
         Map<String, Object> response = new LinkedHashMap<>();
-        boolean isEn = controller.isEnglishRequest(request, locale);
-        controller.primeCsrfToken(request);
+        boolean isEn = authorityPagePayloadSupport.isEnglishRequest(request, locale);
+        authorityPagePayloadSupport.primeCsrfToken(request);
         response.put("items", authorityPagePayloadSupport.buildRecentAdminRoleChangeHistory(isEn));
         return response;
     }

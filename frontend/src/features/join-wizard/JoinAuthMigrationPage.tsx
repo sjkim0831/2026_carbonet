@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { resetJoinSession, saveJoinStep3 } from "../../lib/api/client";
+import { resetJoinSession, saveJoinStep3 } from "../../lib/api/joinSession";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type AuthOption = {

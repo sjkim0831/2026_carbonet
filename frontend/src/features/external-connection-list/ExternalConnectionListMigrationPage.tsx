@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchExternalConnectionListPage, type ExternalConnectionListPagePayload } from "../../lib/api/client";
+import { fetchExternalConnectionListPage } from "../../lib/api/ops";
+import type { ExternalConnectionListPagePayload } from "../../lib/api/opsTypes";
 import { buildLocalizedPath, isEnglish, replace } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

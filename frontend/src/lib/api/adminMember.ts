@@ -1,24 +1,26 @@
-import { buildAdminApiPath, readJsonResponse } from "./core";
+import { buildAdminApiPath, buildQueryString, fetchJson, fetchPageJson } from "./core";
 import { buildPageCacheKey, fetchCachedJson, fetchJsonWithoutCache } from "./pageCache";
+import type {
+  AuthChangeHistoryRow,
+  AuthChangePagePayload,
+  AuthGroupPagePayload,
+  DeptRolePagePayload
+} from "./authTypes";
 import type {
   AdminAccountCreatePagePayload,
   AdminListPagePayload,
   AdminPermissionPagePayload,
-  AuthChangeHistoryRow,
-  AuthChangePagePayload,
-  AuthGroupPagePayload,
   CertificateApprovePagePayload,
   CompanyAccountPagePayload,
   CompanyApprovePagePayload,
   CompanyDetailPagePayload,
   CompanyListPagePayload,
   CompanySearchPayload,
-  DeptRolePagePayload,
   MemberApprovePagePayload,
   MemberDetailPagePayload,
   MemberEditPagePayload,
   MemberListPagePayload
-} from "./client";
+} from "./memberTypes";
 
 type DuplicateCheckResponse = {
   valid?: boolean;
@@ -26,17 +28,50 @@ type DuplicateCheckResponse = {
   message?: string;
 };
 
+type AdminMemberQueryParams = Record<string, string | number | boolean | null | undefined>;
+
+function createAdminMemberPageErrorResolver<T extends Record<string, unknown>>(
+  fallbackMessage: string,
+  errorKey?: keyof T & string
+) {
+  return (body: T, status: number) => {
+    if (errorKey) {
+      const message = body[errorKey];
+      if (Array.isArray(message)) {
+        return String(message[0] || `${fallbackMessage}: ${status}`);
+      }
+      if (message) {
+        return String(message);
+      }
+    }
+    return `${fallbackMessage}: ${status}`;
+  };
+}
+
+function buildAdminMemberQuery(
+  paramsOrQuery?: AdminMemberQueryParams | string
+) {
+  if (typeof paramsOrQuery === "string") {
+    return paramsOrQuery;
+  }
+  return buildQueryString(paramsOrQuery);
+}
+
+function buildAdminMemberUrl(
+  path: string,
+  paramsOrQuery?: AdminMemberQueryParams | string
+) {
+  return `${buildAdminApiPath(path)}${buildAdminMemberQuery(paramsOrQuery)}`;
+}
+
 async function checkIdentifierAvailability(
-  url: string,
+  path: string,
+  params: AdminMemberQueryParams,
   fallbackMessage: string
 ): Promise<{ valid: boolean; duplicated: boolean; message: string }> {
-  const response = await fetch(url, {
-    credentials: "include"
+  const body = await fetchPageJson<DuplicateCheckResponse>(buildAdminMemberUrl(path, params), {
+    fallbackMessage
   });
-  const body = await readJsonResponse<DuplicateCheckResponse>(response);
-  if (!response.ok) {
-    throw new Error(body.message || `${fallbackMessage}: ${response.status}`);
-  }
   return {
     valid: Boolean(body.valid),
     duplicated: Boolean(body.duplicated),
@@ -45,16 +80,46 @@ async function checkIdentifierAvailability(
 }
 
 async function searchCompanyDirectory(
-  url: string,
+  path: string,
+  params: AdminMemberQueryParams,
   fallbackMessage: string
 ): Promise<CompanySearchPayload> {
-  const response = await fetch(url, {
-    credentials: "include"
+  return fetchJson<CompanySearchPayload>(buildAdminMemberUrl(path, params)).catch((error) => {
+    throw new Error(error instanceof Error ? error.message : fallbackMessage);
   });
-  if (!response.ok) {
-    throw new Error(`${fallbackMessage}: ${response.status}`);
-  }
-  return response.json() as Promise<CompanySearchPayload>;
+}
+
+async function fetchCachedAdminMemberPage<T>(
+  cacheKey: string,
+  path: string,
+  paramsOrQuery: AdminMemberQueryParams | string | undefined,
+  mapError: (body: T, status: number) => string
+): Promise<T> {
+  const query = buildAdminMemberQuery(paramsOrQuery);
+  return fetchCachedJson<T>({
+    cacheKey: buildPageCacheKey(`${cacheKey}${query}`),
+    url: buildAdminMemberUrl(path, paramsOrQuery),
+    mapError
+  });
+}
+
+async function fetchCachedAdminMemberData<T>(
+  cacheKey: string,
+  path: string,
+  mapError: (body: T, status: number) => string
+): Promise<T> {
+  return fetchCachedAdminMemberPage<T>(cacheKey, path, undefined, mapError);
+}
+
+async function fetchUncachedAdminMemberPage<T>(
+  path: string,
+  paramsOrQuery: AdminMemberQueryParams | string | undefined,
+  mapError: (body: T, status: number) => string
+): Promise<T> {
+  return fetchJsonWithoutCache<T>({
+    url: buildAdminMemberUrl(path, paramsOrQuery),
+    mapError
+  });
 }
 
 export async function fetchAuthGroupPage(params: {
@@ -65,39 +130,35 @@ export async function fetchAuthGroupPage(params: {
   featureCode?: string;
   userSearchKeyword?: string;
 }): Promise<AuthGroupPagePayload> {
-  const search = new URLSearchParams();
-  if (params.authorCode) search.set("authorCode", params.authorCode);
-  if (params.roleCategory) search.set("roleCategory", params.roleCategory);
-  if (params.insttId) search.set("insttId", params.insttId);
-  if (params.menuCode) search.set("menuCode", params.menuCode);
-  if (params.featureCode) search.set("featureCode", params.featureCode);
-  if (params.userSearchKeyword) search.set("userSearchKeyword", params.userSearchKeyword);
-  const query = search.toString();
-  return fetchCachedJson<AuthGroupPagePayload>({
-    cacheKey: buildPageCacheKey(`auth-groups/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/auth-groups/page")}${query ? `?${query}` : ""}`,
-    mapError: (_body, status) => `Failed to load auth-group page: ${status}`
-  });
+  const fallbackMessage = "Failed to load auth-group page";
+  return fetchCachedAdminMemberPage<AuthGroupPagePayload>(
+    "auth-groups/page",
+    "/api/admin/auth-groups/page",
+    params,
+    createAdminMemberPageErrorResolver<AuthGroupPagePayload>(fallbackMessage)
+  );
 }
 
 export async function fetchAuthChangePage(params?: { searchKeyword?: string; pageIndex?: number }): Promise<AuthChangePagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.pageIndex && params.pageIndex > 1) search.set("pageIndex", String(params.pageIndex));
-  const query = search.toString() ? `?${search.toString()}` : "";
-  return fetchCachedJson<AuthChangePagePayload>({
-    cacheKey: buildPageCacheKey(`auth-change/page${query}`),
-    url: `${buildAdminApiPath("/api/admin/auth-change/page")}${query}`,
-    mapError: (_body, status) => `Failed to load auth-change page: ${status}`
-  });
+  const fallbackMessage = "Failed to load auth-change page";
+  return fetchCachedAdminMemberPage<AuthChangePagePayload>(
+    "auth-change/page",
+    "/api/admin/auth-change/page",
+    {
+      searchKeyword: params?.searchKeyword,
+      pageIndex: params?.pageIndex && params.pageIndex > 1 ? params.pageIndex : undefined
+    },
+    createAdminMemberPageErrorResolver<AuthChangePagePayload>(fallbackMessage)
+  );
 }
 
 export async function fetchAuthChangeHistory(): Promise<AuthChangeHistoryRow[]> {
-  const response = await fetchCachedJson<{ items?: AuthChangeHistoryRow[] }>({
-    cacheKey: buildPageCacheKey("auth-change/history"),
-    url: buildAdminApiPath("/api/admin/auth-change/history"),
-    mapError: (_body, status) => `Failed to load auth-change history: ${status}`
-  });
+  const fallbackMessage = "Failed to load auth-change history";
+  const response = await fetchCachedAdminMemberData<{ items?: AuthChangeHistoryRow[] }>(
+    "auth-change/history",
+    "/api/admin/auth-change/history",
+    createAdminMemberPageErrorResolver<{ items?: AuthChangeHistoryRow[] }>(fallbackMessage)
+  );
   return Array.isArray(response.items) ? response.items : [];
 }
 
@@ -106,170 +167,148 @@ export async function fetchDeptRolePage(params?: {
   memberSearchKeyword?: string;
   memberPageIndex?: number;
 }): Promise<DeptRolePagePayload> {
-  const search = new URLSearchParams();
-  if (params?.insttId) search.set("insttId", params.insttId);
-  if (params?.memberSearchKeyword) search.set("memberSearchKeyword", params.memberSearchKeyword);
-  if (params?.memberPageIndex && params.memberPageIndex > 1) search.set("memberPageIndex", String(params.memberPageIndex));
-  const query = search.toString() ? `?${search.toString()}` : "";
-  return fetchCachedJson<DeptRolePagePayload>({
-    cacheKey: buildPageCacheKey(`dept-role/page${query}`),
-    url: `${buildAdminApiPath("/api/admin/dept-role-mapping/page")}${query}`,
-    mapError: (_body, status) => `Failed to load dept-role page: ${status}`
-  });
+  const fallbackMessage = "Failed to load dept-role page";
+  return fetchCachedAdminMemberPage<DeptRolePagePayload>(
+    "dept-role/page",
+    "/api/admin/dept-role-mapping/page",
+    {
+      insttId: params?.insttId,
+      memberSearchKeyword: params?.memberSearchKeyword,
+      memberPageIndex: params?.memberPageIndex && params.memberPageIndex > 1 ? params.memberPageIndex : undefined
+    },
+    createAdminMemberPageErrorResolver<DeptRolePagePayload>(fallbackMessage)
+  );
 }
 
 export async function fetchMemberEditPage(memberId: string, options?: { updated?: string }): Promise<MemberEditPagePayload> {
-  const search = new URLSearchParams();
-  search.set("memberId", memberId);
-  if (options?.updated) search.set("updated", options.updated);
-  return fetchJsonWithoutCache<MemberEditPagePayload>({
-    url: `${buildAdminApiPath("/api/admin/member/edit")}?${search.toString()}`,
-    mapError: (_body, status) => `Failed to load member edit page: ${status}`
-  });
+  const fallbackMessage = "Failed to load member edit page";
+  return fetchUncachedAdminMemberPage<MemberEditPagePayload>(
+    "/api/admin/member/edit",
+    { memberId, updated: options?.updated },
+    createAdminMemberPageErrorResolver<MemberEditPagePayload>(fallbackMessage)
+  );
 }
 
 export async function checkMemberRegisterId(memberId: string) {
   return checkIdentifierAvailability(
-    `${buildAdminApiPath("/api/admin/member/register/check-id")}?memberId=${encodeURIComponent(memberId)}`,
+    "/api/admin/member/register/check-id",
+    { memberId },
     "Failed to check member ID"
   );
 }
 
 export async function fetchAdminPermissionPage(emplyrId: string, options?: { updated?: string; mode?: string }) {
-  const search = new URLSearchParams();
-  search.set("emplyrId", emplyrId);
-  if (options?.updated) search.set("updated", options.updated);
-  if (options?.mode) search.set("mode", options.mode);
-  const query = search.toString();
-  return fetchCachedJson<AdminPermissionPagePayload>({
-    cacheKey: buildPageCacheKey(`admin-permission/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/admin-account/permissions")}?${query}`,
-    mapError: (_body, status) => `Failed to load admin permission page: ${status}`
-  });
+  const fallbackMessage = "Failed to load admin permission page";
+  return fetchCachedAdminMemberPage<AdminPermissionPagePayload>(
+    "admin-permission/page",
+    "/api/admin/member/admin-account/permissions",
+    { emplyrId, updated: options?.updated, mode: options?.mode },
+    createAdminMemberPageErrorResolver<AdminPermissionPagePayload>(fallbackMessage)
+  );
 }
 
 export async function fetchAdminAccountCreatePage() {
-  return fetchCachedJson<AdminAccountCreatePagePayload>({
-    cacheKey: buildPageCacheKey("admin-account-create/page"),
-    url: buildAdminApiPath("/api/admin/member/admin-account/page"),
-    mapError: (_body, status) => `Failed to load admin account create page: ${status}`
-  });
+  const fallbackMessage = "Failed to load admin account create page";
+  return fetchCachedAdminMemberData<AdminAccountCreatePagePayload>(
+    "admin-account-create/page",
+    "/api/admin/member/admin-account/page",
+    createAdminMemberPageErrorResolver<AdminAccountCreatePagePayload>(fallbackMessage)
+  );
 }
 
 export async function fetchCompanyAccountPage(insttId?: string, options?: { saved?: string }) {
-  const search = new URLSearchParams();
-  if (insttId) search.set("insttId", insttId);
-  if (options?.saved) search.set("saved", options.saved);
-  const query = search.toString();
-  return fetchCachedJson<CompanyAccountPagePayload>({
-    cacheKey: buildPageCacheKey(`company-account/page${query ? `?${query}` : ""}`),
-    url: `${buildAdminApiPath("/api/admin/member/company-account/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.companyAccountErrors?.[0] || `Failed to load company account page: ${status}`
-  });
+  const fallbackMessage = "Failed to load company account page";
+  return fetchCachedAdminMemberPage<CompanyAccountPagePayload>(
+    "company-account/page",
+    "/api/admin/member/company-account/page",
+    { insttId, saved: options?.saved },
+    createAdminMemberPageErrorResolver<CompanyAccountPagePayload>(fallbackMessage, "companyAccountErrors")
+  );
 }
 
 export async function fetchAdminListPage(params?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  const query = search.toString();
-  return fetchCachedJson<AdminListPagePayload>({
-    cacheKey: buildPageCacheKey(`admin-list/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/admin-list/page")}${query ? `?${query}` : ""}`,
-    mapError: (_body, status) => `Failed to load admin list page: ${status}`
-  });
+  const fallbackMessage = "Failed to load admin list page";
+  return fetchCachedAdminMemberPage<AdminListPagePayload>(
+    "admin-list/page",
+    "/api/admin/member/admin-list/page",
+    params,
+    createAdminMemberPageErrorResolver<AdminListPagePayload>(fallbackMessage)
+  );
 }
 
 export async function fetchCompanyListPage(params?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  const query = search.toString();
-  return fetchCachedJson<CompanyListPagePayload>({
-    cacheKey: buildPageCacheKey(`company-list/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/company-list/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.company_listError || `Failed to load company list page: ${status}`
-  });
+  const fallbackMessage = "Failed to load company list page";
+  return fetchCachedAdminMemberPage<CompanyListPagePayload>(
+    "company-list/page",
+    "/api/admin/member/company-list/page",
+    params,
+    createAdminMemberPageErrorResolver<CompanyListPagePayload>(fallbackMessage, "company_listError")
+  );
 }
 
 export async function fetchMemberApprovePage(params?: { pageIndex?: number; searchKeyword?: string; membershipType?: string; sbscrbSttus?: string; result?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.membershipType) search.set("membershipType", params.membershipType);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  if (params?.result) search.set("result", params.result);
-  const query = search.toString();
-  return fetchCachedJson<MemberApprovePagePayload>({
-    cacheKey: buildPageCacheKey(`member-approve/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/approve/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.memberApprovalError || `Failed to load member approval page: ${status}`
-  });
+  const fallbackMessage = "Failed to load member approval page";
+  return fetchCachedAdminMemberPage<MemberApprovePagePayload>(
+    "member-approve/page",
+    "/api/admin/member/approve/page",
+    params,
+    createAdminMemberPageErrorResolver<MemberApprovePagePayload>(fallbackMessage, "memberApprovalError")
+  );
 }
 
 export async function fetchCompanyApprovePage(params?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; result?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  if (params?.result) search.set("result", params.result);
-  const query = search.toString();
-  return fetchCachedJson<CompanyApprovePagePayload>({
-    cacheKey: buildPageCacheKey(`company-approve/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/company-approve/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.memberApprovalError || `Failed to load company approval page: ${status}`
-  });
+  const fallbackMessage = "Failed to load company approval page";
+  return fetchCachedAdminMemberPage<CompanyApprovePagePayload>(
+    "company-approve/page",
+    "/api/admin/member/company-approve/page",
+    params,
+    createAdminMemberPageErrorResolver<CompanyApprovePagePayload>(fallbackMessage, "memberApprovalError")
+  );
 }
 
 export async function fetchCertificateApprovePage(params?: { pageIndex?: number; searchKeyword?: string; requestType?: string; status?: string; result?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.requestType) search.set("requestType", params.requestType);
-  if (params?.status) search.set("status", params.status);
-  if (params?.result) search.set("result", params.result);
-  const query = search.toString();
-  return fetchCachedJson<CertificateApprovePagePayload>({
-    cacheKey: buildPageCacheKey(`certificate-approve/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/certificate/approve/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.certificateApprovalError || `Failed to load certificate approval page: ${status}`
-  });
+  const fallbackMessage = "Failed to load certificate approval page";
+  return fetchCachedAdminMemberPage<CertificateApprovePagePayload>(
+    "certificate-approve/page",
+    "/api/admin/certificate/approve/page",
+    params,
+    createAdminMemberPageErrorResolver<CertificateApprovePagePayload>(fallbackMessage, "certificateApprovalError")
+  );
 }
 
 export async function fetchMemberListPage(params?: { pageIndex?: number; searchKeyword?: string; membershipType?: string; sbscrbSttus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.membershipType) search.set("membershipType", params.membershipType);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  const query = search.toString();
-  return fetchCachedJson<MemberListPagePayload>({
-    cacheKey: buildPageCacheKey(`member-list/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/list/page")}${query ? `?${query}` : ""}`,
-    mapError: (_body, status) => `Failed to load member list page: ${status}`
-  });
+  const fallbackMessage = "Failed to load member list page";
+  return fetchCachedAdminMemberPage<MemberListPagePayload>(
+    "member-list/page",
+    "/api/admin/member/list/page",
+    params,
+    createAdminMemberPageErrorResolver<MemberListPagePayload>(fallbackMessage)
+  );
 }
 
 export async function fetchMemberDetailPage(memberId: string) {
-  return fetchJsonWithoutCache<MemberDetailPagePayload>({
-    url: `${buildAdminApiPath("/api/admin/member/detail/page")}?memberId=${encodeURIComponent(memberId)}`,
-    mapError: (body, status) => body.member_detailError || `Failed to load member detail page: ${status}`
-  });
+  const fallbackMessage = "Failed to load member detail page";
+  return fetchUncachedAdminMemberPage<MemberDetailPagePayload>(
+    "/api/admin/member/detail/page",
+    { memberId },
+    createAdminMemberPageErrorResolver<MemberDetailPagePayload>(fallbackMessage, "member_detailError")
+  );
 }
 
 export async function fetchCompanyDetailPage(insttId: string) {
-  return fetchCachedJson<CompanyDetailPagePayload>({
-    cacheKey: buildPageCacheKey(`company-detail/page?insttId=${encodeURIComponent(insttId)}`),
-    url: `${buildAdminApiPath("/api/admin/member/company-detail/page")}?insttId=${encodeURIComponent(insttId)}`,
-    mapError: (body, status) => body.companyDetailError || `Failed to load company detail page: ${status}`
-  });
+  const fallbackMessage = "Failed to load company detail page";
+  return fetchCachedAdminMemberPage<CompanyDetailPagePayload>(
+    "company-detail/page",
+    "/api/admin/member/company-detail/page",
+    { insttId },
+    createAdminMemberPageErrorResolver<CompanyDetailPagePayload>(fallbackMessage, "companyDetailError")
+  );
 }
 
 export async function checkAdminAccountId(adminId: string) {
   return checkIdentifierAvailability(
-    `${buildAdminApiPath("/api/admin/member/admin-account/check-id")}?adminId=${encodeURIComponent(adminId)}`,
+    "/api/admin/member/admin-account/check-id",
+    { adminId },
     "Failed to check admin ID"
   );
 }
@@ -281,14 +320,9 @@ export async function searchAdminCompanies(params: {
   status?: string;
   membershipType?: string;
 }) {
-  const search = new URLSearchParams();
-  search.set("keyword", params.keyword);
-  if (params.page) search.set("page", String(params.page));
-  if (params.size) search.set("size", String(params.size));
-  if (params.status) search.set("status", params.status);
-  if (params.membershipType) search.set("membershipType", params.membershipType);
   return searchCompanyDirectory(
-    `${buildAdminApiPath("/api/admin/companies/search")}?${search.toString()}`,
+    "/api/admin/companies/search",
+    params,
     "Failed to search companies"
   );
 }

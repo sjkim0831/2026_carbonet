@@ -11,6 +11,10 @@ Read only what you need:
 
 - Read [`/opt/projects/carbonet/docs/architecture/common-project-reversible-transition-rules.md`](/opt/projects/carbonet/docs/architecture/common-project-reversible-transition-rules.md) first for the canonical reversible-boundary rules.
 - Read [`/opt/projects/carbonet/docs/architecture/page-systemization-minimum-contract.md`](/opt/projects/carbonet/docs/architecture/page-systemization-minimum-contract.md) when the request involves page-by-page systemization, installable screens, page manifests, authority scope, or deciding whether a page is common definition plus project binding.
+- Read [`/opt/projects/carbonet/docs/architecture/page-systemization-checklist.md`](/opt/projects/carbonet/docs/architecture/page-systemization-checklist.md) when the task needs a page or page-family closeout checklist.
+- Read [`/opt/projects/carbonet/docs/architecture/project-binding-patterns.md`](/opt/projects/carbonet/docs/architecture/project-binding-patterns.md) when the task is really about common definition versus project binding versus project executor lines.
+- Read [`/opt/projects/carbonet/docs/architecture/builder-install-deploy-closeout-checklist.md`](/opt/projects/carbonet/docs/architecture/builder-install-deploy-closeout-checklist.md) when the user asks whether common-to-project binding is installable and deployable, not just structurally separated.
+- Read [`/opt/projects/carbonet/docs/architecture/authority-scope-application-checklist.md`](/opt/projects/carbonet/docs/architecture/authority-scope-application-checklist.md) when project binding must preserve authority behavior across menu, route, query, action, and audit surfaces.
 - Read [`/opt/projects/carbonet/docs/architecture/system-folder-structure-alignment.md`](/opt/projects/carbonet/docs/architecture/system-folder-structure-alignment.md) when the request also affects folder placement, module extraction, app assembly placement, or keeping new files out of the root legacy tree.
 - Read [`/opt/projects/carbonet/docs/architecture/large-move-completion-contract.md`](/opt/projects/carbonet/docs/architecture/large-move-completion-contract.md) when the request explicitly asks for a fully completed large move instead of an open-ended transitional cleanup.
 - Read [`/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md`](/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md) when DB ownership or table split is involved.
@@ -192,6 +196,17 @@ When business-facing screens are involved, prefer:
 Do not force write-heavy business behavior into common packages just to increase reuse numbers.
 
 Copying source is allowed only for prototypes, not as the normal delivery rule.
+
+## Productization Rule
+
+When the user asks how to improve the system after boundary cleanup, prefer these answers in order:
+
+1. stabilize page-as-unit contracts
+2. make project binding explicit
+3. keep write-heavy behavior in project executors
+4. prove install and deploy closure
+
+Do not answer with source-copy scaling or mixed common/project ownership as the normal path.
 
 ## Delivery Shape
 

@@ -1,5 +1,6 @@
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { fetchAdminMenuPlaceholderPage, type AdminMenuPlaceholderPagePayload } from "../../lib/api/client";
+import { fetchAdminMenuPlaceholderPage } from "../../lib/api/appBootstrap";
+import type { AdminMenuPlaceholderPagePayload } from "../../lib/api/appBootstrapTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 

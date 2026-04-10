@@ -8,6 +8,7 @@ Read first:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 
 Treat those two docs as the single live entry pair for
 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
@@ -23,16 +24,31 @@ Use this when the question is:
 
 | Resource family | Canonical owner path | Legacy or competing path | Current status | Target treatment |
 | --- | --- | --- | --- | --- |
-| framework-builder compatibility mapper XML | `modules/screenbuilder-carbonet-adapter/src/main/resources/egovframework/mapper/com/feature/admin/framework/builder/**` | root shared mapper/resource paths | `PARTIAL` | `DELETE_ROOT_DUPLICATE_WHEN_RUNTIME_NO_LONGER_NEEDS_IT` |
-| framework contract metadata resource | `modules/carbonet-contract-metadata/src/main/resources/framework/contracts/framework-contract-metadata.json` | `src/main/resources/framework/**` duplicates or fallback copies | `PARTIAL` | `DELETE_ROOT_DUPLICATE_OR_MARK_TRANSITIONAL_EXPLICITLY` |
-| builder observability metadata/resource family | approved builder observability module resources | root observability resource fallbacks | `PARTIAL` | `DELETE_ROOT_DUPLICATE_OR_PROVE_EXPLICIT_SHIM` |
-| builder-owned root resource line excluded by app packaging | dedicated builder module resources | `src/main/resources/egovframework/mapper/com/feature/admin/**`, `src/main/resources/egovframework/mapper/com/platform/**`, `src/main/resources/framework/**` | `PARTIAL` | `DO_NOT_REINTRODUCE_ROOT_OWNERSHIP` |
-| executable app resource assembly | `apps/carbonet-app` packaging plus module resources | implicit success through root duplicate availability | `PARTIAL` | `REMOVE_SILENT_FALLBACK` |
+| framework-builder compatibility mapper XML | `modules/screenbuilder-carbonet-adapter/src/main/resources/egovframework/mapper/com/feature/admin/framework/builder/**` | root shared mapper/resource paths | `DELETE_NOW` | `DELETE_ROOT_DUPLICATE_WHEN_RUNTIME_NO_LONGER_NEEDS_IT` |
+| framework contract metadata resource | `modules/carbonet-contract-metadata/src/main/resources/framework/contracts/framework-contract-metadata.json` | `src/main/resources/framework/**` duplicates or fallback copies | `DELETE_NOW` | `DELETE_ROOT_DUPLICATE_WHEN_RUNTIME_NO_LONGER_NEEDS_IT` |
+| builder observability metadata/resource family | approved builder observability module resources | root observability resources that do not carry the selected builder registry read-shapes | `NON_BLOCKING_PARTIAL` | `DO_NOT_REINTRODUCE_ROOT_OWNERSHIP` |
+| builder-owned root resource line excluded by app packaging | dedicated builder module resources | `src/main/resources/egovframework/mapper/com/feature/admin/**`, `src/main/resources/egovframework/mapper/com/platform/**`, `src/main/resources/framework/**` | `NON_BLOCKING_PARTIAL` | `DO_NOT_REINTRODUCE_ROOT_OWNERSHIP` |
+| executable app resource assembly | `apps/carbonet-app` packaging plus module resources | implicit success through root duplicate availability | `BLOCKS_CLOSEOUT` | `REMOVE_SILENT_FALLBACK` |
 
 ## Status Meanings
 
 - `PARTIAL`
   - ownership intent is known, but silent fallback or duplicate-root ambiguity still exists
+- `NON_BLOCKING_PARTIAL`
+  - bounded review is recorded, but the row is not counted as an active closeout blocker
+- `DELETE_NOW`
+  - the current docs set supports immediate duplicate-root removal for this family
+- `BLOCKS_CLOSEOUT`
+  - the current docs set still lacks a bounded delete-proof note or one explicit shim reason
+
+## Current Phase Note
+
+- rows `1` and `2` are resolved as `DELETE_NOW`
+- row `5` remains the active blocker
+- rows `3` and `4` remain stronger non-blocker notes
+- blocker rows `3` and `5` are operationally compressed into:
+  - `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+  - `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
 
 ## Target Treatment Meanings
 

@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
+import { fetchAdminSitemapPage } from "../../lib/api/content";
+import type { SitemapNode, SitemapPagePayload } from "../../lib/api/appBootstrapTypes";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
-import { fetchAdminSitemapPage, type SitemapNode, type SitemapPagePayload } from "../../lib/api/client";
 import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 

@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
-import { AuthChangeHistoryRow, AuthChangePagePayload, FrontendSession, fetchAuthChangeHistory, fetchAuthChangePage, fetchFrontendSession, readBootstrappedAuthChangePageData, saveAdminAuthChange } from "../../lib/api/client";
+import { readBootstrappedAuthChangePageData } from "../../lib/api/bootstrap";
+import { fetchAuthChangeHistory, fetchAuthChangePage } from "../../lib/api/adminMember";
+import { saveAdminAuthChange } from "../../lib/api/adminActions";
+import { fetchFrontendSession } from "../../lib/api/adminShell";
+import type { FrontendSession } from "../../lib/api/adminShellTypes";
+import type { AuthChangeHistoryRow, AuthChangePagePayload } from "../../lib/api/authTypes";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminAuthorityPageFrame } from "../admin-ui/pageFrames";

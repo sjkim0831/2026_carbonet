@@ -1,6 +1,7 @@
 egovframework/com/feature/admin/service/ScreenCommandCenterService.class
 egovframework/com/feature/admin/model/vo/SecurityAuditSnapshot.class
 egovframework/com/platform/service/audit/AuditTrailPort.class
+egovframework/com/common/audit/AuditEventSearchVO.class
 egovframework/com/feature/admin/dto/response/AdminErrorLogRowResponse.class
 egovframework/com/feature/member/model/vo/InstitutionStatusVO.class
 egovframework/com/platform/service/observability/CertificateAuditLogPageDataPort.class
@@ -9,6 +10,8 @@ egovframework/com/common/menu/model/SiteMapNode.class
 egovframework/com/platform/service/observability/history/PlatformObservabilityHistoryDataPort.class
 egovframework/com/platform/service/observability/ExternalConnectionListPayloadPort.class
 egovframework/com/platform/service/observability/CurrentUserContextSnapshot.class
+egovframework/com/common/audit/AuditEventRecordVO.class
+egovframework/com/platform/service/observability/PlatformObservabilityHistoryPagePayloadPort.class
 egovframework/com/platform/service/observability/BackupConfigManagementPort.class
 egovframework/com/platform/service/observability/ExternalLogsPayloadPort.class
 egovframework/com/platform/service/observability/ExternalSyncPayloadPort.class
@@ -36,6 +39,8 @@ egovframework/com/platform/service/observability/ExternalUsagePayloadPort.class
 egovframework/com/platform/service/observability/history/LoginHistoryRowSnapshot.class
 egovframework/com/feature/admin/model/vo/EmissionResultFilterSnapshot.class
 egovframework/com/platform/service/observability/SrWorkbenchPagePort.class
+egovframework/com/platform/service/observability/PlatformObservabilityAuditQueryPort.class
+egovframework/com/platform/service/workbench/SrTicketWorkbenchPort.class
 egovframework/com/platform/service/observability/ExternalKeysPayloadPort.class
 egovframework/com/platform/service/observability/ExternalMaintenancePayloadPort.class
 egovframework/com/platform/service/observability/PlatformObservabilityCompanyScopePort.class
@@ -47,4 +52,5 @@ egovframework/com/platform/service/observability/ExternalMonitoringPayloadPort.c
 egovframework/com/platform/service/observability/AdminAuthoritySelectionPort.class
 egovframework/com/platform/service/observability/AdminActionRateLimitPort.class
 egovframework/com/platform/service/observability/PlatformObservabilityAdminPagePort.class
+egovframework/com/platform/service/observability/BatchManagementPagePayloadPort.class
 egovframework/com/platform/service/observability/ExternalSchemaPayloadPort.class

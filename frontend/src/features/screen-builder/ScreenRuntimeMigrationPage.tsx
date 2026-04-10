@@ -1,17 +1,23 @@
 import { useMemo } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { resolveAuthorityScope } from "../../app/policy/authorityScope";
+import { getCurrentRuntimePathname, getCurrentRuntimeSearch } from "../../app/routes/runtime";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchAuditEvents } from "../../platform/observability/observability";
 import { buildObservabilityPath } from "../../platform/routes/platformPaths";
-import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
-import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
+import { fetchScreenBuilderPage, fetchScreenBuilderPreview, fetchScreenCommandPage } from "../../lib/api/platform";
+import type { ScreenCommandPagePayload } from "../../lib/api/platformTypes";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
-import { DiagnosticCard, GridToolbar, KeyValueGridPanel, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { CopyableCodeBlock, DiagnosticCard, GridToolbar, KeyValueGridPanel, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { resolveRuntimeSurfaceContextKeys } from "../admin-ui/contextKeyPresets";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { MemberStateCard } from "../member/sections";
 import { renderScreenBuilderNodePreview } from "./shared/screenBuilderPreview";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
+import { buildScreenBuilderOperatorFlowPaths, buildScreenBuilderOperatorFlowSteps, buildScreenBuilderRuntimeVerificationCommand } from "./operatorFlow";
 import { buildEnvironmentManagementPath, buildScreenBuilderPath } from "./screenBuilderPaths";
 import { useEffect } from "react";
 
@@ -24,13 +30,46 @@ function formatCountLabel(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+function getScreenRuntimeRoutePath() {
+  return getCurrentRuntimePathname();
+}
+
+function getScreenRuntimeSearchParam(name: string) {
+  return new URLSearchParams(getCurrentRuntimeSearch()).get(name);
+}
+
 export function ScreenRuntimeMigrationPage() {
   const en = isEnglish();
-  const query = useMemo(() => resolveScreenBuilderQuery({ get: getSearchParam }), []);
-  const snapshotVersionId = getSearchParam("snapshotVersionId") || "";
+  const sessionState = useFrontendSession();
+  const query = useMemo(() => resolveScreenBuilderQuery({ get: getScreenRuntimeSearchParam }), []);
+  const commandState = useAsyncValue<ScreenCommandPagePayload>(
+    () => (query.pageId ? fetchScreenCommandPage(query.pageId) : Promise.resolve({ selectedPageId: "", pages: [], page: {} as ScreenCommandPagePayload["page"] })),
+    [query.pageId],
+    { enabled: Boolean(query.pageId) }
+  );
+  const screenRuntimeAuthority = useMemo(() => resolveAuthorityScope({
+    scopeName: "screen-runtime",
+    routePath: getScreenRuntimeRoutePath(),
+    session: sessionState.value,
+    menuCode: commandState.value?.page?.menuPermission?.menuCode || query.menuCode,
+    requiredViewFeatureCode: commandState.value?.page?.menuPermission?.requiredViewFeatureCode,
+    featureCodes: commandState.value?.page?.menuPermission?.featureCodes,
+    featureRows: commandState.value?.page?.menuPermission?.featureRows
+  }), [
+    commandState.value?.page?.menuPermission?.featureCodes,
+    commandState.value?.page?.menuPermission?.featureRows,
+    commandState.value?.page?.menuPermission?.menuCode,
+    commandState.value?.page?.menuPermission?.requiredViewFeatureCode,
+    query.menuCode,
+    sessionState.value
+  ]);
+  const pagePermissionDenied = !sessionState.loading && !commandState.loading && !screenRuntimeAuthority.entryAllowed;
+  const pageQueryEnabled = (!query.pageId || !commandState.loading) && screenRuntimeAuthority.entryAllowed;
+  const snapshotVersionId = getScreenRuntimeSearchParam("snapshotVersionId") || "";
   const pageState = useAsyncValue(
     () => fetchScreenBuilderPage(query),
-    [query.menuCode, query.pageId, query.menuTitle, query.menuUrl]
+    [query.menuCode, query.pageId, query.menuTitle, query.menuUrl],
+    { enabled: pageQueryEnabled }
   );
   const page = pageState.value;
   const focusedSnapshot = useMemo(
@@ -42,12 +81,12 @@ export function ScreenRuntimeMigrationPage() {
   const previewState = useAsyncValue(
     () => fetchScreenBuilderPreview({ ...query, versionStatus: "PUBLISHED" }),
     [query.menuCode, query.pageId, query.menuTitle, query.menuUrl, page?.publishedVersionId || ""],
-    { enabled: Boolean(page?.publishedVersionId) }
+    { enabled: pageQueryEnabled && Boolean(page?.publishedVersionId) }
   );
   const auditState = useAsyncValue(
     () => fetchAuditEvents({ menuCode: query.menuCode, pageId: query.pageId, pageSize: 10 }),
     [query.menuCode, query.pageId],
-    { enabled: Boolean(query.menuCode || query.pageId) }
+    { enabled: pageQueryEnabled && Boolean(query.menuCode || query.pageId) }
   );
   const preview = previewState.value;
   const previewNodes = useMemo(() => sortScreenBuilderNodes(preview?.nodes || []), [preview?.nodes]);
@@ -64,6 +103,17 @@ export function ScreenRuntimeMigrationPage() {
     menuUrl: page?.menuUrl || query.menuUrl,
     templateType: preview?.templateType || page?.templateType
   }), [page?.menuUrl, page?.templateType, preview?.templateType, query.menuUrl]);
+  const operatorFlowQuery = useMemo(() => ({
+    menuCode: page?.menuCode || query.menuCode,
+    pageId: page?.pageId || query.pageId,
+    menuTitle: query.menuTitle,
+    menuUrl: page?.menuUrl || query.menuUrl,
+    snapshotVersionId,
+    projectId: getScreenRuntimeSearchParam("projectId") || ""
+  }), [page?.menuCode, page?.pageId, page?.menuUrl, query.menuCode, query.menuTitle, query.menuUrl, query.pageId, snapshotVersionId]);
+  const operatorFlowPaths = useMemo(() => buildScreenBuilderOperatorFlowPaths(operatorFlowQuery), [operatorFlowQuery]);
+  const operatorFlowSteps = useMemo(() => buildScreenBuilderOperatorFlowSteps(operatorFlowQuery), [operatorFlowQuery]);
+  const runtimeVerifyCommand = useMemo(() => buildScreenBuilderRuntimeVerificationCommand(operatorFlowQuery), [operatorFlowQuery]);
   const screenBuilderAudits = useMemo(
     () => (auditState.value?.items || [])
       .filter((row) => String(row.actionCode || "").startsWith("SCREEN_BUILDER_"))
@@ -85,9 +135,9 @@ export function ScreenRuntimeMigrationPage() {
     ...missingNodes.map((item) => ({ status: en ? "Missing" : "누락", nodeId: stringifyValue(item.nodeId), componentType: stringifyValue(item.componentType), componentId: stringifyValue(item.componentId) })),
     ...deprecatedNodes.map((item) => ({ status: en ? "Deprecated" : "사용중단", nodeId: stringifyValue(item.nodeId), componentType: stringifyValue(item.componentType), componentId: stringifyValue(item.componentId) }))
   ].slice(0, 8);
-
   useEffect(() => {
     logGovernanceScope("PAGE", "screen-runtime", {
+      route: getScreenRuntimeRoutePath(),
       language: en ? "en" : "ko",
       menuCode: page?.menuCode || query.menuCode,
       pageId: page?.pageId || query.pageId,
@@ -126,12 +176,12 @@ export function ScreenRuntimeMigrationPage() {
       title={en ? "Runtime Validator Console" : "런타임 검증 콘솔"}
       subtitle={en ? "Validate the latest published screen-builder snapshot as install-ready runtime evidence." : "최신 publish 스냅샷을 설치 가능한 런타임 검증 근거로 확인합니다."}
       contextStrip={<ContextKeyStrip items={runtimeContextKeys} />}
-      loading={(pageState.loading && !page) || (previewState.loading && !preview)}
+      loading={(commandState.loading && !commandState.value) || (pageState.loading && !page) || (previewState.loading && !preview)}
       loadingLabel={en ? "Loading published runtime..." : "발행 런타임을 불러오는 중입니다."}
     >
-      {pageState.error || previewState.error ? (
+      {commandState.error || pageState.error || previewState.error ? (
         <PageStatusNotice tone="error">
-          {pageState.error || previewState.error}
+          {commandState.error || pageState.error || previewState.error}
         </PageStatusNotice>
       ) : null}
       {snapshotVersionId ? (
@@ -154,6 +204,18 @@ export function ScreenRuntimeMigrationPage() {
         </PageStatusNotice>
       ) : null}
       <AdminWorkspacePageFrame>
+        {pagePermissionDenied ? (
+          <MemberStateCard
+            description={en
+              ? `You need ${screenRuntimeAuthority.requiredViewFeatureCode || `${commandState.value?.page?.menuPermission?.menuCode || page?.menuCode || query.menuCode}_VIEW`} permission to open published runtime evidence for this page.`
+              : `이 페이지의 발행 런타임 증거를 열려면 ${screenRuntimeAuthority.requiredViewFeatureCode || `${commandState.value?.page?.menuPermission?.menuCode || page?.menuCode || query.menuCode}_VIEW`} 권한이 필요합니다.`}
+            icon="lock"
+            title={en ? "Permission denied." : "권한이 없습니다."}
+            tone="danger"
+          />
+        ) : null}
+        {pagePermissionDenied ? null : (
+        <>
         {snapshotVersionId ? (
           <section className="grid grid-cols-1 gap-4 md:grid-cols-3" data-help-id="screen-runtime-snapshot-focus">
             <SummaryMetricCard
@@ -260,6 +322,35 @@ export function ScreenRuntimeMigrationPage() {
             title={page?.menuTitle || query.menuTitle || (en ? "Published runtime" : "발행 런타임")}
           />
         </div>
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2" data-help-id="screen-runtime-operator-flow">
+          <KeyValueGridPanel
+            title={en ? "Install / Deploy Closeout" : "설치 / 배포 closeout"}
+            description={en ? "This pilot family uses screen-runtime as the explicit runtime verification target and hands compare and repair forward without changing identity keys." : "이 pilot family는 screen-runtime을 명시적 runtime verification target으로 사용하고, identity key를 바꾸지 않은 채 compare와 repair로 넘깁니다."}
+            items={[
+              { label: "pageFamily", value: "screen-builder" },
+              { label: "installScope", value: "COMMON_DEF_PROJECT_BIND" },
+              { label: en ? "Runtime Target" : "런타임 대상", value: operatorFlowPaths.runtime },
+              { label: en ? "Compare Target" : "비교 대상", value: operatorFlowPaths.compare },
+              { label: en ? "Repair Target" : "복구 대상", value: operatorFlowPaths.repair },
+              { label: en ? "Binding Inputs" : "바인딩 입력", value: `${page?.menuCode || query.menuCode || "-"} / ${page?.pageId || query.pageId || "-"} / ${page?.menuUrl || query.menuUrl || "-"} / ${snapshotVersionId || String(page?.publishedVersionId || "-")}` },
+              { label: en ? "Rollback Evidence" : "롤백 증거", value: `${releaseUnitId} / ${stringifyValue(artifactEvidence.runtimePackageId)} / ${stringifyValue(artifactEvidence.deployTraceId)}` },
+              { label: en ? "Authority Scope" : "권한 범위", value: `${screenRuntimeAuthority.entryAllowed ? "ENTRY_ALLOWED" : "ENTRY_GUARDED"} / ${stringifyValue(preview?.authorityProfile?.scopePolicy || page?.authorityProfile?.scopePolicy, "PROJECT_SCOPED")}` }
+            ]}
+          />
+          <KeyValueGridPanel
+            title={en ? "Operator Flow" : "운영자 플로우"}
+            description={en ? "Use one governed loop for deploy, freshness, compare, and repair evidence." : "배포, freshness, compare, repair 증거를 하나의 governed loop로 사용합니다."}
+            items={operatorFlowSteps.map((step) => ({
+              label: step.label,
+              value: `${step.command} -> ${step.evidence}`
+            }))}
+          >
+            <div className="grid grid-cols-1 gap-3">
+              <CopyableCodeBlock title={en ? "Build / Package / Restart" : "빌드 / 패키지 / 재시작"} value={operatorFlowSteps[0]?.command || ""} />
+              <CopyableCodeBlock title={en ? "Freshness + Runtime Verify" : "freshness + 런타임 검증"} value={`${operatorFlowSteps[1]?.command || ""}\n${runtimeVerifyCommand}`} />
+            </div>
+          </KeyValueGridPanel>
+        </section>
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="screen-runtime-metrics">
           <SummaryMetricCard title={en ? "Published Nodes" : "발행 노드 수"} value={previewNodes.length} description={en ? "Rendered runtime nodes" : "렌더 가능한 런타임 노드"} />
           <SummaryMetricCard title={en ? "Runtime Events" : "런타임 이벤트"} value={preview?.events?.length || 0} description={en ? "Published event bindings" : "발행 이벤트 바인딩"} />
@@ -480,6 +571,8 @@ export function ScreenRuntimeMigrationPage() {
             </table>
           </div>
         </section>
+        </>
+        )}
       </AdminWorkspacePageFrame>
     </AdminPageShell>
   );

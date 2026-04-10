@@ -1,6 +1,6 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
+import egovframework.com.platform.trade.service.TradeRefundListReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -21,7 +21,7 @@ import java.util.Map;
 public class AdminPaymentController {
 
     private final AdminReactRouteSupport adminReactRouteSupport;
-    private final AdminShellBootstrapPageService adminShellBootstrapPageService;
+    private final TradeRefundListReadPort tradeRefundListReadPort;
 
     @RequestMapping(value = "/payment/refund_list", method = { RequestMethod.GET, RequestMethod.POST })
     public String refundListPage(
@@ -43,7 +43,7 @@ public class AdminPaymentController {
             @RequestParam(value = "riskLevel", required = false) String riskLevel,
             HttpServletRequest request,
             Locale locale) {
-        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildRefundListPageData(
+        return ResponseEntity.ok(new LinkedHashMap<>(tradeRefundListReadPort.buildRefundListPageData(
                 pageIndexParam,
                 searchKeyword,
                 status,

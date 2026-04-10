@@ -10,14 +10,17 @@ Use this tracker after reading:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
-- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 - `docs/architecture/builder-resource-ownership-closure-plan.md`
 - `docs/architecture/builder-resource-ownership-matrix.md`
 - `docs/architecture/builder-resource-ownership-priority-board.md`
 
 Treat the first two docs above as the single live entry pair before editing tracker rows.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
 
 If tracker edits change blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
+
+The separate maintenance-contract document is already rolled out for this family; tracker work should use it rather than redefining the rule locally.
 
 ## Decision Codes
 
@@ -34,11 +37,11 @@ If tracker edits change blocker count, active row, next review target, or partia
 
 | Priority | Resource family | Canonical owner | Duplicate root path | Evidence to check | Closeout condition | Decision | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `1` | framework-builder compatibility mapper XML | `modules/screenbuilder-carbonet-adapter/src/main/resources/egovframework/mapper/com/feature/admin/framework/builder/**` | `src/main/resources/egovframework/mapper/com/feature/admin/**` | module-source inventory says builder-owned resource paths already live under module resources and root reintroduction should fail audit; owner must confirm no app/runtime dependency still resolves through the root mapper line | module resource is the only intended owner and the root duplicate is either gone or documented as a temporary shim with one named reason | `BLOCKS_CLOSEOUT` | provisional review complete at document level; module owner is explicit, but final delete-versus-shim verdict is still blocked by unresolved root mapper resolution proof |
-| `2` | framework contract metadata resource | `modules/carbonet-contract-metadata/src/main/resources/framework/contracts/framework-contract-metadata.json` | `src/main/resources/framework/**` | module-source inventory says contract-metadata ownership already lives in the dedicated module; owner must confirm root `framework/**` does not still mask app assembly or metadata lookup | the dedicated contract-metadata module is the named owner and any root duplicate is either deleted or explicitly justified as a transition-only shim | `BLOCKS_CLOSEOUT` | provisional review complete at document level; dedicated contract-metadata module is the intended owner, but root framework metadata fallback still needs a final delete-versus-shim verdict |
-| `3` | builder observability metadata/resource family | approved builder observability module resources | root observability resource fallbacks | prove whether observability resource lookup already resolves from builder observability modules rather than a root fallback copy | no silent root observability resource fallback remains for the selected builder-owned family | `TODO` | provisional boundary review is ready; owner module is explicit at family level, and the next step is to narrow the exact root observability fallback paths before choosing `BLOCKS_CLOSEOUT` or a stronger verdict |
-| `4` | builder-owned root resource line excluded by app packaging | dedicated builder module resources | root mapper/framework resource lines | confirm app packaging exclusion and inventory docs tell the same story for builder-owned resources | app packaging and docs agree that builder-owned resources are no longer silently sourced from root lines | `TODO` | provisional boundary review is ready; exclusion intent is explicit, and the next step is to narrow which root resource lines are still transitional or already excluded in practice |
-| `5` | executable app resource assembly fallback | `apps/carbonet-app` packaging plus module resources | implicit success through root duplicate availability | prove whether the executable app still succeeds only because legacy root resources happen to remain available | executable app resource assembly no longer depends on accidental root duplicate availability | `TODO` | blocker-sink family; this row should stay bounded behind rows `3` and `4` until integration-level fallback proof is ready |
+| `1` | framework-builder compatibility mapper XML | `modules/screenbuilder-carbonet-adapter/src/main/resources/egovframework/mapper/com/feature/admin/framework/builder/**` | `src/main/resources/egovframework/mapper/com/feature/admin/**` | module-source inventory says builder-owned resource paths already live under module resources and root reintroduction should fail audit; owner must confirm no app/runtime dependency still resolves through the root mapper line | module resource is the only intended owner and the root duplicate is either gone or documented as a temporary shim with one named reason | `DELETE_NOW` | row `1` now carries a bounded `DELETE_NOW` note. The module resource path is explicit, `apps/carbonet-app` explicitly excludes builder-owned root resources so the executable app jar must consume them from dedicated builder modules, and the cutover plan now says `FrameworkBuilderCompatibilityMapper` Java/XML ownership is finalized so the adapter jar no longer depends on shared root resource placement assumptions. Explicit-shim remains unsupported. |
+| `2` | framework contract metadata resource | `modules/carbonet-contract-metadata/src/main/resources/framework/contracts/framework-contract-metadata.json` | `src/main/resources/framework/**` | module-source inventory and cutover plan now say runtime lookup and packaging no longer depend on any root `framework/**` metadata copy; owner must confirm no later docs reintroduce a root metadata fallback line | the dedicated contract-metadata module is the named owner and the root duplicate is no longer needed for runtime lookup or packaging | `DELETE_NOW` | row `2` now carries a bounded `DELETE_NOW` note. `framework-builder-standard.md` now names the dedicated module resource as canonical shared source, `screenbuilder-module-source-inventory.md` says runtime lookup and packaging no longer depend on any root `framework/**` metadata copy, and `screenbuilder-multimodule-cutover-plan.md` says the same for the live cutover path. Explicit-shim remains unsupported. |
+| `3` | builder observability metadata/resource family | `modules/carbonet-builder-observability/src/main/resources/egovframework/mapper/com/common/UiObservabilityRegistryMapper.xml`, `modules/carbonet-builder-observability/src/main/java/egovframework/com/common/mapper/UiObservabilityRegistryMapper.java`, `modules/carbonet-builder-observability/src/main/java/egovframework/com/common/trace/UiManifestRegistryService.java`, `modules/carbonet-builder-observability/src/main/java/egovframework/com/common/trace/UiManifestRegistryPort.java` | `src/main/resources/egovframework/mapper/com/common/ObservabilityMapper.xml` remains a root observability mapper, but it no longer matches the selected row-`3` read-shapes for page-manifest or component-registry persistence | prove whether observability resource lookup already resolves from builder observability modules rather than a root fallback copy; use `builder-resource-observability-evidence-checklist.md` only if a later docs set reintroduces duplicate read-shape ambiguity | no silent root observability resource fallback remains for the selected builder-owned family | `NON_BLOCKING_PARTIAL` | row `3` is no longer counted as a closeout blocker. `UiManifestRegistryService` now reads and writes through module-owned `UiObservabilityRegistryMapper`, `UiObservabilityRegistryMapper.xml` carries the `UI_PAGE_MANIFEST`, `UI_COMPONENT_REGISTRY`, and `UI_PAGE_COMPONENT_MAP` statements for the selected read-shapes, `apps/carbonet-app/pom.xml` excludes module-owned builder observability mapper resources from root packaging, and root `ObservabilityMapper.java` plus `ObservabilityMapper.xml` expose only audit/trace/access/error lanes rather than the row-`3` registry statements. |
+| `4` | builder-owned root resource line excluded by app packaging | `modules/screenbuilder-carbonet-adapter/src/main/resources/**`, `modules/carbonet-contract-metadata/src/main/resources/**`, `modules/carbonet-builder-observability/**` | empty-root-surface decision under `src/main/resources/egovframework/mapper/com/platform` and `src/main/resources/framework` | confirm app packaging exclusion and inventory docs tell the same story for builder-owned resources; use `builder-resource-app-packaging-evidence-checklist.md` to narrow exact packaging lines before upgrading the row | app packaging and docs agree that builder-owned resources are no longer silently sourced from root lines | `NON_BLOCKING_PARTIAL` | stronger non-blocker note is now recorded; row `4` stays non-blocking in docs-only review because builder-owned root resources are explicitly excluded from app packaging and no concrete file is observed under the remaining platform/framework root surfaces |
+| `5` | executable app resource assembly fallback | `apps/carbonet-app` packaging plus module resources | broader legacy-root-backed runtime closure during cutover, plus unresolved distinction between dedicated-module builder-resource assembly and mixed executable assembly success | prove whether executable-app success can now be attributed cleanly to dedicated builder modules even though `apps/carbonet-app` still compiles broader runtime from the legacy root source/resource layout; use `builder-resource-executable-app-evidence-checklist.md` to keep the ambiguity bounded before upgrading the row | executable app assembly no longer depends on accidental or unprovable root-backed success for builder resources | `BLOCKS_CLOSEOUT` | row `5` is now counted as `BLOCKS_CLOSEOUT`; the current docs set requires builder resources to be consumed from dedicated modules, but it still documents shared-root runtime closure and partially moved MyBatis/resource ownership for the executable assembly path, so dedicated-module builder-resource assembly success cannot yet be distinguished from mixed executable assembly success. Current docs also do not support delete-proof or explicit-shim downgrade. |
 
 ## First Two Rows Interpretation
 
@@ -76,24 +79,28 @@ It is now in a bounded provisional state:
 - owner module family is explicit
 - likely root fallback surface is named
 - final delete-versus-shim proof is still pending
+- next document-level deliverable is a path-bounded fallback note using `docs/architecture/builder-resource-observability-evidence-checklist.md`
 
 Row `4` is also not fully unreviewed anymore.
-It is now in a bounded provisional state:
+It is now in a bounded non-blocking state:
 
 - app packaging exclusion intent is explicit
 - owner module anchors are named
 - final packaging-line delete-versus-shim proof is still pending
+- next document-level deliverable is a path-bounded packaging note only if a later docs set contradicts the current empty-root-surface read
 
 Row `5` is intentionally held as the likely blocker sink:
 
 - executable app fallback remains an integration-level question
 - it should not be forced closed before rows `3` and `4` narrow the fallback surface
 - final blocker proof is expected to land here if silent root fallback still remains
+- next document-level deliverable is a bounded integration-proof note using `docs/architecture/builder-resource-executable-app-evidence-checklist.md`
 
 Do not reopen builder structure-governance when reviewing row `1` or row `2`.
 Only record the resource-family decision and blocker count.
 
-If the owner cannot yet prove `DELETE_NOW` or one valid `EXPLICIT_RESOURCE_SHIM` reason for row `1` or row `2`, leave the family in a `PARTIAL_DONE` handoff state rather than forcing a final close claim.
+Rows `1` and `2` now carry bounded `DELETE_NOW` notes.
+Keep those rows closed unless a later docs set explicitly reintroduces root runtime dependence.
 
 Current provisional blocker count from reviewed rows:
 
@@ -101,9 +108,29 @@ Current provisional blocker count from reviewed rows:
 
 Current pre-blocker review count:
 
-- row `3` is prepared for bounded provisional review but is not yet counted as a blocker
-- row `4` is prepared for bounded provisional review but is not yet counted as a blocker
-- row `5` is prepared as the blocker sink but is not yet counted as a blocker
+- `0`
+
+## Current Phase Summary
+
+- row `3`:
+  - stronger non-blocker note recorded
+- row `4`:
+  - stronger non-blocker note recorded
+- row `5`:
+  - provisional blocker phase
+
+Current blocker-resolution target:
+
+- row `5`
+- `executable app resource assembly fallback`
+- next docs-only follow-up:
+  - watched-source change detection
+  - exact missing-sentence confirmation
+  - do not draft another bounded replacement note on the current docs set unless a watched source doc changes and adds one exact missing sentence bundle
+
+## Canonical Partial Phrase
+
+- `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
 
 ## Update Rule
 
@@ -122,44 +149,44 @@ Use these only when the owner has reviewed the row at document level but has not
 ### Row `1` Starter
 
 - decision:
-  - `TODO` or `BLOCKS_CLOSEOUT`
+  - historical only; live row is `DELETE_NOW`
 - starter note:
-  - `module resource owner is explicit, but final delete-versus-shim verdict is still blocked by unresolved root mapper resolution proof`
+  - `historical only; this starter belonged to the pre-resolution row-1 blocker phase`
 - starter handoff phrase:
-  - `PARTIAL_DONE: framework-builder compatibility mapper XML has an explicit module owner, but legacy root mapper resolution still needs a final delete-versus-shim verdict.`
+  - `PARTIAL_DONE: historical only; row 1 no longer uses the old blocker starter because the live queue now records DELETE_NOW.`
 
 ### Row `2` Starter
 
 - decision:
-  - `TODO` or `BLOCKS_CLOSEOUT`
+  - historical only; live row is `DELETE_NOW`
 - starter note:
-  - `dedicated contract-metadata module is the intended owner, but root framework metadata fallback still needs a final delete-versus-shim verdict`
+  - `historical only; this starter belonged to the pre-resolution row-2 blocker phase`
 - starter handoff phrase:
-  - `PARTIAL_DONE: framework contract metadata has an explicit module owner, but root framework metadata fallback still needs a final delete-versus-shim verdict.`
+  - `PARTIAL_DONE: historical only; row 2 no longer uses the old blocker starter because the live queue now records DELETE_NOW.`
 
 ### Row `3` Starter
 
 - decision:
-  - `TODO` or `BLOCKS_CLOSEOUT`
+  - historical only; live row is `NON_BLOCKING_PARTIAL`
 - starter note:
-  - `builder observability module ownership is explicit at family level, but the exact root observability fallback paths still need to be narrowed before a delete-versus-shim verdict`
+  - `historical only; this starter belonged to the pre-resolution row-3 blocker phase before the live queue moved row 3 to a stronger non-blocker note`
 - starter handoff phrase:
-  - `PARTIAL_DONE: builder observability module ownership is explicit at family level, but root observability fallback boundaries still need to be narrowed before a delete-versus-shim verdict.`
+  - `PARTIAL_DONE: historical only; row 3 no longer uses the old blocker starter because the live queue now records a stronger non-blocker note.`
 
 ### Row `4` Starter
 
 - decision:
-  - `TODO` or `BLOCKS_CLOSEOUT`
+  - `NON_BLOCKING_PARTIAL`
 - starter note:
-  - `builder-owned resource exclusion is explicit at app-packaging level, but the exact root resource lines still need to be narrowed before a delete-versus-shim verdict`
+  - `builder-owned resource exclusion is explicit at app-packaging level, and the current empty-root-surface reading supports a stronger non-blocker note`
 - starter handoff phrase:
-  - `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, but the exact root resource lines still need to be narrowed before a delete-versus-shim verdict.`
+  - `PARTIAL_DONE: builder-owned resource exclusion is explicit at app-packaging level, and row 4 remains a stronger non-blocker note because no concrete blocker-grade dependency is documented yet.`
 
 ### Row `5` Starter
 
 - decision:
-  - `TODO` or `BLOCKS_CLOSEOUT`
+  - `BLOCKS_CLOSEOUT`
 - starter note:
-  - `executable app assembly fallback remains the likely blocker sink, and integration-level proof is still needed before a delete-versus-shim verdict`
+  - `executable app assembly fallback remains the likely blocker sink, and the current docs-only read is narrowed to broader legacy-root-backed runtime closure during cutover plus unresolved distinction between dedicated-module builder-resource assembly and mixed executable assembly success`
 - starter handoff phrase:
-  - `PARTIAL_DONE: executable app assembly fallback remains the likely blocker sink, and integration-level proof is still needed before a delete-versus-shim verdict.`
+  - `PARTIAL_DONE: executable app assembly fallback remains BLOCKS_CLOSEOUT because the current docs-only read is narrowed to broader legacy-root-backed runtime closure during cutover plus unresolved distinction between dedicated-module builder-resource assembly and mixed executable assembly success.`

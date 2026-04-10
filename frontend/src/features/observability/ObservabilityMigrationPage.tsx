@@ -4,7 +4,7 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { verifyRuntimeContextKeys } from "../admin-ui/contextKeyPresets";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
-import type { AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/client";
+import type { AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/platformTypes";
 import { fetchAuditEvents, fetchTraceEvents } from "../../platform/observability/observability";
 import { fetchUnifiedLog, type UnifiedLogRow, type UnifiedLogSearchPayload, type UnifiedLogTab } from "../../lib/api/unifiedLog";
 import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

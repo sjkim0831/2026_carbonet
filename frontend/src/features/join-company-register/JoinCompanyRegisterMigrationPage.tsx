@@ -8,13 +8,13 @@ import {
   UserPortalHeader
 } from "../../components/user-shell/UserPortalChrome";
 import {
-  type CompanySearchPayload,
   checkCompanyNameDuplicate,
   fetchJoinCompanyRegisterPage,
-  resetJoinSession,
   searchJoinCompanies,
   submitJoinCompanyRegister
-} from "../../lib/api/client";
+} from "../../lib/api/join";
+import { resetJoinSession } from "../../lib/api/joinSession";
+import type { CompanySearchPayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 import {
   HomeButton,

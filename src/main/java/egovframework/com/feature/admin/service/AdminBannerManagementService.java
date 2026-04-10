@@ -27,13 +27,16 @@ public class AdminBannerManagementService {
 
     private final AdminBannerManagementMapper adminBannerManagementMapper;
     private final AdminBannerManagementMetaMapper adminBannerManagementMetaMapper;
+    private final AdminPagePayloadFactory adminPagePayloadFactory;
     private final Map<String, BannerItem> seedStore = new ConcurrentHashMap<>();
     private final Map<String, BannerOverlay> bannerOverlayStore = new ConcurrentHashMap<>();
 
     public AdminBannerManagementService(AdminBannerManagementMapper adminBannerManagementMapper,
-                                        AdminBannerManagementMetaMapper adminBannerManagementMetaMapper) {
+                                        AdminBannerManagementMetaMapper adminBannerManagementMetaMapper,
+                                        AdminPagePayloadFactory adminPagePayloadFactory) {
         this.adminBannerManagementMapper = adminBannerManagementMapper;
         this.adminBannerManagementMetaMapper = adminBannerManagementMetaMapper;
+        this.adminPagePayloadFactory = adminPagePayloadFactory;
         seed(new BannerItem("BNR-240301", "2026 배출권 거래 집중 안내", "2026 Emission Trading Notice",
                 "메인 상단", "Main Hero", "LIVE", "2026-03-25 09:00", "2026-04-30 18:00",
                 1, 1248, "webmaster", "2026-03-31 09:18", "/home",
@@ -88,9 +91,7 @@ public class AdminBannerManagementService {
             rows.add(toListRow(item, isEn));
         }
 
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("isEn", isEn);
-        payload.put("menuCode", "A0040201");
+        Map<String, Object> payload = adminPagePayloadFactory.create(isEn, "A0040201");
         payload.put("searchKeyword", safe(searchKeyword));
         payload.put("status", safe(status));
         payload.put("placement", safe(placement));
@@ -103,9 +104,7 @@ public class AdminBannerManagementService {
 
     public synchronized Map<String, Object> buildEditPayload(String bannerId, boolean isEn) {
         BannerItem item = resolveBanner(loadBannerCatalog(), bannerId);
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("isEn", isEn);
-        payload.put("menuCode", "A0040202");
+        Map<String, Object> payload = adminPagePayloadFactory.create(isEn, "A0040202");
         payload.put("bannerId", item.id);
         payload.put("bannerDetail", toEditDetail(item, isEn));
         payload.put("statusOptions", buildStatusOptions(isEn));
@@ -155,10 +154,12 @@ public class AdminBannerManagementService {
         item.updatedBy = "codex-admin";
         persistBanner(item, isEn);
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("saved", true);
-        response.put("bannerId", item.id);
-        response.put("message", isEn ? "Banner draft saved." : "배너 초안을 저장했습니다.");
+        Map<String, Object> response = adminPagePayloadFactory.createStatusResponse(
+                "saved",
+                true,
+                "bannerId",
+                item.id,
+                isEn ? "Banner draft saved." : "배너 초안을 저장했습니다.");
         response.put("bannerDetail", toEditDetail(item, isEn));
         return response;
     }

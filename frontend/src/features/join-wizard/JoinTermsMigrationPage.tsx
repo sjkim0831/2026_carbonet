@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { resetJoinSession, saveJoinStep2 } from "../../lib/api/client";
+import { resetJoinSession, saveJoinStep2 } from "../../lib/api/joinSession";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AppButton, AppCheckbox } from "../app-ui/primitives";

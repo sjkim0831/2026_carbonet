@@ -5,7 +5,7 @@ import type {
   ScreenBuilderNode,
   ScreenBuilderPaletteItem,
   ScreenCommandPagePayload
-} from "../../../lib/api/client";
+} from "../../../lib/api/platformTypes";
 import { GridToolbar, MemberButton, MemberButtonGroup, MemberIconButton } from "../../admin-ui/common";
 import { renderScreenBuilderNodePreview } from "../shared/screenBuilderPreview";
 import { sortScreenBuilderNodes } from "../shared/screenBuilderUtils";

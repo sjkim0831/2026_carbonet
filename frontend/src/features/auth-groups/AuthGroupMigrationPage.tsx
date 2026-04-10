@@ -1,16 +1,12 @@
 import { FormEvent, useEffect, useState } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
-import {
-  AuthGroupPagePayload,
-  FrontendSession,
-  createAuthGroup,
-  fetchAuthGroupPage,
-  fetchAuditEvents,
-  fetchFrontendSession,
-  readBootstrappedAuthGroupPageData,
-  saveAuthorRoleProfile,
-  saveAuthGroupFeatures
-} from "../../lib/api/client";
+import { readBootstrappedAuthGroupPageData } from "../../lib/api/bootstrap";
+import { createAuthGroup, saveAuthorRoleProfile, saveAuthGroupFeatures } from "../../lib/api/adminActions";
+import { fetchAuthGroupPage } from "../../lib/api/adminMember";
+import { fetchFrontendSession } from "../../lib/api/adminShell";
+import { fetchAuditEvents } from "../../lib/api/platform";
+import type { FrontendSession } from "../../lib/api/adminShellTypes";
+import type { AuthGroupPagePayload } from "../../lib/api/authTypes";
 import { CanView } from "../../components/access/CanView";
 import { deriveUiPermissions } from "../../lib/auth/permissions";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";

@@ -1,7 +1,8 @@
 import { FormEvent, type HTMLAttributes, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchPopupEditPage, savePopupEditPage, type PopupEditPagePayload } from "../../lib/api/client";
+import { fetchPopupEditPage, savePopupEditPage } from "../../lib/api/content";
+import type { PopupEditPagePayload } from "../../lib/api/contentTypes";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { SummaryMetricCard } from "../admin-ui/common";

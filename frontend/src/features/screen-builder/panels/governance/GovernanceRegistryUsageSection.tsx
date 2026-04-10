@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { ScreenBuilderComponentRegistryItem, ScreenBuilderComponentUsage } from "../../../../lib/api/client";
+import type { ScreenBuilderComponentRegistryItem, ScreenBuilderComponentUsage } from "../../../../lib/api/platformTypes";
 import { GridToolbar, MemberButton, MemberLinkButton } from "../../../admin-ui/common";
 import { buildScreenBuilderPath, buildScreenRuntimePath } from "../../screenBuilderPaths";
 import type { VirtualWindow } from "./shared";

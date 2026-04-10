@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchSchedulerManagementPage, readBootstrappedSchedulerManagementPageData, type SchedulerManagementPagePayload } from "../../lib/api/client";
+import { fetchSchedulerManagementPage } from "../../lib/api/ops";
+import { readBootstrappedSchedulerManagementPageData } from "../../lib/api/bootstrap";
+import type { SchedulerManagementPagePayload } from "../../lib/api/opsTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminSelect, CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";

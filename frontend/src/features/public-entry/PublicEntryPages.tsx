@@ -1,7 +1,7 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { invalidateFrontendSessionCache } from "../../lib/api/client";
+import { invalidateFrontendSessionCache } from "../../lib/api/adminShell";
 import { fetchJson } from "../../lib/api/core";
 import { buildLocalizedPath, getNavigationEventName, getSearchParam, isEnglish, navigate, replace } from "../../lib/navigation/runtime";
 import { postJsonWithSession } from "./publicEntryApi";

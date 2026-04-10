@@ -2,6 +2,15 @@
 
 Generated on 2026-03-21 for execution lanes after handoff.
 
+For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also use:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Treat those two docs as the single live entry pair for this family.
+Use `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+only as supporting guidance when continuation state changes.
+
 ## Purpose
 
 Use this template when a lane completes a meaningful scope and wants to report:

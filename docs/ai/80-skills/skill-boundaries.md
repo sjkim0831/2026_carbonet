@@ -2,6 +2,28 @@
 
 This document defines the current Carbonet skill taxonomy, overlap rules, and the preferred selection order.
 
+For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, the single live entry pair is:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Use this as supporting maintenance-contract guidance only:
+
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
+Current active continuation target:
+
+- row `3`
+- `builder observability metadata/resource family`
+- blocker-resolution state across rows `3` and `5`
+- row `4` remains a stronger non-blocker support row
+- compressed blocker control docs:
+  - `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+  - `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+- remaining docs-only valid work is limited to watched-source change detection plus exact missing-sentence confirmation
+- canonical partial phrase:
+  - `PARTIAL_DONE: builder resource ownership closure still counts rows 3 and 5 as blockers, rows 1 and 2 now carry bounded DELETE_NOW notes, row 4 now carries a stronger non-blocker note, and unresolved fallback blocker count is <n>.`
+
 ## Skill Groups
 
 ### Coordination

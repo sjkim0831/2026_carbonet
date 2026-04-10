@@ -5,8 +5,9 @@ import {
   UserPortalHeader
 } from "../../components/user-shell/UserPortalChrome";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { fetchHomeMenuPlaceholderPage } from "../../lib/api/appBootstrap";
+import type { HomeMenuPlaceholderPagePayload } from "../../lib/api/appBootstrapTypes";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
-import { fetchHomeMenuPlaceholderPage, type HomeMenuPlaceholderPagePayload } from "../../lib/api/client";
 
 function stringOf(value: unknown) {
   return typeof value === "string" ? value : "";

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { fetchScreenCommandPage, type ScreenCommandEvent, type ScreenCommandPagePayload, type ScreenCommandSurface } from "../../lib/api/client";
-import { isReactManagedPath, resolvePageFromPath } from "../routes/runtime";
+import { fetchScreenCommandPage } from "../../lib/api/platform";
+import type { ScreenCommandEvent, ScreenCommandPagePayload, ScreenCommandSurface } from "../../lib/api/platformTypes";
+import { resolveManagedRuntimeHref, resolveRuntimeRoutePath, type ManagedRuntimeRoute } from "../routes/runtime";
+
+type ContextMenuTarget = Pick<ManagedRuntimeRoute, "pageId" | "routePath">;
 
 export type MatchedContext = {
   page: ScreenCommandPagePayload["page"];
@@ -13,8 +16,8 @@ type ContextMenuState = {
   open: boolean;
   x: number;
   y: number;
-  pageId: string;
-  routePath: string;
+  pageId: ContextMenuTarget["pageId"] | "";
+  routePath: ContextMenuTarget["routePath"];
   pageData: ScreenCommandPagePayload | null;
   match: MatchedContext | null;
 };
@@ -99,26 +102,27 @@ function resolveMatchedContext(payload: ScreenCommandPagePayload | null, element
   };
 }
 
-function resolveContextTargetFromElement(element: Element | null, fallbackPageId: string, fallbackRoutePath: string) {
+function resolveContextTargetFromElement(
+  element: Element | null,
+  fallbackRoutePath: ContextMenuTarget["routePath"]
+): ContextMenuTarget {
+  const resolveFallbackTarget = () => resolveRuntimeRoutePath(fallbackRoutePath);
   if (!element) {
-    return { pageId: fallbackPageId, routePath: fallbackRoutePath };
+    return resolveFallbackTarget();
   }
   const anchor = element.closest("a");
   if (!(anchor instanceof HTMLAnchorElement)) {
-    return { pageId: fallbackPageId, routePath: fallbackRoutePath };
+    return resolveFallbackTarget();
   }
   const href = anchor.getAttribute("href");
   if (!href || href.startsWith("#")) {
-    return { pageId: fallbackPageId, routePath: fallbackRoutePath };
+    return resolveFallbackTarget();
   }
-  const nextUrl = new URL(anchor.href, window.location.origin);
-  if (nextUrl.origin !== window.location.origin || !isReactManagedPath(nextUrl.pathname)) {
-    return { pageId: fallbackPageId, routePath: fallbackRoutePath };
+  const managedRoute = resolveManagedRuntimeHref(anchor.href);
+  if (!managedRoute) {
+    return resolveFallbackTarget();
   }
-  return {
-    pageId: resolvePageFromPath(nextUrl.pathname, nextUrl.search),
-    routePath: `${nextUrl.pathname}${nextUrl.search}`
-  };
+  return managedRoute;
 }
 
 function measureHighlightRect(element: Element | null) {
@@ -215,7 +219,7 @@ export function useScreenContextMenu(page: string, routePath: string) {
       }
       event.preventDefault();
       event.stopPropagation();
-      const targetContext = resolveContextTargetFromElement(target, page, routePath);
+      const targetContext = resolveContextTargetFromElement(target, routePath);
       const payload = await ensureScreenCommandPage(targetContext.pageId);
       const match = resolveMatchedContext(payload, target);
       const defaultTarget = payload.page?.changeTargets?.[0]?.targetId || "";

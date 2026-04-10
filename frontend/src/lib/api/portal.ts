@@ -1,3 +1,10 @@
+import {
+  buildFormUrlEncoded,
+  fetchJsonWithResponse,
+  postFormUrlEncodedWithResponse
+} from "./core";
+import type { MypagePayload, MypageSectionPayload } from "./portalTypes";
+
 type MypageContext = {
   insttId?: string;
 };
@@ -8,38 +15,52 @@ type PortalSession = {
   insttId?: string;
 };
 
-type MypagePayload = Record<string, unknown> & {
-  authenticated?: boolean;
-  redirectUrl?: string;
-  pageType?: string;
-  userId?: string;
-  companyName?: string;
-  pendingStatus?: string;
-  submittedAt?: string;
-  rejectionReason?: string;
-  rejectionProcessedAt?: string;
-  member?: Record<string, unknown>;
-};
+type PortalFormPayload = Record<string, string>;
+type PortalHeaders = Record<string, string>;
+type MypageSettingKey = "marketing" | "profile" | "company" | "staff" | "email" | "password";
 
-type MypageSectionItem = {
-  label: string;
-  value: string;
-};
-
-type MypageSectionPayload = MypagePayload & {
-  section?: string;
-  sectionTitle?: string;
-  canViewSection?: boolean;
-  canUseSection?: boolean;
-  sectionReason?: string;
-  items?: MypageSectionItem[];
-  passwordHistory?: Array<Record<string, string>>;
-  saved?: boolean;
+type MypageActionResponse = MypageSectionPayload & {
   message?: string;
 };
 
 let mypageContextCache: MypageContext | null = null;
 let mypageContextPromise: Promise<MypageContext> | null = null;
+
+const PORTAL_ERROR_MESSAGES = {
+  context: "Failed to load mypage context",
+  mypage: "Failed to load mypage",
+  mypageSection: "Failed to load mypage section",
+  marketing: "Failed to save marketing setting",
+  profile: "Failed to save profile setting",
+  company: "Failed to save company setting",
+  staff: "Failed to save staff setting",
+  email: "Failed to save email setting",
+  password: "Failed to save password setting"
+} as const;
+
+function isPortalResponseAccepted(response: Response) {
+  return response.ok || response.status === 401;
+}
+
+function isEnglishPortalPath(path: string) {
+  return path.startsWith("/api/en/");
+}
+
+function buildPortalPath(koPath: string, enPath: string, en = false) {
+  return en ? enPath : koPath;
+}
+
+function buildMypagePath(path = "", en = false) {
+  return buildPortalPath(`/api/mypage${path}`, `/api/en/mypage${path}`, en);
+}
+
+function buildMypageSectionPath(section: string, en = false) {
+  return buildMypagePath(`/section/${encodeURIComponent(section)}`, en);
+}
+
+function buildMypageSettingPath(setting: string, en = false) {
+  return buildMypagePath(`/${setting}`, en);
+}
 
 export function invalidatePortalContextCache() {
   mypageContextCache = null;
@@ -52,16 +73,11 @@ async function fetchMypageContext(en = false): Promise<MypageContext> {
   }
 
   if (!mypageContextPromise) {
-    mypageContextPromise = fetch(en ? "/api/en/mypage/context" : "/api/mypage/context", {
-      credentials: "include"
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to load mypage context: ${response.status}`);
+    mypageContextPromise = fetchJsonWithResponse<MypageContext>(buildMypagePath("/context", en))
+      .then(({ response, body: context }) => {
+        if (!isPortalResponseAccepted(response)) {
+          throw new Error(`${PORTAL_ERROR_MESSAGES.context}: ${response.status}`);
         }
-        return response.json() as Promise<MypageContext>;
-      })
-      .then((context) => {
         mypageContextCache = context;
         return context;
       })
@@ -85,14 +101,25 @@ function appendInsttId(search: URLSearchParams, insttId?: string) {
   return search;
 }
 
+function buildPortalForm(
+  payload: PortalFormPayload,
+  insttId?: string
+) {
+  return appendInsttId(buildFormUrlEncoded(payload), insttId);
+}
+
+function buildPortalQuery(insttId?: string) {
+  return appendInsttId(buildFormUrlEncoded(), insttId);
+}
+
 async function buildMypageUrl(path: string) {
-  const context = await fetchMypageContext(path.startsWith("/api/en/")).catch(() => null);
-  const search = appendInsttId(new URLSearchParams(), context?.insttId);
+  const context = await fetchMypageContext(isEnglishPortalPath(path)).catch(() => null);
+  const search = buildPortalQuery(context?.insttId);
   return search.toString() ? `${path}?${search.toString()}` : path;
 }
 
-function buildPortalHeaders(session: PortalSession): Record<string, string> {
-  const headers: Record<string, string> = {
+function buildPortalHeaders(session: PortalSession): PortalHeaders {
+  const headers: PortalHeaders = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     "X-Requested-With": "XMLHttpRequest"
   };
@@ -102,40 +129,79 @@ function buildPortalHeaders(session: PortalSession): Record<string, string> {
   return headers;
 }
 
-export async function fetchMypage(en = false) {
-  const response = await fetch(await buildMypageUrl(en ? "/api/en/mypage" : "/api/mypage"), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(`Failed to load mypage: ${response.status}`);
+function resolvePortalInsttId(session: PortalSession, insttId?: string) {
+  return insttId || session.insttId;
+}
+
+async function saveMypageSectionPayload(
+  session: PortalSession,
+  path: string,
+  payload: PortalFormPayload,
+  fallbackMessage: string,
+  insttId?: string
+) {
+  const { response, body } = await postFormUrlEncodedWithResponse<MypageActionResponse>(
+    path,
+    buildPortalForm(payload, resolvePortalInsttId(session, insttId)),
+    { headers: buildPortalHeaders(session) }
+  );
+  if (!isPortalResponseAccepted(response)) {
+    throw new Error(body.message || `${fallbackMessage}: ${response.status}`);
   }
-  return body as MypagePayload;
+  return body;
+}
+
+function saveMypageSetting(
+  session: PortalSession,
+  setting: MypageSettingKey,
+  payload: PortalFormPayload,
+  fallbackMessage: string,
+  en = false,
+  insttId?: string
+) {
+  return saveMypageSectionPayload(
+    session,
+    buildMypageSettingPath(setting, en),
+    payload,
+    fallbackMessage,
+    insttId
+  );
+}
+
+async function fetchMypagePayload<T>(
+  path: string,
+  fallbackMessage: string
+) {
+  const { response, body } = await fetchJsonWithResponse<T>(await buildMypageUrl(path));
+  if (!isPortalResponseAccepted(response)) {
+    throw new Error(`${fallbackMessage}: ${response.status}`);
+  }
+  return body;
+}
+
+export async function fetchMypage(en = false) {
+  return fetchMypagePayload<MypagePayload>(
+    buildMypagePath("", en),
+    PORTAL_ERROR_MESSAGES.mypage
+  );
 }
 
 export async function fetchMypageSection(section: string, en = false) {
-  const response = await fetch(await buildMypageUrl(en ? `/api/en/mypage/section/${encodeURIComponent(section)}` : `/api/mypage/section/${encodeURIComponent(section)}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(`Failed to load mypage section: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
+  return fetchMypagePayload<MypageSectionPayload>(
+    buildMypageSectionPath(section, en),
+    PORTAL_ERROR_MESSAGES.mypageSection
+  );
 }
 
 export async function saveMypageMarketing(session: PortalSession, marketingYn: string, en = false, insttId?: string) {
-  const response = await fetch(en ? "/api/en/mypage/marketing" : "/api/mypage/marketing", {
-    method: "POST",
-    credentials: "include",
-    headers: buildPortalHeaders(session),
-    body: appendInsttId(new URLSearchParams({ marketingYn }), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save marketing setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
+  return saveMypageSetting(
+    session,
+    "marketing",
+    { marketingYn },
+    PORTAL_ERROR_MESSAGES.marketing,
+    en,
+    insttId
+  );
 }
 
 export async function saveMypageProfile(
@@ -144,17 +210,14 @@ export async function saveMypageProfile(
   en = false,
   insttId?: string
 ) {
-  const response = await fetch(en ? "/api/en/mypage/profile" : "/api/mypage/profile", {
-    method: "POST",
-    credentials: "include",
-    headers: buildPortalHeaders(session),
-    body: appendInsttId(new URLSearchParams(payload), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save profile setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
+  return saveMypageSetting(
+    session,
+    "profile",
+    payload,
+    PORTAL_ERROR_MESSAGES.profile,
+    en,
+    insttId
+  );
 }
 
 export async function saveMypageCompany(
@@ -163,17 +226,14 @@ export async function saveMypageCompany(
   en = false,
   insttId?: string
 ) {
-  const response = await fetch(en ? "/api/en/mypage/company" : "/api/mypage/company", {
-    method: "POST",
-    credentials: "include",
-    headers: buildPortalHeaders(session),
-    body: appendInsttId(new URLSearchParams(payload), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save company setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
+  return saveMypageSetting(
+    session,
+    "company",
+    payload,
+    PORTAL_ERROR_MESSAGES.company,
+    en,
+    insttId
+  );
 }
 
 export async function saveMypageStaff(
@@ -182,43 +242,34 @@ export async function saveMypageStaff(
   en = false,
   insttId?: string
 ) {
-  const response = await fetch(en ? "/api/en/mypage/staff" : "/api/mypage/staff", {
-    method: "POST",
-    credentials: "include",
-    headers: buildPortalHeaders(session),
-    body: appendInsttId(new URLSearchParams(payload), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save staff setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
+  return saveMypageSetting(
+    session,
+    "staff",
+    payload,
+    PORTAL_ERROR_MESSAGES.staff,
+    en,
+    insttId
+  );
 }
 
 export async function saveMypageEmail(session: PortalSession, email: string, en = false, insttId?: string) {
-  const response = await fetch(en ? "/api/en/mypage/email" : "/api/mypage/email", {
-    method: "POST",
-    credentials: "include",
-    headers: buildPortalHeaders(session),
-    body: appendInsttId(new URLSearchParams({ email }), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save email setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
+  return saveMypageSetting(
+    session,
+    "email",
+    { email },
+    PORTAL_ERROR_MESSAGES.email,
+    en,
+    insttId
+  );
 }
 
 export async function saveMypagePassword(session: PortalSession, currentPassword: string, newPassword: string, en = false, insttId?: string) {
-  const response = await fetch(en ? "/api/en/mypage/password" : "/api/mypage/password", {
-    method: "POST",
-    credentials: "include",
-    headers: buildPortalHeaders(session),
-    body: appendInsttId(new URLSearchParams({ currentPassword, newPassword }), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save password setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
+  return saveMypageSetting(
+    session,
+    "password",
+    { currentPassword, newPassword },
+    PORTAL_ERROR_MESSAGES.password,
+    en,
+    insttId
+  );
 }

@@ -2,6 +2,12 @@
 
 Generated on 2026-03-21 for post-handoff implementation lanes.
 
+For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also use:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
 ## Purpose
 
 Use this template when an implementation lane reports progress back to the

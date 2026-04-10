@@ -6,18 +6,28 @@ import {
   analyzeProjectUpgradeImpact,
   applyProjectUpgrade,
   fetchProjectVersionManagementPage,
-  rollbackProjectVersion,
-  type ProjectApplyUpgradeResponse,
-  type ProjectRollbackResponse,
-  type ProjectUpgradeImpactResponse,
-  type ProjectVersionManagementPagePayload,
-  type ProjectVersionTargetArtifactPayload
-} from "../../lib/api/client";
+  rollbackProjectVersion
+} from "../../lib/api/platform";
+import type {
+  ProjectApplyUpgradeResponse,
+  ProjectRollbackResponse,
+  ProjectUpgradeImpactResponse,
+  ProjectVersionManagementPagePayload,
+  ProjectVersionTargetArtifactPayload
+} from "../../lib/api/platformTypes";
 import {
   fetchProjectPipelineStatus,
   runProjectPipeline,
   type ResonanceProjectPipelineResponse
 } from "../../lib/api/resonanceControlPlane";
+import {
+  getCurrentRuntimeHash,
+  buildRuntimeLocationState,
+  getCurrentRuntimeLocationState,
+  getCurrentRuntimePathname,
+  getCurrentRuntimeSearch,
+  navigateToRuntimeHref
+} from "../../app/routes/runtime";
 import { buildUnifiedLogPath, buildUnifiedLogTracePath } from "../../platform/routes/platformPaths";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -47,11 +57,41 @@ function numberOf(value: unknown) {
   return typeof value === "number" ? value : Number(value) || 0;
 }
 
+function getProjectVersionRoutePath() {
+  return getCurrentRuntimePathname();
+}
+
+function getProjectVersionSearchParams() {
+  return new URLSearchParams(getCurrentRuntimeSearch());
+}
+
 function readProjectIdFromLocation() {
   if (typeof window === "undefined") {
     return DEFAULT_PROJECT_ID;
   }
-  return new URLSearchParams(window.location.search).get("projectId") || DEFAULT_PROJECT_ID;
+  return getProjectVersionSearchParams().get("projectId") || DEFAULT_PROJECT_ID;
+}
+
+function buildProjectVersionLocationState(projectId: string) {
+  const nextSearch = getProjectVersionSearchParams();
+  if (projectId) {
+    nextSearch.set("projectId", projectId);
+  } else {
+    nextSearch.delete("projectId");
+  }
+  return buildRuntimeLocationState(
+    getProjectVersionRoutePath(),
+    nextSearch.toString() ? `?${nextSearch.toString()}` : "",
+    getCurrentRuntimeHash()
+  );
+}
+
+function getProjectVersionCurrentLocationState() {
+  return getCurrentRuntimeLocationState();
+}
+
+function openProjectVersionHref(href: string) {
+  navigateToRuntimeHref(href);
 }
 
 function compatibilityTone(value: string) {
@@ -299,14 +339,8 @@ export function ProjectVersionManagementMigrationPage() {
   }, [latestCandidateVersionMap]);
 
   useEffect(() => {
-    const nextSearch = new URLSearchParams(window.location.search);
-    if (projectId) {
-      nextSearch.set("projectId", projectId);
-    } else {
-      nextSearch.delete("projectId");
-    }
-    const nextUrl = `${window.location.pathname}${nextSearch.toString() ? `?${nextSearch.toString()}` : ""}${window.location.hash || ""}`;
-    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash || ""}`;
+    const nextUrl = buildProjectVersionLocationState(projectId);
+    const currentUrl = getProjectVersionCurrentLocationState();
     if (nextUrl !== currentUrl) {
       window.history.replaceState({}, "", nextUrl);
     }
@@ -349,7 +383,7 @@ export function ProjectVersionManagementMigrationPage() {
 
   useEffect(() => {
     logGovernanceScope("PAGE", "project-version-management", {
-      route: typeof window === "undefined" ? "" : window.location.pathname,
+      route: typeof window === "undefined" ? "" : getProjectVersionRoutePath(),
       projectId,
       installedArtifactCount: installedArtifacts.length,
       adapterHistoryCount: adapterHistory.length,
@@ -996,7 +1030,7 @@ export function ProjectVersionManagementMigrationPage() {
                         if (!deployTraceHref) {
                           return;
                         }
-                        window.location.assign(deployTraceHref);
+                        openProjectVersionHref(deployTraceHref);
                       }}
                     >
                       {en ? "Open Deploy Trace" : "배포 추적 열기"}
@@ -1069,7 +1103,7 @@ export function ProjectVersionManagementMigrationPage() {
                   if (!deployTraceHref) {
                     return;
                   }
-                  window.location.assign(deployTraceHref);
+                  openProjectVersionHref(deployTraceHref);
                 }}
               >
                 {en ? "Open Pipeline Deploy Trace" : "파이프라인 배포 추적 열기"}
@@ -1082,7 +1116,7 @@ export function ProjectVersionManagementMigrationPage() {
                   if (!pipelineReleaseUnitLogHref) {
                     return;
                   }
-                  window.location.assign(pipelineReleaseUnitLogHref);
+                  openProjectVersionHref(pipelineReleaseUnitLogHref);
                 }}
               >
                 {en ? "Open Pipeline Release Evidence" : "파이프라인 릴리스 증거 열기"}
@@ -1095,7 +1129,7 @@ export function ProjectVersionManagementMigrationPage() {
                   if (!pipelineReleaseFamilyLogHref) {
                     return;
                   }
-                  window.location.assign(pipelineReleaseFamilyLogHref);
+                  openProjectVersionHref(pipelineReleaseFamilyLogHref);
                 }}
               >
                 {en ? "Open Release Family Lineage" : "릴리스 패밀리 계보 열기"}
@@ -1377,7 +1411,7 @@ export function ProjectVersionManagementMigrationPage() {
                         if (!selectedReleaseUnitLogHref) {
                           return;
                         }
-                        window.location.assign(selectedReleaseUnitLogHref);
+                        openProjectVersionHref(selectedReleaseUnitLogHref);
                       }}
                     >
                       {en ? "Open Release Evidence" : "릴리스 증거 열기"}
@@ -1390,7 +1424,7 @@ export function ProjectVersionManagementMigrationPage() {
                         if (!selectedRuntimePackageLogHref) {
                           return;
                         }
-                        window.location.assign(selectedRuntimePackageLogHref);
+                        openProjectVersionHref(selectedRuntimePackageLogHref);
                       }}
                     >
                       {en ? "Open Runtime Package Evidence" : "런타임 패키지 증거 열기"}
@@ -1794,7 +1828,7 @@ export function ProjectVersionManagementMigrationPage() {
                         if (!applyReleaseUnitLogHref) {
                           return;
                         }
-                        window.location.assign(applyReleaseUnitLogHref);
+                        openProjectVersionHref(applyReleaseUnitLogHref);
                       }}
                     >
                       {en ? "Open Release Evidence" : "릴리스 증거 열기"}
@@ -1807,7 +1841,7 @@ export function ProjectVersionManagementMigrationPage() {
                         if (!applyRuntimePackageLogHref) {
                           return;
                         }
-                        window.location.assign(applyRuntimePackageLogHref);
+                        openProjectVersionHref(applyRuntimePackageLogHref);
                       }}
                     >
                       {en ? "Open Runtime Package Evidence" : "런타임 패키지 증거 열기"}
@@ -1997,7 +2031,7 @@ export function ProjectVersionManagementMigrationPage() {
                         if (!rollbackDeployTraceHref) {
                           return;
                         }
-                        window.location.assign(rollbackDeployTraceHref);
+                        openProjectVersionHref(rollbackDeployTraceHref);
                       }}
                     >
                       {en ? "Open Deploy Trace" : "배포 추적 열기"}

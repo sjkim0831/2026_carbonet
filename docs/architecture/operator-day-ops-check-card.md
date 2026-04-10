@@ -28,6 +28,23 @@ Open:
 2. `docs/architecture/operator-lane-launch-routine.md`
 3. `docs/architecture/operator-lane-launch-board-template.md`
 
+If the active work is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also reopen:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- supporting maintenance-contract guidance only: `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+- active continuation target:
+  - row `5`
+  - `executable app resource assembly fallback`
+  - blocker-resolution state with row `5` as the remaining blocker
+- row `5` packet:
+  - `docs/architecture/builder-resource-row5-owner-packet.md`
+- compressed blocker control docs:
+  - `docs/architecture/builder-resource-blocker-source-sentence-matrix.md`
+  - `docs/architecture/builder-resource-blocker-source-trigger-matrix.md`
+- canonical partial phrase:
+  - `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
+
 ## 2. Mid-Day
 
 Confirm:
@@ -45,6 +62,7 @@ Use:
 - `docs/frontend/admin-template-parity-inventory.md`
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the active owner should resume the latest provisional resource-ownership state first
 - `docs/architecture/builder-resource-ownership-queue-map.md` when the operator needs the shortest row-by-row builder resource ownership queue
+- `docs/architecture/builder-resource-row5-owner-packet.md` when the active continuation target remains row `5`
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md` when the active owner is continuing builder resource ownership closure
 - `docs/architecture/builder-resource-ownership-status-tracker.md` when the active owner must update builder resource ownership family status rows during the day
 

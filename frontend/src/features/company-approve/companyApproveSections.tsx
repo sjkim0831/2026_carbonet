@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { CompanyApprovePagePayload } from "../../lib/api/client";
+import type { CompanyApprovePagePayload } from "../../lib/api/memberTypes";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminInput, AdminSelect } from "../admin-ui/common";
 import {

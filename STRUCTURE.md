@@ -15,10 +15,13 @@ When AI starts work, prefer this order:
 9. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the task is about continuing builder resource ownership closure
 10. `docs/architecture/builder-resource-ownership-queue-map.md` when the task needs the shortest builder resource ownership row queue
 11. `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` when the task changes live builder resource ownership continuation state
-12. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
-13. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
-14. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
-15. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
+12. `docs/architecture/builder-resource-executable-app-evidence-checklist.md` when row `5` executable-app fallback proof or blocker reasoning is being updated
+13. canonical partial phrase for the current builder resource ownership state:
+   - `PARTIAL_DONE: builder resource ownership closure still counts rows 3 and 5 as blockers, rows 1 and 2 now carry bounded DELETE_NOW notes, row 4 now carries a stronger non-blocker note, and unresolved fallback blocker count is <n>.`
+14. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
+15. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
+16. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
+17. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
 
 Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unless the task is specifically about runtime output or build artifacts.
 

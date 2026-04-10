@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  fetchScreenCommandPage,
-  getScreenCommandChainText,
-  getScreenCommandChainValues,
+  fetchScreenCommandPage
+} from "../../lib/api/platform";
+import { getScreenCommandChainText, getScreenCommandChainValues } from "../../lib/api/screenCommand";
+import type {
   ScreenCommandApi,
   ScreenCommandChangeTarget,
   ScreenCommandEvent,
@@ -11,7 +12,7 @@ import {
   ScreenCommandPagePayload,
   ScreenCommandSchema,
   ScreenCommandSurface
-} from "../../lib/api/client";
+} from "../../lib/api/platformTypes";
 
 type ScreenCommandCenterPanelProps = {
   initialPageId: string;

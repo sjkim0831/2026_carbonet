@@ -746,23 +746,23 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.auth-groups.page", "권한 그룹 화면 조회", "GET", "/api/admin/auth-groups/page",
-                        "AdminMainController.getAuthGroupPage", "AuthGroupManageService.selectAuthorList / selectFeatureCatalog",
+                        "AdminAuthorityController.authGroupPageApi", "AdminAuthorityPagePayloadService.buildAuthGroupPagePayload",
                         "AuthGroupManageMapper.selectAuthorList / selectFeatureCatalog / selectAuthorFeatureCodes",
                         Arrays.asList("COMTNAUTHORINFO", "COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE"),
                         Arrays.asList("author-group-schema", "menu-feature-schema"),
                         "권한 그룹, 기능 카탈로그, 현재 매핑을 함께 조회합니다."),
                 api("admin.auth-groups.create", "권한 그룹 생성", "POST", "/api/admin/auth-groups",
-                        "AdminMainController.createAuthGroup", "AuthGroupManageService.createAuthorGroup",
+                        "AdminAuthorityController.createAuthGroupApi", "AdminAuthorityApiCommandService.createAuthGroup",
                         "AuthGroupManageMapper.insertAuthorInfo",
                         Arrays.asList("COMTNAUTHORINFO", "AUDIT_EVENT"), Arrays.asList("author-group-schema"),
                         "신규 권한 그룹을 생성합니다."),
                 api("admin.auth-groups.profile-save", "권한 그룹 프로필 저장", "POST", "/api/admin/auth-groups/profile-save",
-                        "AdminMainController.saveAuthGroupProfileApi", "AuthorRoleProfileService.saveProfile",
+                        "AdminAuthorityController.saveAuthGroupProfileApi", "AdminAuthorityApiCommandService.saveAuthGroupProfile",
                         "author-role-profiles/profiles.json",
                         Arrays.asList("DATA_AUTHOR_ROLE_PROFILES", "AUDIT_EVENT"), Arrays.asList("author-group-schema", "author-role-profile-schema", "audit-event-schema"),
                         "권한 그룹별 업무 역할명, 우선 제공 업무, 회원 수정 화면 노출 여부를 저장합니다."),
                 api("admin.auth-groups.features.save", "권한 그룹 기능 저장", "POST", "/api/admin/auth-groups/features",
-                        "AdminMainController.saveAuthGroupFeatures", "AuthGroupManageService.saveAuthorFeatureRelations",
+                        "AdminAuthorityController.saveAuthGroupFeaturesApi", "AdminAuthorityApiCommandService.saveAuthGroupFeatures",
                         "AuthGroupManageMapper.deleteAuthorFeatureRelations / insertAuthorFeatureRelation",
                         Arrays.asList("COMTNAUTHORFUNCTIONRELATE", "AUDIT_EVENT"), Arrays.asList("menu-feature-schema", "audit-event-schema"),
                         "권한 그룹과 기능 코드 매핑을 저장합니다.")
@@ -951,12 +951,12 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.approve.page", "회원 승인 목록 조회", "GET", "/api/admin/member/approve/page",
-                        "AdminMainController.memberApprovePageApi", "AdminMainController.populateMemberApprovePage",
+                        "AdminApprovalController.memberApprovePageApi", "AdminApprovalPagePayloadService.buildMemberApprovePagePayload",
                         "EntrprsManageMapper.selectMemberApprovalList / selectMemberApprovalListTotCnt",
                         Arrays.asList("COMTNENTRPRSMBER"), Arrays.asList("member-approve-schema"),
                         "승인 대상 회원 목록과 증빙 요약을 조회합니다."),
                 api("admin.member.approve.action", "회원 승인/반려 처리", "POST", "/api/admin/member/approve/action",
-                        "AdminMainController.memberApproveActionApi", "EntrprsManageService.updateMemberApprovalStatus",
+                        "AdminApprovalController.memberApproveSubmitApi", "AdminApprovalCommandService.submitMemberApproveApi",
                         "EntrprsManageMapper.updateMemberApprovalStatus / insertAuditEvent",
                         Arrays.asList("COMTNENTRPRSMBER", "AUDIT_EVENT"), Arrays.asList("member-approve-schema", "audit-event-schema"),
                         "회원 승인, 반려, 일괄 처리 결과를 저장합니다.")
@@ -1650,12 +1650,12 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.auth-change.page", "권한 변경 화면 조회", "GET", "/api/admin/auth-change/page",
-                        "AdminMainController.getAuthChangePage", "AuthGroupManageService.selectAdminAuthorityAssignments",
+                        "AdminAuthorityController.authChangePageApi", "AdminAuthorityPagePayloadService.buildAuthChangePagePayload",
                         "AuthGroupManageMapper.selectAdminAuthorityAssignments / selectAuthorList",
                         Arrays.asList("COMTNEMPLYRSCRTYESTBS", "COMTNAUTHORINFO"), Arrays.asList("admin-auth-change-schema", "author-group-schema"),
                         "관리자별 현재 권한과 선택 가능한 권한 그룹을 함께 조회합니다."),
                 api("admin.auth-change.save", "권한 변경 저장", "POST", "/api/admin/auth-change/save",
-                        "AdminMainController.saveAuthChange", "AuthGroupManageService.saveAdminAuthorityAssignment",
+                        "AdminAuthorityController.saveAuthChangeApi", "AdminAuthorityApiCommandService.saveAuthChange",
                         "AuthGroupManageMapper.upsertAdminAuthorityAssignment",
                         Arrays.asList("COMTNEMPLYRSCRTYESTBS", "AUDIT_EVENT"), Arrays.asList("admin-auth-change-schema", "audit-event-schema"),
                         "관리자별 권한 그룹을 저장합니다.")
@@ -1698,17 +1698,17 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.dept-role.page", "부서 권한 화면 조회", "GET", "/api/admin/dept-role-mapping/page",
-                        "AdminMainController.getDeptRoleMappingPage", "AuthGroupManageService.selectDepartmentRolePage",
+                        "AdminAuthorityController.deptRoleMappingPageApi", "AdminAuthorityPagePayloadService.buildDeptRolePagePayload",
                         "AuthGroupManageMapper.selectDepartmentMappings / selectCompanyMembers / selectAuthorList",
                         Arrays.asList("COMTNDEPTAUTHORRELATE", "COMTNENTRPRSMBER", "COMTNAUTHORINFO"), Arrays.asList("dept-role-schema", "member-author-schema"),
                         "회사 범위별 부서/회원 권한 현황을 조회합니다."),
                 api("admin.dept-role.save", "부서 권한 저장", "POST", "/api/admin/dept-role-mapping/save",
-                        "AdminMainController.saveDeptRoleMapping", "AuthGroupManageService.saveDepartmentRoleMapping",
+                        "AdminAuthorityController.saveDeptRoleMappingApi", "AdminAuthorityApiCommandService.saveDeptRoleMapping",
                         "AuthGroupManageMapper.upsertDepartmentRoleMapping",
                         Arrays.asList("COMTNDEPTAUTHORRELATE", "AUDIT_EVENT"), Arrays.asList("dept-role-schema", "audit-event-schema"),
                         "부서 기본 권한 그룹을 저장합니다."),
                 api("admin.dept-role.member-save", "회원 권한 저장", "POST", "/api/admin/dept-role-mapping/member-save",
-                        "AdminMainController.saveDeptRoleMember", "AuthGroupManageService.saveEnterpriseMemberRole",
+                        "AdminAuthorityController.saveDeptRoleMemberApi", "AdminAuthorityApiCommandService.saveDeptRoleMember",
                         "AuthGroupManageMapper.upsertEnterpriseMemberRole",
                         Arrays.asList("COMTNENTRPRSMBERAUTHORRELATE", "AUDIT_EVENT"), Arrays.asList("member-author-schema", "audit-event-schema"),
                         "회사 회원 권한 그룹을 저장합니다.")
@@ -1752,7 +1752,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.admin-list.page", "관리자 목록 조회", "GET", "/api/admin/member/admin-list/page",
-                        "AdminMainController.adminListPageApi", "AdminMainController.populateAdminList",
+                        "AdminMemberController.adminListPageApi", "AdminMemberPagePayloadService.buildAdminListPagePayload",
                         "AdminMainMapper.selectAdminList / selectAdminListTotCnt",
                         Arrays.asList("COMTNEMPLYRINFO"), Arrays.asList("admin-list-schema"),
                         "검색 조건과 페이지 번호로 관리자 목록을 조회합니다."),
@@ -1792,8 +1792,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.list.page", "회원 목록 조회", "GET", "/api/admin/member/list/page",
-                        "AdminMainController.memberListPageApi / AdminMainController.populateMemberList",
-                        "EnterpriseMemberService.selectEntrprsMberListTotCnt / EnterpriseMemberService.selectEntrprsMberList",
+                        "AdminMemberController.memberListPageApi", "AdminMemberPagePayloadService.buildMemberListPagePayload",
                         "EntrprsManageMapper.selectEntrprsMberList / selectEntrprsMberListTotCnt",
                         Arrays.asList("COMTNENTRPRSMBER"), Arrays.asList("member-list-query"),
                         "검색조건에 따라 관리자 목록을 조회합니다."),
@@ -1835,7 +1834,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.company-list.page", "회원사 목록 조회", "GET", "/api/admin/member/company-list/page",
-                        "AdminMainController.companyListPageApi", "AdminMainController.populateCompanyList",
+                        "AdminMemberController.companyListPageApi", "AdminMemberPagePayloadService.buildCompanyListPagePayload",
                         "EntrprsManageService.searchCompanyListPaged",
                         Arrays.asList("COMTNINSTTINFO"), Arrays.asList("company-list-query"),
                         "검색조건에 따라 회원사 목록을 조회합니다."),
@@ -1879,7 +1878,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.detail.page", "회원 상세 조회", "GET", "/api/admin/member/detail/page",
-                        "AdminMainController.memberDetailPageApi", "EntrprsManageService.selectEntrprsMber",
+                        "AdminMemberController.memberDetailPageApi", "AdminMemberPagePayloadService.buildMemberDetailPagePayload",
                         "EntrprsManageMapper.selectEntrprsMber / selectPasswordResetHistory",
                         Arrays.asList("COMTNENTRPRSMBER"), Arrays.asList("member-detail-schema"),
                         "회원 기본정보와 초기화 이력을 함께 조회합니다."),
@@ -1926,12 +1925,12 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.company-approve.page", "회원사 승인 목록 조회", "GET", "/api/admin/member/company-approve/page",
-                        "AdminMainController.companyApprovePageApi", "AdminMainController.populateCompanyApprovePage",
+                        "AdminApprovalController.companyApprovePageApi", "AdminApprovalPagePayloadService.buildCompanyApprovePagePayload",
                         "EntrprsManageMapper.selectInsttApprovalList / selectInsttApprovalListTotCnt",
                         Arrays.asList("COMTNINSTTINFO", "COMTNINSTTFILE"), Arrays.asList("company-approve-schema"),
                         "기관 상태와 첨부 서류 요약을 포함한 승인 대상 목록을 조회합니다."),
                 api("admin.member.company-approve.action", "회원사 승인/반려 처리", "POST", "/api/admin/member/company-approve/action",
-                        "AdminMainController.companyApproveActionApi", "EntrprsManageService.updateInsttApprovalStatus",
+                        "AdminApprovalController.companyApproveSubmitApi", "AdminApprovalCommandService.submitCompanyApproveApi",
                         "EntrprsManageMapper.updateInsttApprovalStatus / insertAuditEvent",
                         Arrays.asList("COMTNINSTTINFO", "AUDIT_EVENT"), Arrays.asList("company-approve-schema", "audit-event-schema"),
                         "개별 또는 일괄 회원사 승인/반려 결과를 저장합니다."),
@@ -1972,7 +1971,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.company-detail.page", "기관 상세 조회", "GET", "/api/admin/member/company-detail/page",
-                        "AdminMainController.companyDetailPageApi", "EntrprsManageService.selectInsttInfoForStatus",
+                        "AdminMemberController.companyDetailPageApi", "AdminMemberPagePayloadService.buildCompanyDetailPagePayload",
                         "EntrprsManageMapper.selectInsttInfoForStatus / selectInsttFiles",
                         Arrays.asList("COMTNINSTTINFO", "COMTNINSTTFILE"), Arrays.asList("company-detail-schema", "company-file-schema"),
                         "기관 상태와 첨부 목록을 함께 조회합니다."),
@@ -2069,13 +2068,13 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.edit.page", "회원 수정 화면 조회", "GET", "/api/admin/member/edit",
-                        "AdminMainController.memberEditApi", "AdminMainController.populateMemberEditModel",
+                        "AdminMemberController.memberEditApi", "AdminMemberPagePayloadService.buildMemberEditPagePayload",
                         "EntrprsManageMapper.selectEntrprsmberByMberId / selectPasswordResetHistory / selectAuthorList",
                         Arrays.asList("COMTNENTRPRSMBER", "COMTNAUTHORINFO", "COMTNAUTHORFUNCTIONRELATE", "COMTNMENUFUNCTIONINFO"),
                         Arrays.asList("member-edit-schema", "member-permission-schema"),
                         "회원 수정에 필요한 기본정보, 권한 롤, 기능 목록, 증빙 목록을 함께 조회합니다."),
                 api("admin.member.edit.save", "회원 수정 저장", "POST", "/api/admin/member/edit",
-                        "AdminMainController.memberEditSubmitApi", "AdminMainController.updateEntrprsmber / saveMemberFeatureOverrides",
+                        "AdminMemberController.memberEditSubmitApi", "AdminMemberEditCommandService.submitApi",
                         "EntrprsManageMapper.updateEntrprsmber / deleteUserFeatureOverrides / insertUserFeatureOverride",
                         Arrays.asList("COMTNENTRPRSMBER", "COMTNUSERFEATUREOVERRIDE", "AUDIT_EVENT"),
                         Arrays.asList("member-edit-schema", "member-permission-schema", "audit-event-schema"),
@@ -2136,13 +2135,13 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.company-account.page", "회원사 수정 화면 조회", "GET", "/api/admin/member/company-account/page",
-                        "AdminMainController.companyAccountPageApi", "AdminMainController.populateCompanyAccountModel",
+                        "AdminMemberController.companyAccountPageApi", "AdminMemberPagePayloadService.buildCompanyAccountPagePayload",
                         "EntrprsManageMapper.selectInsttInfoForStatus / selectInsttFiles",
                         Arrays.asList("COMTNINSTTINFO", "COMTNINSTTFILE"),
                         Arrays.asList("company-account-schema", "company-file-schema"),
                         "기관 정보와 첨부 파일 목록을 회원사 편집 화면에 제공합니다."),
                 api("admin.member.company-account.save", "회원사 저장", "POST", "/api/admin/member/company-account",
-                        "AdminMainController.companyAccountSubmitApi", "AdminMainController.saveOrUpdateCompanyAccount",
+                        "AdminMemberController.companyAccountSubmitApi", "AdminCompanyAccountCommandService.submitApi",
                         "EntrprsManageMapper.insertInsttInfo / updateInsttInfo / insertInsttFile",
                         Arrays.asList("COMTNINSTTINFO", "COMTNINSTTFILE", "AUDIT_EVENT"),
                         Arrays.asList("company-account-schema", "company-file-schema", "audit-event-schema"),
@@ -2628,7 +2627,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.error-log.page", "에러 로그 페이지 조회", "GET", "/admin/system/error-log/page-data",
-                        "AdminMainController.errorLogPageApi", "AdminMainController.buildErrorLogPagePayload",
+                        "PlatformObservabilityPageDataController.errorLogPageApi", "PlatformObservabilityAdminPagePort.buildErrorLogPagePayload",
                         "ObservabilityMapper.selectErrorEventList / selectErrorEventCount",
                         Arrays.asList("ERROR_EVENT", "COMTNENTRPRSMBER", "COMTNEMPLYRINFO"),
                         Arrays.asList("error-event-schema"), "회사 범위와 검색 조건 기준으로 에러 로그를 조회합니다.")

@@ -2,7 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath, isEnglish, replace } from "../../lib/navigation/runtime";
-import { deleteFileManagementPage, fetchFileManagementPage, replaceFileManagementPage, restoreFileManagementPage, saveFileManagementPage, updateFileManagementPage, type FileManagementPagePayload } from "../../lib/api/client";
+import {
+  deleteFileManagementPage,
+  fetchFileManagementPage,
+  replaceFileManagementPage,
+  restoreFileManagementPage,
+  saveFileManagementPage,
+  updateFileManagementPage
+} from "../../lib/api/content";
+import type { FileManagementPagePayload } from "../../lib/api/contentTypes";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";

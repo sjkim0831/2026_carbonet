@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
-import { fetchNewPagePage, readBootstrappedNewPagePageData, type NewPagePagePayload } from "../../lib/api/client";
+import { readBootstrappedNewPagePageData } from "../../lib/api/bootstrap";
+import { fetchNewPagePage } from "../../lib/api/platform";
+import type { NewPagePagePayload } from "../../lib/api/platformTypes";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, DiagnosticCard, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";

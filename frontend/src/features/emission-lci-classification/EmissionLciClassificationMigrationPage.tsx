@@ -4,9 +4,9 @@ import { logGovernanceScope } from "../../app/policy/debug";
 import {
   deleteEmissionLciClassification,
   fetchEmissionLciClassificationPage,
-  saveEmissionLciClassification,
-  type EmissionLciClassificationPagePayload
-} from "../../lib/api/client";
+  saveEmissionLciClassification
+} from "../../lib/api/emission";
+import type { EmissionLciClassificationPagePayload } from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish, replace } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, MemberButton } from "../member/common";

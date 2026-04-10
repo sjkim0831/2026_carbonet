@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { resetJoinSession } from "../../lib/api/client";
+import { resetJoinSession } from "../../lib/api/joinSession";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type JoinCompletePayload = {
