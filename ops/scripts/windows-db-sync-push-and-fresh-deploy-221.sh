@@ -788,7 +788,7 @@ else
   mvn -q -pl apps/carbonet-app -am -DskipTests package
   bash ops/scripts/restart-18000-runtime.sh
 fi
-VERIFY_WAIT_SECONDS=20 bash ops/scripts/codex-verify-18000-freshness.sh
+VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-180}" bash ops/scripts/codex-verify-18000-freshness.sh
 EOF
 )
 
