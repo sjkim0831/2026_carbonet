@@ -781,7 +781,13 @@ if [ -d "\$BACKUP_ROOT/ops-config" ]; then
   cp -a "\$BACKUP_ROOT/ops-config/." "\$REMOTE_ROOT/ops/config/"
 fi
 cd "\$REMOTE_ROOT"
-bash ops/scripts/build-restart-18000.sh
+if command -v npm >/dev/null 2>&1; then
+  bash ops/scripts/build-restart-18000.sh
+else
+  echo "[windows-db-sync-push-and-fresh-deploy-221] npm not found on remote; running backend package + runtime restart"
+  mvn -q -pl apps/carbonet-app -am -DskipTests package
+  bash ops/scripts/restart-18000-runtime.sh
+fi
 VERIFY_WAIT_SECONDS=20 bash ops/scripts/codex-verify-18000-freshness.sh
 EOF
 )
