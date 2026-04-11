@@ -111,6 +111,21 @@ build_git_extraheader() {
   printf 'AUTHORIZATION: basic %s' "$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
 }
 
+build_authenticated_repo_url() {
+  local repo_url="$1"
+  if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+    printf '%s' "$repo_url"
+    return 0
+  fi
+
+  if [[ "$repo_url" =~ ^https://github\.com/(.+)$ ]]; then
+    printf 'https://x-access-token:%s@github.com/%s' "$GITHUB_TOKEN" "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  printf '%s' "$repo_url"
+}
+
 ensure_java_tool() {
   [[ -f "$JDBC_JAR" ]] || fail "CUBRID JDBC jar not found: $JDBC_JAR"
 
@@ -699,13 +714,12 @@ commit_and_push_all() {
     return 0
   fi
 
-  local auth_header=""
+  local push_url=""
 
   log "git add started"
   git -C "$ROOT_DIR" add -A -- . \
     ':(exclude).codex/config.toml' \
-    ':(exclude)apps/carbonet-app/target' \
-    ':(exclude)ops/config/deploy-automation.env'
+    ':(exclude)apps/carbonet-app/target'
 
   if git -C "$ROOT_DIR" diff --cached --quiet; then
     log "no staged changes; commit skipped"
@@ -714,10 +728,10 @@ commit_and_push_all() {
     git -C "$ROOT_DIR" commit -m "$COMMIT_MESSAGE"
   fi
 
-  auth_header="$(build_git_extraheader || true)"
-  if [[ -n "$auth_header" ]]; then
-    log "git push started with token auth"
-    git -C "$ROOT_DIR" -c "http.https://github.com/.extraheader=${auth_header}" push "$GIT_REMOTE_NAME" "$GIT_BRANCH"
+  push_url="$(build_authenticated_repo_url "$REPO_URL")"
+  if [[ "$push_url" != "$REPO_URL" ]]; then
+    log "git push started with token url auth"
+    git -C "$ROOT_DIR" push "$push_url" "$GIT_BRANCH"
     return 0
   fi
 
@@ -731,14 +745,14 @@ run_remote_clone_and_restart() {
     return 0
   fi
 
-  local auth_header=""
+  local clone_url=""
   local remote_script=""
   local mosh_ssh=""
   local mosh_server_cmd=""
 
   require_env "MAIN_REMOTE_PASSWORD"
 
-  auth_header="$(build_git_extraheader || true)"
+  clone_url="$(build_authenticated_repo_url "$REPO_URL")"
   mosh_ssh="sshpass -p '$MAIN_REMOTE_PASSWORD' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $MAIN_REMOTE_PORT"
 
   remote_script=$(cat <<EOF
@@ -757,13 +771,8 @@ mkdir -p "\$(dirname "\$REMOTE_ROOT")"
 EOF
 )
 
-  if [[ -n "$auth_header" ]]; then
-    remote_script+=$'\n'
-    remote_script+="git -c \"http.https://github.com/.extraheader=${auth_header}\" clone --branch '$GIT_BRANCH' --single-branch '$REPO_URL' \"\$REMOTE_ROOT\""
-  else
-    remote_script+=$'\n'
-    remote_script+="git clone --branch '$GIT_BRANCH' --single-branch '$REPO_URL' \"\$REMOTE_ROOT\""
-  fi
+  remote_script+=$'\n'
+  remote_script+="git clone --branch '$GIT_BRANCH' --single-branch '$clone_url' \"\$REMOTE_ROOT\""
 
   remote_script+=$'\n'
   remote_script+=$(cat <<EOF
