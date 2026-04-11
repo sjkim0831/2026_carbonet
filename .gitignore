@@ -26,7 +26,6 @@ startup.log
 /sql/
 /ops/config/*.env
 !/ops/config/*.env.example
-/ops/config/certs/
 /var/nginx-duckdns-local/
 
 # Frontend local artifacts
@@ -45,3 +44,4 @@ startup.log
 /frontend/test-results/
 /frontend/.codex-state/
 /data/backup-config/settings.json
+.aider*
