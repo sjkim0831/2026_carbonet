@@ -12,6 +12,12 @@
 
 - [deploy-193-to-221.sh](/opt/projects/carbonet/ops/scripts/deploy-193-to-221.sh)
 
+## 웹서버 포함 운영 전환 기준
+
+운영 트래픽까지 안전하게 전환해야 하는 배포는 [Web Runtime Blue-Green Deploy](/opt/projects/carbonet/docs/operations/web-runtime-blue-green-deploy.md)를 기준으로 한다.
+
+이 문서의 기존 `18000` 재기동 흐름은 앱 프로세스 교체 중심이다. 운영 웹서버까지 포함하는 최종 기준은 candidate 포트 기동, 내부 헬스 체크, 외부 도메인 smoke test, Nginx upstream 전환, manifest 기록, rollback anchor 기록까지 포함해야 한다.
+
 ## 준비
 
 계정과 호스트만 고정하고, 비밀번호는 로그인 시에만 직접 입력합니다.
@@ -51,6 +57,7 @@ bash /opt/projects/carbonet/ops/scripts/deploy-193-to-221.sh
 - 비밀번호를 프롬프트나 `export` 예시에 넣지 않습니다.
 - 현재 스크립트는 `DEPLOY_REMOTE_PASSWORD`가 비어 있으면 일반 `ssh` / `scp` 인증 흐름을 사용합니다.
 - `221`의 `80` 포트 Nginx는 별도이며, 이 스크립트는 앱 jar 교체와 `18000` 재기동만 담당합니다.
+- 운영 무중단 전환은 active 포트를 바로 중지하지 말고 candidate 포트를 먼저 검증한 뒤 Nginx upstream을 전환한다.
 - 메모리 부족 시 유휴 서버는 자동 전환하지 않습니다. 현재 스크립트는 용량 확인까지만 수행합니다.
 - 로컬 작업트리가 더러워도, 배포 빌드는 임시 worktree에서 수행합니다.
 - 유휴 서버를 실제 런타임으로 승격하려면 별도 Nginx/upstream/DB/서비스 스위치 절차가 필요합니다.

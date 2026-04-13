@@ -53,6 +53,14 @@ const VERSION_REQUIRED_FEATURE_SET = [
   VERSION_ROLLBACK_FEATURE
 ];
 
+function hasVersionFeature(authorCode: string, featureCodes: string[], requiredFeature: string) {
+  const normalizedAuthorCode = authorCode.trim().toUpperCase();
+  if (normalizedAuthorCode === "ROLE_SYSTEM_MASTER") {
+    return true;
+  }
+  return featureCodes.includes("*") || featureCodes.includes(requiredFeature);
+}
+
 function stringOf(value: unknown) {
   return typeof value === "string" ? value : "";
 }
@@ -328,23 +336,27 @@ export function ProjectVersionManagementMigrationPage() {
   const operationsPayload = operationsState.value;
   const backupSettingsPayload = backupSettingsState.value;
   const sessionFeatureCodes = sessionState.value?.featureCodes || [];
-  const canViewVersionManagement = sessionFeatureCodes.includes(VERSION_VIEW_FEATURE);
-  const canAnalyzeUpgrade = sessionFeatureCodes.includes(VERSION_ANALYZE_FEATURE);
-  const canApplyUpgrade = sessionFeatureCodes.includes(VERSION_APPLY_FEATURE);
-  const canRollbackRelease = sessionFeatureCodes.includes(VERSION_ROLLBACK_FEATURE);
+  const sessionAuthorCode = stringOf(sessionState.value?.authorCode);
+  const canViewVersionManagement = hasVersionFeature(sessionAuthorCode, sessionFeatureCodes, VERSION_VIEW_FEATURE);
+  const canAnalyzeUpgrade = hasVersionFeature(sessionAuthorCode, sessionFeatureCodes, VERSION_ANALYZE_FEATURE);
+  const canApplyUpgrade = hasVersionFeature(sessionAuthorCode, sessionFeatureCodes, VERSION_APPLY_FEATURE);
+  const canRollbackRelease = hasVersionFeature(sessionAuthorCode, sessionFeatureCodes, VERSION_ROLLBACK_FEATURE);
   const pagePermissionDenied = !sessionState.loading && isPermissionDeniedMessage(pageState.error || "");
   const showSessionFeatureWarning = !sessionState.loading
     && !canViewVersionManagement
     && !pageState.value
     && !operationsState.value;
   const missingFeatureCodes = useMemo(
-    () => VERSION_REQUIRED_FEATURE_SET.filter((featureCode) => !sessionFeatureCodes.includes(featureCode)),
-    [sessionFeatureCodes]
+    () => VERSION_REQUIRED_FEATURE_SET.filter((featureCode) => !hasVersionFeature(sessionAuthorCode, sessionFeatureCodes, featureCode)),
+    [sessionAuthorCode, sessionFeatureCodes]
   );
   const adapterHistory = (pageState.value?.adapterHistory?.itemSet || []) as Array<Record<string, unknown>>;
   const releaseUnits = (pageState.value?.releaseUnits?.itemSet || []) as Array<Record<string, unknown>>;
   const serverStates = (pageState.value?.serverDeployState?.serverStateSet || []) as Array<Record<string, unknown>>;
   const candidateArtifacts = (pageState.value?.candidateArtifacts?.itemSet || []) as Array<Record<string, unknown>>;
+  const artifactLocks = (pageState.value?.fleetGovernance?.artifactLocks?.itemSet || []) as Array<Record<string, unknown>>;
+  const compatibilityRuns = (pageState.value?.fleetGovernance?.compatibilityRuns?.itemSet || []) as Array<Record<string, unknown>>;
+  const fleetGovernanceNextSteps = (pageState.value?.fleetGovernance?.recommendedNextStepSet || []) as Array<Record<string, unknown>>;
   const installedArtifacts = ((overview?.installedArtifactSet || []) as Array<Record<string, unknown>>);
   const installedPackages = ((overview?.installedPackageSet || []) as Array<Record<string, unknown>>);
   const currentRemoteJob = toRecord(operationsPayload?.currentRemoteJob);
@@ -368,6 +380,8 @@ export function ProjectVersionManagementMigrationPage() {
     || releaseUnits.length > 0
     || serverStates.length > 0
     || candidateArtifacts.length > 0
+    || artifactLocks.length > 0
+    || compatibilityRuns.length > 0
     || hasOverviewVersionBaseline
   );
   const isInitializationState = !pageState.loading && !pageState.error && canViewVersionManagement && !hasVersionGovernanceData;
@@ -521,8 +535,13 @@ export function ProjectVersionManagementMigrationPage() {
       title: en ? "Candidate Versions" : "후보 버전",
       value: String(numberOf(pageState.value?.candidateArtifacts?.totalCount)),
       description: en ? "Version candidates available on current artifact lines." : "현재 artifact 라인에서 선택 가능한 후보 버전 수입니다."
+    },
+    {
+      title: en ? "Fleet Runs" : "공통 호환성 실행",
+      value: String(numberOf(pageState.value?.fleetGovernance?.compatibilityRuns?.totalCount)),
+      description: en ? "Recorded compatibility decisions for fleet-wide common upgrades." : "공통 업그레이드 호환성 판단 기록 수입니다."
     }
-  ]), [en, installedArtifacts.length, pageState.value?.adapterHistory?.totalCount, pageState.value?.candidateArtifacts?.totalCount, pageState.value?.releaseUnits?.totalCount, serverStates.length]);
+  ]), [en, installedArtifacts.length, pageState.value?.adapterHistory?.totalCount, pageState.value?.candidateArtifacts?.totalCount, pageState.value?.fleetGovernance?.compatibilityRuns?.totalCount, pageState.value?.releaseUnits?.totalCount, serverStates.length]);
   const deploySummaryCards = useMemo(() => {
     const matchedServerCount = filteredServerStates.filter((item) => stringOf(item.activeReleaseUnitId) === stringOf(selectedReleaseUnit?.releaseUnitId)).length;
     const reviewServerCount = filteredServerStates.filter((item) => {
@@ -791,6 +810,8 @@ export function ProjectVersionManagementMigrationPage() {
         menuRoot: projectId,
         runtimeClass: stringOf(overview?.projectDisplayName) || projectId,
         menuScope: "ADMIN",
+        releaseUnitId: stringOf(selectedReleaseUnit?.releaseUnitId) || undefined,
+        runtimePackageId: stringOf(selectedReleaseUnit?.runtimePackageId) || undefined,
         releaseUnitPrefix: "release-unit",
         runtimePackagePrefix: "runtime-package",
         artifactTargetSystem: "carbonet-general",
@@ -1017,7 +1038,7 @@ export function ProjectVersionManagementMigrationPage() {
           </MemberStateCard>
         ) : null}
 
-        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
           {summaryCards.map((card) => (
             <SummaryMetricCard
               key={card.title}
@@ -1026,6 +1047,119 @@ export function ProjectVersionManagementMigrationPage() {
               description={card.description}
             />
           ))}
+        </section>
+
+        <section className="gov-card overflow-hidden p-0">
+          <GridToolbar
+            title={en ? "Fleet Common Upgrade Governance" : "공통 업그레이드 거버넌스"}
+            meta={en
+              ? "Artifact locks and compatibility runs keep common-core updates traceable across many projects."
+              : "아티팩트 잠금과 호환성 실행 기록으로 여러 프로젝트의 공통 코어 업데이트를 추적합니다."}
+            actions={<span className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Automatic Recording" : "자동 기록"}</span>}
+          />
+          <div className="grid grid-cols-1 gap-4 px-6 py-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+            <article className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white">
+              <div className="border-b border-[var(--kr-gov-border-light)] px-4 py-3">
+                <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Compatibility Runs" : "호환성 실행 기록"}</p>
+                <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "Impact analysis writes one run with adapter, DB diff, smoke, and final decision fields."
+                    : "영향 분석을 실행하면 어댑터, DB diff, smoke, 최종 판단이 1건 기록됩니다."}
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <AdminTable className="min-w-[980px]">
+                  <thead>
+                    <tr className="border-y border-[var(--kr-gov-border-light)] bg-gray-50 text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
+                      <th className="px-4 py-3">{en ? "Run" : "실행 ID"}</th>
+                      <th className="px-4 py-3">{en ? "Target Common" : "대상 공통 버전"}</th>
+                      <th className="px-4 py-3">{en ? "Adapter" : "어댑터"}</th>
+                      <th className="px-4 py-3">{en ? "DB Diff" : "DB Diff"}</th>
+                      <th className="px-4 py-3">{en ? "Smoke" : "Smoke"}</th>
+                      <th className="px-4 py-3">{en ? "Decision" : "판단"}</th>
+                      <th className="px-4 py-3">{en ? "Tested At" : "확인 시각"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {compatibilityRuns.length === 0 ? (
+                      <tr>
+                        <td className="px-4 py-8 text-center text-sm text-[var(--kr-gov-text-secondary)]" colSpan={7}>
+                          {en ? "No compatibility runs have been recorded yet." : "아직 기록된 호환성 실행이 없습니다."}
+                        </td>
+                      </tr>
+                    ) : compatibilityRuns.map((item, index) => (
+                      <tr className="border-b border-[var(--kr-gov-border-light)] bg-white" key={`${stringOf(item.runId)}-${index}`}>
+                        <td className="px-4 py-3 text-sm font-semibold">{stringOf(item.runId) || "-"}</td>
+                        <td className="px-4 py-3 text-sm">{stringOf(item.targetCommonVersion) || "-"}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(stringOf(item.adapterContractStatus))}`}>
+                            {stringOf(item.adapterContractStatus) || "-"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{stringOf(item.dbDiffStatus) || "-"}</td>
+                        <td className="px-4 py-3 text-sm">{stringOf(item.smokeStatus) || "-"}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(stringOf(item.compatibilityStatus))}`}>
+                            {stringOf(item.compatibilityStatus) || "-"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{stringOf(item.testedAt) || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </AdminTable>
+              </div>
+            </article>
+
+            <article className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white">
+              <div className="border-b border-[var(--kr-gov-border-light)] px-4 py-3">
+                <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Artifact Locks" : "아티팩트 잠금"}</p>
+                <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "Apply upgrade writes the exact artifact versions and checksums for rollback and audit."
+                    : "업그레이드 적용 시 롤백과 감사를 위한 정확한 아티팩트 버전/체크섬을 저장합니다."}
+                </p>
+              </div>
+              <div className="max-h-[360px] overflow-auto">
+                <AdminTable className="min-w-[760px]">
+                  <thead>
+                    <tr className="border-y border-[var(--kr-gov-border-light)] bg-gray-50 text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
+                      <th className="px-4 py-3">{en ? "Release Unit" : "릴리스 유닛"}</th>
+                      <th className="px-4 py-3">{en ? "Artifact" : "아티팩트"}</th>
+                      <th className="px-4 py-3">{en ? "Version" : "버전"}</th>
+                      <th className="px-4 py-3">{en ? "Source" : "출처"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {artifactLocks.length === 0 ? (
+                      <tr>
+                        <td className="px-4 py-8 text-center text-sm text-[var(--kr-gov-text-secondary)]" colSpan={4}>
+                          {en ? "No artifact locks have been recorded yet." : "아직 기록된 아티팩트 잠금이 없습니다."}
+                        </td>
+                      </tr>
+                    ) : artifactLocks.map((item, index) => (
+                      <tr className="border-b border-[var(--kr-gov-border-light)] bg-white" key={`${stringOf(item.releaseUnitId)}-${stringOf(item.artifactId)}-${index}`}>
+                        <td className="px-4 py-3 text-sm font-semibold">{stringOf(item.releaseUnitId) || "-"}</td>
+                        <td className="px-4 py-3 text-sm">{stringOf(item.groupId) || "-"}:{stringOf(item.artifactId) || "-"}</td>
+                        <td className="px-4 py-3 text-sm">{stringOf(item.artifactVersion) || "-"}</td>
+                        <td className="px-4 py-3 text-sm">{stringOf(item.lockSource) || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </AdminTable>
+              </div>
+              {fleetGovernanceNextSteps.length > 0 ? (
+                <div className="space-y-2 border-t border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  {fleetGovernanceNextSteps.map((item, index) => (
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3" key={`${stringOf(item.stepId)}-${index}`}>
+                      <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(item.title) || "-"}</p>
+                      <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(item.description) || "-"}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </article>
+          </div>
         </section>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

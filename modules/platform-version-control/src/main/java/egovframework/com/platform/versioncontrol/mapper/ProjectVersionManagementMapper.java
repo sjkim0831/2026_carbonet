@@ -60,6 +60,22 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
         return selectOne(NAMESPACE + ".countCandidateArtifacts", idParam("projectId", projectId));
     }
 
+    public List<Map<String, Object>> selectArtifactLockList(Map<String, Object> params) {
+        return selectList(NAMESPACE + ".selectArtifactLockList", params);
+    }
+
+    public Integer countArtifactLocks(String projectId) {
+        return selectOne(NAMESPACE + ".countArtifactLocks", idParam("projectId", projectId));
+    }
+
+    public List<Map<String, Object>> selectCompatibilityRunList(Map<String, Object> params) {
+        return selectList(NAMESPACE + ".selectCompatibilityRunList", params);
+    }
+
+    public Integer countCompatibilityRuns(String projectId) {
+        return selectOne(NAMESPACE + ".countCompatibilityRuns", idParam("projectId", projectId));
+    }
+
     public Map<String, Object> selectArtifactVersion(Map<String, Object> params) {
         return selectOne(NAMESPACE + ".selectArtifactVersion", params);
     }
@@ -118,6 +134,18 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
 
     public void insertServerDeploymentState(Map<String, Object> params) {
         insert(NAMESPACE + ".insertServerDeploymentState", params);
+    }
+
+    public int deleteArtifactLock(Map<String, Object> params) {
+        return delete(NAMESPACE + ".deleteArtifactLock", params);
+    }
+
+    public void insertArtifactLock(Map<String, Object> params) {
+        insert(NAMESPACE + ".insertArtifactLock", params);
+    }
+
+    public void insertCompatibilityRun(Map<String, Object> params) {
+        insert(NAMESPACE + ".insertCompatibilityRun", params);
     }
 
     public List<Map<String, Object>> selectRecentDeploymentHistory(String projectId) {

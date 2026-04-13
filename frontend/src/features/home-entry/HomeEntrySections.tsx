@@ -128,6 +128,7 @@ export function HeaderMobileMenu({
   en,
   homeMenu,
   isLoggedIn,
+  canEnterAdminConsole = false,
   onClose,
   onLogout
 }: {
@@ -135,6 +136,7 @@ export function HeaderMobileMenu({
   en: boolean;
   homeMenu: HomeMenuItem[];
   isLoggedIn: boolean;
+  canEnterAdminConsole?: boolean;
   onClose: () => void;
   onLogout: () => void | Promise<void>;
 }) {
@@ -149,7 +151,12 @@ export function HeaderMobileMenu({
       <div className="p-4 space-y-4">
         <div className="flex items-center gap-2">
           {isLoggedIn ? (
-            <HomeButton className="flex-1" type="button" onClick={() => void onLogout()} variant="primary">{content.logout}</HomeButton>
+            <>
+              {canEnterAdminConsole ? (
+                <HomeLinkButton className="flex-1" href={buildLocalizedPath("/admin/", "/en/admin/")} variant="secondary">{en ? "Admin Console" : "관리자 콘솔"}</HomeLinkButton>
+              ) : null}
+              <HomeButton className="flex-1" type="button" onClick={() => void onLogout()} variant="primary">{content.logout}</HomeButton>
+            </>
           ) : (
             <>
               <HomeLinkButton className="flex-1" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")} variant="primary">{content.login}</HomeLinkButton>

@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -198,13 +199,19 @@ public class ProjectVersionOpsAutomationService {
         appendJobLog(job, isEn ? "Remote sync/deploy job started." : "원격 동기화/배포 작업을 시작합니다.");
         safeUpdateDeploymentHistory(job, false, isEn);
         Process process = null;
+        Path executionScript = null;
         try {
+            executionScript = Files.createTempFile("carbonet-deploy-221-", ".sh");
+            Files.copy(DEPLOY_SCRIPT, executionScript, StandardCopyOption.REPLACE_EXISTING);
+            executionScript.toFile().setExecutable(true, true);
+
             ProcessBuilder builder = new ProcessBuilder(
                     "bash",
                     "-lc",
-                    "cd " + shellQuote(REPOSITORY_ROOT.toString()) + " && bash " + shellQuote(DEPLOY_SCRIPT.toString()));
+                    "cd " + shellQuote(REPOSITORY_ROOT.toString()) + " && bash " + shellQuote(executionScript.toString()));
             builder.directory(REPOSITORY_ROOT.toFile());
-            appendJobLog(job, (isEn ? "Launching deploy script: " : "배포 스크립트 실행: ") + DEPLOY_SCRIPT);
+            builder.environment().put("PROJECT_ROOT", REPOSITORY_ROOT.toString());
+            appendJobLog(job, (isEn ? "Launching deploy script copy: " : "배포 스크립트 복사본 실행: ") + executionScript);
             process = builder.start();
             ByteArrayOutputStream stdout = new ByteArrayOutputStream();
             ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -235,6 +242,12 @@ public class ProjectVersionOpsAutomationService {
         } finally {
             if (process != null && process.isAlive()) {
                 process.destroyForcibly();
+            }
+            if (executionScript != null) {
+                try {
+                    Files.deleteIfExists(executionScript);
+                } catch (Exception ignored) {
+                }
             }
             job.finishedAt = LocalDateTime.now();
             job.updatedAt = job.finishedAt;

@@ -196,6 +196,39 @@ If a page cannot declare actor family, data scope, action scope, and approval sc
 - builder regeneration
 - cross-project rebinding
 
+## Admin Split Rule
+
+When the current repository still uses one shared admin surface, do not force an immediate visual split.
+
+Prefer this order:
+
+1. classify admin screens into `COMMON_ADMIN_OPS`, `PROJECT_ADMIN`, `COMMON_DEF_PROJECT_BIND`, or `MIXED_TRANSITION`
+2. separate authority scope, API port, route scope, and data scope
+3. keep shared UI shells and component families where that reduces migration risk
+4. separate runtime packaging only after screen ownership and adapter boundaries are explicit
+
+Use `docs/architecture/admin-ops-and-project-admin-separation-plan.md` when the question is specifically:
+
+- can we split later while keeping the same UI now
+- can current admin screens be separated in parallel
+- how to keep project handoff possible while central operations still exists
+
+## Common Jar Runtime Rule
+
+When the near-term goal is "split project runtime now, separate control plane later", prefer this order:
+
+1. split `COMMON_RUNTIME`, `PROJECT_RUNTIME`, and `PROJECT_ADAPTER` first
+2. keep `CONTROL_PLANE` in place temporarily if needed
+3. publish reusable common artifacts as versioned jars or bundles
+4. deploy projects independently while including approved common artifacts
+
+Use `docs/architecture/common-jar-platform-and-project-runtime-plan.md` when the request is specifically about:
+
+- making projects boot by including common jars
+- adding many common framework modules after pre-splitting boundaries
+- keeping project creation and screen addition possible during the transition
+- separating DB ownership before expanding common runtime scope
+
 ## Theme Rule
 
 Do not treat theme as project business code.

@@ -19,6 +19,8 @@ public interface ProjectVersionManagementService {
 
     Map<String, Object> getCandidateArtifacts(ProjectVersionPageRequest request) throws Exception;
 
+    Map<String, Object> getFleetUpgradeGovernance(ProjectVersionPageRequest request) throws Exception;
+
     Map<String, Object> analyzeUpgradeImpact(ProjectUpgradeImpactRequest request) throws Exception;
 
     Map<String, Object> applyUpgrade(ProjectApplyUpgradeRequest request) throws Exception;

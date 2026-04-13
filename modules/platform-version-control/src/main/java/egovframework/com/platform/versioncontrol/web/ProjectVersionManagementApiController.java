@@ -67,6 +67,12 @@ public class ProjectVersionManagementApiController {
         return execute(servletRequest, () -> projectVersionManagementService.getCandidateArtifacts(request));
     }
 
+    @GetMapping("/fleet-governance")
+    public ResponseEntity<Map<String, Object>> getFleetGovernance(HttpServletRequest servletRequest,
+                                                                  @ModelAttribute ProjectVersionPageRequest request) {
+        return execute(servletRequest, () -> projectVersionManagementService.getFleetUpgradeGovernance(request));
+    }
+
     @PostMapping("/upgrade-impact")
     public ResponseEntity<Map<String, Object>> analyzeUpgradeImpact(HttpServletRequest servletRequest,
                                                                     @RequestBody ProjectUpgradeImpactRequest request) {

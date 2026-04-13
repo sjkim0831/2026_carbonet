@@ -236,6 +236,7 @@ Add one more distinction:
 Reference:
 
 - `docs/architecture/stable-adapter-and-common-core-versioning.md`
+- `docs/architecture/fleet-common-upgrade-operating-model.md`
 
 ## eGovFrame Version Separation Rule
 

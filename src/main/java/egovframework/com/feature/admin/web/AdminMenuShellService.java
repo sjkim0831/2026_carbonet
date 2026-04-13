@@ -56,7 +56,9 @@ public class AdminMenuShellService {
     }
 
     public String resolveAdminLoginRedirect(HttpServletRequest request) {
-        return "redirect:" + adminPrefix(request) + "/login/loginView";
+        return "redirect:" + (adminReactRouteSupport.isEnglishRequest(request, null)
+                ? "/en/signin/loginView?console=admin"
+                : "/signin/loginView?console=admin");
     }
 
     private MenuInfoDTO loadMenuByRequestPath(HttpServletRequest request) {

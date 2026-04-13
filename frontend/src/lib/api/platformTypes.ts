@@ -21,12 +21,20 @@ export type ProjectVersionServerStatePayload = {
   serverStateSet?: Array<Record<string, unknown>>;
 };
 
+export type ProjectFleetUpgradeGovernancePayload = {
+  projectId: string;
+  artifactLocks?: ProjectVersionListPayload;
+  compatibilityRuns?: ProjectVersionListPayload;
+  recommendedNextStepSet?: Array<Record<string, unknown>>;
+};
+
 export type ProjectVersionManagementPagePayload = {
   overview: ProjectVersionOverviewPayload;
   adapterHistory: ProjectVersionListPayload;
   releaseUnits: ProjectVersionListPayload;
   serverDeployState: ProjectVersionServerStatePayload;
   candidateArtifacts: ProjectVersionListPayload;
+  fleetGovernance: ProjectFleetUpgradeGovernancePayload;
 };
 
 export type ProjectVersionOpsJobPayload = {

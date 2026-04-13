@@ -916,7 +916,7 @@ export function EmissionManagementMigrationPage() {
       return;
     }
     if (!frontendSession.value.authenticated) {
-      navigate(buildLocalizedPath("/admin/login/loginView", "/en/admin/login/loginView"));
+      navigate(buildLocalizedPath("/signin/loginView?console=admin", "/en/signin/loginView?console=admin"));
     }
   }, [frontendSession.loading, frontendSession.value]);
   const elementRegistrySummary = (page?.elementRegistrySummary || []) as Array<Record<string, string>>;

@@ -1,21 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+resolve_root_dir() {
+  if [[ -n "${PROJECT_ROOT:-}" ]] && [[ -d "${PROJECT_ROOT:-}" ]]; then
+    printf '%s\n' "$PROJECT_ROOT"
+    return 0
+  fi
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local candidate_root
+  candidate_root="$(cd "$script_dir/../.." && pwd)"
+  if [[ -d "$candidate_root/.git" ]] || [[ -f "$candidate_root/pom.xml" ]]; then
+    printf '%s\n' "$candidate_root"
+    return 0
+  fi
+
+  if git_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+    printf '%s\n' "$git_root"
+    return 0
+  fi
+
+  pwd
+}
+
+ROOT_DIR="$(resolve_root_dir)"
 CONFIG_DIR="$ROOT_DIR/ops/config"
 LOG_DIR="$ROOT_DIR/var/logs"
 BACKUP_DIR_DEFAULT="/opt/util/cubrid/11.2/backup/sql"
 BACKUP_DIR_FALLBACK="$ROOT_DIR/var/backups/db-sync"
-BACKUP_DIR="${BACKUP_DIR:-$BACKUP_DIR_DEFAULT}"
+BACKUP_RUN_STAMP="${BACKUP_RUN_STAMP:-$(date '+%Y%m%d-%H%M%S')}"
+RELEASE_ROOT_DIR_DEFAULT="$ROOT_DIR/var/releases"
 TMP_DIR="$ROOT_DIR/var/tmp"
 LOG_FILE="$LOG_DIR/windows-db-sync-push-and-fresh-deploy-221.log"
 JDBC_JAR_DEFAULT="$HOME/.m2/repository/cubrid/cubrid-jdbc/11.2.0.0035/cubrid-jdbc-11.2.0.0035.jar"
 
 mkdir -p "$LOG_DIR" "$TMP_DIR"
-if ! mkdir -p "$BACKUP_DIR" 2>/dev/null; then
-  BACKUP_DIR="$BACKUP_DIR_FALLBACK"
-  mkdir -p "$BACKUP_DIR"
-fi
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 load_optional_env() {
@@ -30,6 +50,18 @@ load_optional_env() {
 
 load_optional_env "$CONFIG_DIR/carbonet-18000.env"
 load_optional_env "$CONFIG_DIR/deploy-automation.env"
+
+BACKUP_ROOT_DIR="${BACKUP_ROOT_DIR:-${BACKUP_DIR:-$BACKUP_DIR_DEFAULT}}"
+BACKUP_RUN_DIR="${BACKUP_RUN_DIR:-$BACKUP_ROOT_DIR/$BACKUP_RUN_STAMP}"
+if ! mkdir -p "$BACKUP_RUN_DIR" 2>/dev/null; then
+  BACKUP_ROOT_DIR="$BACKUP_DIR_FALLBACK"
+  BACKUP_RUN_DIR="$BACKUP_ROOT_DIR/$BACKUP_RUN_STAMP"
+  mkdir -p "$BACKUP_RUN_DIR"
+fi
+BACKUP_DIR="$BACKUP_RUN_DIR"
+RELEASE_ROOT_DIR="${RELEASE_ROOT_DIR:-$RELEASE_ROOT_DIR_DEFAULT}"
+RELEASE_RUN_DIR="${RELEASE_RUN_DIR:-$RELEASE_ROOT_DIR/$BACKUP_RUN_STAMP}"
+mkdir -p "$RELEASE_RUN_DIR"
 
 JDBC_JAR="${JDBC_JAR:-$JDBC_JAR_DEFAULT}"
 LOCAL_DB_HOST="${LOCAL_DB_HOST:-${CUBRID_HOST:-127.0.0.1}}"
@@ -53,7 +85,7 @@ REMOTE_DB_TUNNEL_PORT="${REMOTE_DB_TUNNEL_PORT:-13300}"
 REMOTE_DB_SNAPSHOT_ATTEMPTS="${REMOTE_DB_SNAPSHOT_ATTEMPTS:-3}"
 REMOTE_DB_SNAPSHOT_RETRY_SECONDS="${REMOTE_DB_SNAPSHOT_RETRY_SECONDS:-10}"
 APPLY_MODE="${APPLY_MODE:-sql-files}"
-SQL_FILE_LIST_DEFAULT="$ROOT_DIR/docs/sql/20260409_admin_project_version_management_menu.sql:$ROOT_DIR/docs/sql/project_version_governance_schema.sql:$ROOT_DIR/docs/sql/platform_control_plane_schema.sql"
+SQL_FILE_LIST_DEFAULT="$ROOT_DIR/docs/sql/20260409_admin_project_version_management_menu.sql:$ROOT_DIR/docs/sql/project_version_governance_schema.sql:$ROOT_DIR/docs/sql/20260413_fleet_common_upgrade_governance.sql:$ROOT_DIR/docs/sql/platform_control_plane_schema.sql"
 SQL_FILE_LIST="${SQL_FILE_LIST:-$SQL_FILE_LIST_DEFAULT}"
 
 GITHUB_TOKEN="${GITHUB_TOKEN:-${BACKUP_GIT_AUTH_TOKEN:-}}"
@@ -69,12 +101,33 @@ MAIN_REMOTE_ROOT="${MAIN_REMOTE_ROOT:-/opt/projects/carbonet}"
 MAIN_TARGET="${MAIN_REMOTE_USER}@${MAIN_REMOTE_HOST}"
 REPO_URL="${REPO_URL:-$(git -C "$ROOT_DIR" remote get-url "$GIT_REMOTE_NAME")}"
 
-DB_SNAPSHOT_FILE="$BACKUP_DIR/local-db-snapshot-$(date '+%Y%m%d-%H%M%S').sql"
-REMOTE_DB_SNAPSHOT_FILE_DEFAULT="$BACKUP_DIR/remote-db-before-deploy-$(date '+%Y%m%d-%H%M%S').sql"
+DB_SNAPSHOT_FILE="$BACKUP_DIR/01-local-db-before-deploy-${BACKUP_RUN_STAMP}.sql"
+REMOTE_DB_SNAPSHOT_FILE_DEFAULT="$BACKUP_DIR/02-remote-db-before-deploy-${BACKUP_RUN_STAMP}.sql"
+REMOTE_DB_AFTER_SQL_SNAPSHOT_FILE_DEFAULT="$BACKUP_DIR/03-remote-db-after-sql-${BACKUP_RUN_STAMP}.sql"
+DB_DIFF_LOCAL_TO_REMOTE_FILE_DEFAULT="$BACKUP_DIR/04-schema-diff-local-to-remote-${BACKUP_RUN_STAMP}.sql"
+DB_DIFF_REMOTE_TO_LOCAL_FILE_DEFAULT="$BACKUP_DIR/05-schema-diff-remote-to-local-${BACKUP_RUN_STAMP}.sql"
+DB_DIFF_VERIFY_LOCAL_TO_REMOTE_FILE_DEFAULT="$BACKUP_DIR/06-schema-diff-verify-local-to-remote-${BACKUP_RUN_STAMP}.sql"
+DB_DIFF_VERIFY_REMOTE_TO_LOCAL_FILE_DEFAULT="$BACKUP_DIR/07-schema-diff-verify-remote-to-local-${BACKUP_RUN_STAMP}.sql"
+LOCAL_JAR_ARCHIVE_FILE_DEFAULT="$RELEASE_RUN_DIR/carbonet.jar"
 SNAPSHOT_FILE="${SNAPSHOT_FILE:-$DB_SNAPSHOT_FILE}"
 REMOTE_DB_SNAPSHOT_FILE="${REMOTE_DB_SNAPSHOT_FILE:-$REMOTE_DB_SNAPSHOT_FILE_DEFAULT}"
+REMOTE_DB_AFTER_SQL_SNAPSHOT_FILE="${REMOTE_DB_AFTER_SQL_SNAPSHOT_FILE:-$REMOTE_DB_AFTER_SQL_SNAPSHOT_FILE_DEFAULT}"
+DB_DIFF_LOCAL_TO_REMOTE_FILE="${DB_DIFF_LOCAL_TO_REMOTE_FILE:-$DB_DIFF_LOCAL_TO_REMOTE_FILE_DEFAULT}"
+DB_DIFF_REMOTE_TO_LOCAL_FILE="${DB_DIFF_REMOTE_TO_LOCAL_FILE:-$DB_DIFF_REMOTE_TO_LOCAL_FILE_DEFAULT}"
+DB_DIFF_VERIFY_LOCAL_TO_REMOTE_FILE="${DB_DIFF_VERIFY_LOCAL_TO_REMOTE_FILE:-$DB_DIFF_VERIFY_LOCAL_TO_REMOTE_FILE_DEFAULT}"
+DB_DIFF_VERIFY_REMOTE_TO_LOCAL_FILE="${DB_DIFF_VERIFY_REMOTE_TO_LOCAL_FILE:-$DB_DIFF_VERIFY_REMOTE_TO_LOCAL_FILE_DEFAULT}"
+LOCAL_JAR_ARCHIVE_FILE="${LOCAL_JAR_ARCHIVE_FILE:-$LOCAL_JAR_ARCHIVE_FILE_DEFAULT}"
 SKIP_LOCAL_DB_SNAPSHOT="${SKIP_LOCAL_DB_SNAPSHOT:-false}"
 SKIP_REMOTE_DB_SNAPSHOT="${SKIP_REMOTE_DB_SNAPSHOT:-false}"
+SKIP_REMOTE_DB_AFTER_SQL_SNAPSHOT="${SKIP_REMOTE_DB_AFTER_SQL_SNAPSHOT:-false}"
+SKIP_DB_SCHEMA_DIFF="${SKIP_DB_SCHEMA_DIFF:-false}"
+APPLY_DB_DIFF_TO_REMOTE="${APPLY_DB_DIFF_TO_REMOTE:-true}"
+APPLY_DB_DIFF_TO_LOCAL="${APPLY_DB_DIFF_TO_LOCAL:-true}"
+FORCE_DESTRUCTIVE_DB_DIFF="${FORCE_DESTRUCTIVE_DB_DIFF:-false}"
+DB_DIFF_DROP_POLICY="${DB_DIFF_DROP_POLICY:-archive}"
+FAIL_ON_DB_DIFF_REMAINS="${FAIL_ON_DB_DIFF_REMAINS:-true}"
+FAIL_ON_UNTRACKED_DESTRUCTIVE_DIFF="${FAIL_ON_UNTRACKED_DESTRUCTIVE_DIFF:-false}"
+SKIP_LOCAL_BUILD_PACKAGE="${SKIP_LOCAL_BUILD_PACKAGE:-false}"
 SKIP_GIT_PUSH="${SKIP_GIT_PUSH:-false}"
 SKIP_REMOTE_DEPLOY="${SKIP_REMOTE_DEPLOY:-false}"
 JAVA_TOOL_SRC="$TMP_DIR/CarbonetJdbcSnapshotTool.java"
@@ -175,10 +228,28 @@ public class CarbonetJdbcSnapshotTool {
 
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
-      throw new IllegalArgumentException("Usage: CarbonetJdbcSnapshotTool <dump|run> <file>");
+      throw new IllegalArgumentException("Usage: CarbonetJdbcSnapshotTool <dump|run|diff> <file>");
     }
 
     String mode = args[0];
+    if ("diff".equals(mode)) {
+      if (args.length < 3) {
+        throw new IllegalArgumentException("diff requires <localToRemoteFile> <remoteToLocalFile>");
+      }
+      Class.forName("cubrid.jdbc.driver.CUBRIDDriver");
+      try (Connection local = DriverManager.getConnection(
+             env("CARBONET_LOCAL_DB_URL", "jdbc:cubrid:127.0.0.1:33000:carbonet:::?charset=UTF-8"),
+             env("CARBONET_LOCAL_DB_USER", "dba"),
+             env("CARBONET_LOCAL_DB_PASSWORD", ""));
+           Connection remote = DriverManager.getConnection(
+             env("CARBONET_REMOTE_DB_URL", "jdbc:cubrid:127.0.0.1:13300:carbonet:::?charset=UTF-8"),
+             env("CARBONET_REMOTE_DB_USER", "dba"),
+             env("CARBONET_REMOTE_DB_PASSWORD", ""))) {
+        diffDatabases(local, remote, Path.of(args[1]), Path.of(args[2]));
+      }
+      return;
+    }
+
     Path file = Path.of(args[1]);
     String url = env("CARBONET_DB_URL", "jdbc:cubrid:127.0.0.1:33000:carbonet:::?charset=UTF-8");
     String user = env("CARBONET_DB_USER", "dba");
@@ -204,6 +275,18 @@ public class CarbonetJdbcSnapshotTool {
       }
       if ("run".equals(mode)) {
         runSqlFile(connection, file);
+        return;
+      }
+      if ("ensure-history".equals(mode)) {
+        ensurePatchHistoryTable(connection);
+        return;
+      }
+      if ("record-patch".equals(mode)) {
+        if (args.length < 9) {
+          throw new IllegalArgumentException("record-patch requires <file> <patchId> <patchName> <sourceEnv> <targetEnv> <direction> <riskLevel> <status>");
+        }
+        ensurePatchHistoryTable(connection);
+        recordPatchHistory(connection, args[2], args[3], args[4], args[5], args[6], args[7], args[8], file);
         return;
       }
       throw new IllegalArgumentException("Unsupported mode: " + mode);
@@ -302,6 +385,730 @@ public class CarbonetJdbcSnapshotTool {
       }
     }
     return false;
+  }
+
+  private static void ensurePatchHistoryTable(Connection connection) throws SQLException {
+    if (tableExists(connection, "DB_PATCH_HISTORY")) {
+      return;
+    }
+    try (Statement statement = connection.createStatement()) {
+      statement.execute(
+          "CREATE TABLE DB_PATCH_HISTORY ("
+              + "PATCH_ID VARCHAR(120) PRIMARY KEY, "
+              + "PATCH_NAME VARCHAR(300), "
+              + "SOURCE_ENV VARCHAR(40), "
+              + "TARGET_ENV VARCHAR(40), "
+              + "PATCH_DIRECTION VARCHAR(40), "
+              + "RISK_LEVEL VARCHAR(40), "
+              + "STATUS VARCHAR(40), "
+              + "SQL_FILE_PATH VARCHAR(500), "
+              + "SQL_PREVIEW VARCHAR(4000), "
+              + "CHECKSUM VARCHAR(128), "
+              + "APPLIED_AT DATETIME, "
+              + "APPLIED_BY VARCHAR(80), "
+              + "RESULT_MESSAGE VARCHAR(4000), "
+              + "CREATED_AT DATETIME"
+              + ")"
+      );
+    }
+    System.out.println("[CarbonetJdbcSnapshotTool] DB_PATCH_HISTORY created");
+  }
+
+  private static void recordPatchHistory(
+      Connection connection,
+      String patchId,
+      String patchName,
+      String sourceEnv,
+      String targetEnv,
+      String direction,
+      String riskLevel,
+      String status,
+      Path sqlFile
+  ) throws Exception {
+    String sqlText = Files.exists(sqlFile) ? Files.readString(sqlFile) : "";
+    String checksum = sha256(sqlText);
+    String sqlPreview = sqlText.length() > 3800 ? sqlText.substring(0, 3800) : sqlText;
+    String sqlFilePath = sqlFile.toAbsolutePath().toString();
+    if (patchHistoryExists(connection, patchId)) {
+      try (PreparedStatement ps = connection.prepareStatement(
+          "UPDATE DB_PATCH_HISTORY "
+              + "SET STATUS=?, SQL_FILE_PATH=?, SQL_PREVIEW=?, CHECKSUM=?, APPLIED_AT=CURRENT_DATETIME, RESULT_MESSAGE=? "
+              + "WHERE PATCH_ID=?")) {
+        ps.setString(1, status);
+        ps.setString(2, sqlFilePath);
+        ps.setString(3, sqlPreview);
+        ps.setString(4, checksum);
+        ps.setString(5, "patch history updated by deploy script");
+        ps.setString(6, patchId);
+        ps.executeUpdate();
+      }
+      return;
+    }
+    try (PreparedStatement ps = connection.prepareStatement(
+        "INSERT INTO DB_PATCH_HISTORY ("
+            + "PATCH_ID, PATCH_NAME, SOURCE_ENV, TARGET_ENV, PATCH_DIRECTION, RISK_LEVEL, STATUS, "
+            + "SQL_FILE_PATH, SQL_PREVIEW, CHECKSUM, APPLIED_AT, APPLIED_BY, RESULT_MESSAGE, CREATED_AT"
+            + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_DATETIME, ?, ?, CURRENT_DATETIME)")) {
+      ps.setString(1, patchId);
+      ps.setString(2, patchName);
+      ps.setString(3, sourceEnv);
+      ps.setString(4, targetEnv);
+      ps.setString(5, direction);
+      ps.setString(6, riskLevel);
+      ps.setString(7, status);
+      ps.setString(8, sqlFilePath);
+      ps.setString(9, sqlPreview);
+      ps.setString(10, checksum);
+      ps.setString(11, env("DB_PATCH_APPLIED_BY", "deploy-script"));
+      ps.setString(12, "patch history recorded by deploy script");
+      ps.executeUpdate();
+    }
+  }
+
+  private static boolean patchHistoryExists(Connection connection, String patchId) throws SQLException {
+    try (PreparedStatement ps = connection.prepareStatement(
+        "SELECT PATCH_ID FROM DB_PATCH_HISTORY WHERE PATCH_ID = ?")) {
+      ps.setString(1, patchId);
+      try (ResultSet rs = ps.executeQuery()) {
+        return rs.next();
+      }
+    }
+  }
+
+  private static String sha256(String text) throws Exception {
+    java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+    byte[] hash = digest.digest((text == null ? "" : text).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    StringBuilder result = new StringBuilder();
+    for (byte b : hash) {
+      result.append(String.format("%02x", b));
+    }
+    return result.toString();
+  }
+
+  private static void diffDatabases(Connection local, Connection remote, Path localToRemoteFile, Path remoteToLocalFile) throws Exception {
+    Map<String, TableInfo> localTables = loadTableInfo(local);
+    Map<String, TableInfo> remoteTables = loadTableInfo(remote);
+    writeSchemaPatch(localTables, remoteTables, localToRemoteFile, "local", "remote");
+    writeSchemaPatch(remoteTables, localTables, remoteToLocalFile, "remote", "local");
+    System.out.println("[CarbonetJdbcSnapshotTool] schema diff complete localToRemote=" + localToRemoteFile);
+    System.out.println("[CarbonetJdbcSnapshotTool] schema diff complete remoteToLocal=" + remoteToLocalFile);
+  }
+
+  private static Map<String, TableInfo> loadTableInfo(Connection connection) throws SQLException {
+    Map<String, TableInfo> tables = new LinkedHashMap<>();
+    for (String tableName : loadUserTables(connection)) {
+      TableInfo table = new TableInfo(tableName);
+      DatabaseMetaData meta = connection.getMetaData();
+      try (ResultSet rs = meta.getColumns(null, null, tableName, "%")) {
+        while (rs.next()) {
+          ColumnInfo column = new ColumnInfo();
+          column.name = rs.getString("COLUMN_NAME");
+          column.typeName = rs.getString("TYPE_NAME");
+          column.size = rs.getInt("COLUMN_SIZE");
+          column.scale = rs.getInt("DECIMAL_DIGITS");
+          column.nullable = rs.getInt("NULLABLE");
+          column.defaultValue = rs.getString("COLUMN_DEF");
+          column.sampleValues = sampleColumnValues(connection, tableName, column.name);
+          table.columns.put(column.name.toLowerCase(Locale.ROOT), column);
+        }
+      }
+      try (ResultSet rs = meta.getIndexInfo(null, null, tableName, false, false)) {
+        while (rs.next()) {
+          String indexName = rs.getString("INDEX_NAME");
+          String columnName = rs.getString("COLUMN_NAME");
+          if (indexName == null || indexName.isBlank() || columnName == null || columnName.isBlank()) {
+            continue;
+          }
+          String lowerIndexName = indexName.toLowerCase(Locale.ROOT);
+          if (lowerIndexName.startsWith("pk_") || lowerIndexName.startsWith("fk_")) {
+            continue;
+          }
+          IndexInfo index = table.indexes.computeIfAbsent(lowerIndexName, key -> {
+            IndexInfo created = new IndexInfo();
+            created.name = indexName;
+            try {
+              created.unique = !rs.getBoolean("NON_UNIQUE");
+            } catch (Exception ignored) {
+              created.unique = false;
+            }
+            return created;
+          });
+          index.columns.add(columnName);
+        }
+      }
+      tables.put(tableName.toLowerCase(Locale.ROOT), table);
+    }
+    return tables;
+  }
+
+  private static List<String> sampleColumnValues(Connection connection, String tableName, String columnName) {
+    int sampleLimit = parseInt(env("DB_DIFF_SAMPLE_LIMIT", "20"), 20);
+    if (sampleLimit <= 0) {
+      return new ArrayList<>();
+    }
+    List<String> values = new ArrayList<>();
+    String sql = "SELECT " + quoteIdentifier(columnName)
+        + " FROM " + quoteIdentifier(tableName)
+        + " WHERE " + quoteIdentifier(columnName) + " IS NOT NULL LIMIT " + sampleLimit;
+    try (Statement statement = connection.createStatement();
+         ResultSet rs = statement.executeQuery(sql)) {
+      while (rs.next()) {
+        values.add(normalizeSampleValue(rs.getObject(1)));
+      }
+    } catch (Exception ignored) {
+      return new ArrayList<>();
+    }
+    values.sort(Comparator.naturalOrder());
+    return values;
+  }
+
+  private static int parseInt(String value, int fallback) {
+    try {
+      return Integer.parseInt(value);
+    } catch (Exception ignored) {
+      return fallback;
+    }
+  }
+
+  private static String normalizeSampleValue(Object value) {
+    if (value == null) {
+      return "";
+    }
+    String text = String.valueOf(value).trim();
+    if (text.length() > 120) {
+      text = text.substring(0, 120);
+    }
+    return text.toLowerCase(Locale.ROOT);
+  }
+
+  private static void writeSchemaPatch(
+      Map<String, TableInfo> sourceTables,
+      Map<String, TableInfo> targetTables,
+      Path file,
+      String sourceName,
+      String targetName
+  ) throws Exception {
+    boolean forceDestructive = isTruthy(env("FORCE_DESTRUCTIVE_DB_DIFF", "false"));
+    String dropPolicy = env("DB_DIFF_DROP_POLICY", "archive").trim().toLowerCase(Locale.ROOT);
+    boolean archiveDrops = !"drop".equals(dropPolicy);
+    String archiveSuffix = "_arch_" + env("BACKUP_RUN_STAMP", "run").replaceAll("[^A-Za-z0-9]", "");
+    int statementCount = 0;
+    try (BufferedWriter writer = Files.newBufferedWriter(file)) {
+      writer.write("-- Carbonet DatabaseMetaData schema diff\n");
+      writer.write("-- generatedAt=" + LocalDateTime.now() + "\n");
+      writer.write("-- source=" + sourceName + "\n");
+      writer.write("-- target=" + targetName + "\n");
+      writer.write("-- policy=" + (forceDestructive
+          ? "FORCE_DESTRUCTIVE auto patch; creates, modifies, and drops schema objects"
+          : "auto-applied additive schema patch; non-additive differences are emitted as REVIEW comments") + "\n");
+      writer.write("-- dropPolicy=" + (archiveDrops ? "archive-before-drop" : "drop") + "\n");
+      writer.write("-- excludedTables=" + EXCLUDED_DUMP_TABLES + "\n\n");
+
+      Map<String, String> renameSourceToTargetTable = forceDestructive
+          ? detectTableRenameCandidates(sourceTables, targetTables)
+          : new LinkedHashMap<>();
+      Set<String> renamedSourceTables = new LinkedHashSet<>(renameSourceToTargetTable.keySet());
+      Set<String> renamedTargetTables = new LinkedHashSet<>(renameSourceToTargetTable.values());
+      for (Map.Entry<String, String> rename : renameSourceToTargetTable.entrySet()) {
+        TableInfo sourceTable = sourceTables.get(rename.getKey());
+        TableInfo targetTable = targetTables.get(rename.getValue());
+        if (sourceTable == null || targetTable == null) {
+          continue;
+        }
+        writer.write("-- FORCE rename table selected by metadata/sample comparison: "
+            + targetTable.name + " -> " + sourceTable.name + "\n");
+        writer.write("RENAME TABLE " + quoteIdentifier(targetTable.name)
+            + " AS " + quoteIdentifier(sourceTable.name) + ";\n\n");
+        statementCount++;
+      }
+
+      for (TableInfo sourceTable : sourceTables.values()) {
+        String sourceTableKey = sourceTable.name.toLowerCase(Locale.ROOT);
+        TableInfo targetTable = renamedSourceTables.contains(sourceTableKey)
+            ? targetTables.get(renameSourceToTargetTable.get(sourceTableKey))
+            : targetTables.get(sourceTableKey);
+        if (targetTable == null) {
+          writer.write("-- missing table on " + targetName + ": " + sourceTable.name + "\n");
+          writer.write("CREATE TABLE " + quoteIdentifier(sourceTable.name) + " (\n");
+          int index = 0;
+          for (ColumnInfo column : sourceTable.columns.values()) {
+            writer.write("    " + columnDefinition(column));
+            index++;
+            writer.write(index < sourceTable.columns.size() ? ",\n" : "\n");
+          }
+          writer.write(");\n\n");
+          statementCount++;
+          continue;
+        }
+
+        Map<String, String> renameSourceToTarget = forceDestructive
+            ? detectColumnRenameCandidates(sourceTable, targetTable)
+            : new LinkedHashMap<>();
+        Set<String> renamedSourceColumns = new LinkedHashSet<>(renameSourceToTarget.keySet());
+        Set<String> renamedTargetColumns = new LinkedHashSet<>(renameSourceToTarget.values());
+        for (Map.Entry<String, String> rename : renameSourceToTarget.entrySet()) {
+          ColumnInfo sourceColumn = sourceTable.columns.get(rename.getKey());
+          ColumnInfo targetColumn = targetTable.columns.get(rename.getValue());
+          if (sourceColumn == null || targetColumn == null) {
+            continue;
+          }
+          writer.write("-- FORCE rename column selected by metadata/sample comparison: "
+              + targetTable.name + "." + targetColumn.name + " -> " + sourceColumn.name + "\n");
+          writer.write("-- sourceSample=" + sourceColumn.sampleValues + "\n");
+          writer.write("-- targetSample=" + targetColumn.sampleValues + "\n");
+          writer.write("ALTER TABLE " + quoteIdentifier(targetTable.name)
+              + " RENAME COLUMN " + quoteIdentifier(targetColumn.name)
+              + " AS " + quoteIdentifier(sourceColumn.name) + ";\n");
+          if (!sameColumnShape(sourceColumn, targetColumn)) {
+            if (isUnsupportedCubridDomainChange(sourceColumn, targetColumn)) {
+              writer.write("-- REVIEW unsupported CUBRID domain change after rename: "
+                  + sourceTable.name + "." + sourceColumn.name + "\n");
+              writer.write("-- " + sourceName + ": " + columnDefinition(sourceColumn) + "\n");
+              writer.write("-- " + targetName + ": " + columnDefinition(targetColumn) + "\n");
+              writer.write("-- manual migration required because CUBRID cannot change this attribute domain in place\n");
+            } else {
+              writer.write("ALTER TABLE " + quoteIdentifier(targetTable.name)
+                  + " MODIFY COLUMN " + columnDefinition(sourceColumn) + ";\n");
+            }
+          }
+          writer.write("\n");
+          statementCount++;
+        }
+
+        for (ColumnInfo sourceColumn : sourceTable.columns.values()) {
+          if (renamedSourceColumns.contains(sourceColumn.name.toLowerCase(Locale.ROOT))) {
+            continue;
+          }
+          ColumnInfo targetColumn = targetTable.columns.get(sourceColumn.name.toLowerCase(Locale.ROOT));
+          if (targetColumn == null) {
+            writer.write("-- missing column on " + targetName + ": " + sourceTable.name + "." + sourceColumn.name + "\n");
+            writer.write("ALTER TABLE " + quoteIdentifier(sourceTable.name)
+                + " ADD COLUMN " + columnDefinition(sourceColumn) + ";\n\n");
+            statementCount++;
+            continue;
+          }
+          if (!sameColumnShape(sourceColumn, targetColumn)) {
+            if (forceDestructive) {
+              if (isUnsupportedCubridDomainChange(sourceColumn, targetColumn)) {
+                writer.write("-- REVIEW unsupported CUBRID domain change " + sourceTable.name + "." + sourceColumn.name + "\n");
+                writer.write("-- " + sourceName + ": " + columnDefinition(sourceColumn) + "\n");
+                writer.write("-- " + targetName + ": " + columnDefinition(targetColumn) + "\n");
+                writer.write("-- manual migration required because CUBRID cannot change this attribute domain in place\n\n");
+              } else {
+                writer.write("-- FORCE column differs " + sourceTable.name + "." + sourceColumn.name + "\n");
+                writer.write("-- " + sourceName + ": " + columnDefinition(sourceColumn) + "\n");
+                writer.write("-- " + targetName + ": " + columnDefinition(targetColumn) + "\n");
+                writer.write("ALTER TABLE " + quoteIdentifier(sourceTable.name)
+                    + " MODIFY COLUMN " + columnDefinition(sourceColumn) + ";\n\n");
+                statementCount++;
+              }
+            } else {
+              writer.write("-- REVIEW column differs " + sourceTable.name + "." + sourceColumn.name + "\n");
+              writer.write("-- " + sourceName + ": " + columnDefinition(sourceColumn) + "\n");
+              writer.write("-- " + targetName + ": " + columnDefinition(targetColumn) + "\n\n");
+            }
+          }
+        }
+
+        if (forceDestructive) {
+          for (ColumnInfo targetColumn : targetTable.columns.values()) {
+            if (renamedTargetColumns.contains(targetColumn.name.toLowerCase(Locale.ROOT))) {
+              continue;
+            }
+            if (sourceTable.columns.containsKey(targetColumn.name.toLowerCase(Locale.ROOT))) {
+              continue;
+            }
+            writer.write("-- FORCE drop column absent from " + sourceName + ": "
+                + targetTable.name + "." + targetColumn.name + "\n");
+            if (archiveDrops) {
+              String archiveColumnName = archiveName(targetColumn.name, archiveSuffix);
+              writer.write("ALTER TABLE " + quoteIdentifier(targetTable.name)
+                  + " RENAME COLUMN " + quoteIdentifier(targetColumn.name)
+                  + " AS " + quoteIdentifier(archiveColumnName) + ";\n\n");
+            } else {
+              writer.write("ALTER TABLE " + quoteIdentifier(targetTable.name)
+                  + " DROP COLUMN " + quoteIdentifier(targetColumn.name) + ";\n\n");
+            }
+            statementCount++;
+          }
+        }
+
+        for (IndexInfo sourceIndex : sourceTable.indexes.values()) {
+          IndexInfo targetIndex = targetTable.indexes.get(sourceIndex.name.toLowerCase(Locale.ROOT));
+          if (targetIndex == null) {
+            writer.write("-- missing index on " + targetName + ": " + sourceTable.name + "." + sourceIndex.name + "\n");
+            writer.write(addIndexStatement(sourceTable.name, sourceIndex) + "\n\n");
+            statementCount++;
+            continue;
+          }
+          if (forceDestructive && !sameIndexShape(sourceIndex, targetIndex)) {
+            writer.write("-- FORCE replace index differs " + sourceTable.name + "." + sourceIndex.name + "\n");
+            writer.write(dropIndexStatement(sourceTable.name, targetIndex) + "\n");
+            writer.write(addIndexStatement(sourceTable.name, sourceIndex) + "\n\n");
+            statementCount += 2;
+          }
+        }
+
+        if (forceDestructive) {
+          for (IndexInfo targetIndex : targetTable.indexes.values()) {
+            if (sourceTable.indexes.containsKey(targetIndex.name.toLowerCase(Locale.ROOT))) {
+              continue;
+            }
+            writer.write("-- FORCE drop index absent from " + sourceName + ": "
+                + targetTable.name + "." + targetIndex.name + "\n");
+            writer.write(dropIndexStatement(targetTable.name, targetIndex) + "\n\n");
+            statementCount++;
+          }
+        }
+      }
+
+      if (forceDestructive) {
+        List<TableInfo> extraTargetTables = new ArrayList<>();
+        for (TableInfo targetTable : targetTables.values()) {
+          if (renamedTargetTables.contains(targetTable.name.toLowerCase(Locale.ROOT))) {
+            continue;
+          }
+          if (!sourceTables.containsKey(targetTable.name.toLowerCase(Locale.ROOT))) {
+            extraTargetTables.add(targetTable);
+          }
+        }
+        extraTargetTables.sort((left, right) -> right.name.compareToIgnoreCase(left.name));
+        for (TableInfo targetTable : extraTargetTables) {
+          writer.write("-- FORCE drop table absent from " + sourceName + ": " + targetTable.name + "\n");
+          if (archiveDrops) {
+            writer.write("RENAME TABLE " + quoteIdentifier(targetTable.name)
+                + " AS " + quoteIdentifier(archiveName(targetTable.name, archiveSuffix)) + ";\n\n");
+          } else {
+            writer.write("DROP TABLE IF EXISTS " + quoteIdentifier(targetTable.name) + " CASCADE CONSTRAINTS;\n\n");
+          }
+          statementCount++;
+        }
+      }
+
+      writer.write("-- statementCount=" + statementCount + "\n");
+    }
+  }
+
+  private static boolean isTruthy(String value) {
+    if (value == null) {
+      return false;
+    }
+    String normalized = value.trim().toLowerCase(Locale.ROOT);
+    return "true".equals(normalized) || "1".equals(normalized) || "y".equals(normalized) || "yes".equals(normalized);
+  }
+
+  private static String archiveName(String originalName, String suffix) {
+    String safe = originalName == null || originalName.isBlank() ? "archived" : originalName.trim();
+    int maxBaseLength = Math.max(1, 240 - suffix.length());
+    if (safe.length() > maxBaseLength) {
+      safe = safe.substring(0, maxBaseLength);
+    }
+    return safe + suffix;
+  }
+
+  private static Map<String, String> detectColumnRenameCandidates(TableInfo sourceTable, TableInfo targetTable) {
+    Map<String, String> matches = new LinkedHashMap<>();
+    List<ColumnInfo> missingInTarget = new ArrayList<>();
+    List<ColumnInfo> extraInTarget = new ArrayList<>();
+    for (ColumnInfo sourceColumn : sourceTable.columns.values()) {
+      if (!targetTable.columns.containsKey(sourceColumn.name.toLowerCase(Locale.ROOT))) {
+        missingInTarget.add(sourceColumn);
+      }
+    }
+    for (ColumnInfo targetColumn : targetTable.columns.values()) {
+      if (!sourceTable.columns.containsKey(targetColumn.name.toLowerCase(Locale.ROOT))) {
+        extraInTarget.add(targetColumn);
+      }
+    }
+
+    Set<String> usedTargetColumns = new HashSet<>();
+    for (ColumnInfo sourceColumn : missingInTarget) {
+      ColumnInfo bestTarget = null;
+      int bestScore = 0;
+      for (ColumnInfo targetColumn : extraInTarget) {
+        String targetKey = targetColumn.name.toLowerCase(Locale.ROOT);
+        if (usedTargetColumns.contains(targetKey)) {
+          continue;
+        }
+        int score = renameScore(sourceColumn, targetColumn);
+        if (score > bestScore) {
+          bestScore = score;
+          bestTarget = targetColumn;
+        }
+      }
+      if (bestTarget != null && bestScore >= 80) {
+        String sourceKey = sourceColumn.name.toLowerCase(Locale.ROOT);
+        String targetKey = bestTarget.name.toLowerCase(Locale.ROOT);
+        matches.put(sourceKey, targetKey);
+        usedTargetColumns.add(targetKey);
+      }
+    }
+    return matches;
+  }
+
+  private static Map<String, String> detectTableRenameCandidates(
+      Map<String, TableInfo> sourceTables,
+      Map<String, TableInfo> targetTables
+  ) {
+    Map<String, String> matches = new LinkedHashMap<>();
+    List<TableInfo> missingInTarget = new ArrayList<>();
+    List<TableInfo> extraInTarget = new ArrayList<>();
+    for (Map.Entry<String, TableInfo> sourceEntry : sourceTables.entrySet()) {
+      if (!targetTables.containsKey(sourceEntry.getKey())) {
+        missingInTarget.add(sourceEntry.getValue());
+      }
+    }
+    for (Map.Entry<String, TableInfo> targetEntry : targetTables.entrySet()) {
+      if (!sourceTables.containsKey(targetEntry.getKey())) {
+        extraInTarget.add(targetEntry.getValue());
+      }
+    }
+
+    Set<String> usedTargetTables = new HashSet<>();
+    for (TableInfo sourceTable : missingInTarget) {
+      TableInfo bestTarget = null;
+      int bestScore = 0;
+      for (TableInfo targetTable : extraInTarget) {
+        String targetKey = targetTable.name.toLowerCase(Locale.ROOT);
+        if (usedTargetTables.contains(targetKey)) {
+          continue;
+        }
+        int score = tableRenameScore(sourceTable, targetTable);
+        if (score > bestScore) {
+          bestScore = score;
+          bestTarget = targetTable;
+        }
+      }
+      if (bestTarget != null && bestScore >= 90) {
+        String sourceKey = sourceTable.name.toLowerCase(Locale.ROOT);
+        String targetKey = bestTarget.name.toLowerCase(Locale.ROOT);
+        matches.put(sourceKey, targetKey);
+        usedTargetTables.add(targetKey);
+      }
+    }
+    return matches;
+  }
+
+  private static int tableRenameScore(TableInfo sourceTable, TableInfo targetTable) {
+    int score = nameSimilarityScore(sourceTable.name, targetTable.name);
+    int sourceColumnCount = Math.max(1, sourceTable.columns.size());
+    int matchedShape = 0;
+    int matchedSamples = 0;
+    for (ColumnInfo sourceColumn : sourceTable.columns.values()) {
+      ColumnInfo targetColumn = targetTable.columns.get(sourceColumn.name.toLowerCase(Locale.ROOT));
+      if (targetColumn == null) {
+        continue;
+      }
+      if (sameColumnShape(sourceColumn, targetColumn)) {
+        matchedShape++;
+      }
+      if (sampleSimilarityScore(sourceColumn.sampleValues, targetColumn.sampleValues) >= 25) {
+        matchedSamples++;
+      }
+    }
+    score += (int) Math.round(((double) matchedShape / (double) sourceColumnCount) * 55.0d);
+    score += (int) Math.round(((double) matchedSamples / (double) sourceColumnCount) * 25.0d);
+    return score;
+  }
+
+  private static int renameScore(ColumnInfo sourceColumn, ColumnInfo targetColumn) {
+    int score = 0;
+    if (sameColumnShape(sourceColumn, targetColumn)) {
+      score += 45;
+    } else if (Objects.equals(normalize(sourceColumn.typeName), normalize(targetColumn.typeName))) {
+      score += 25;
+    }
+    score += nameSimilarityScore(sourceColumn.name, targetColumn.name);
+    score += sampleSimilarityScore(sourceColumn.sampleValues, targetColumn.sampleValues);
+    return score;
+  }
+
+  private static int nameSimilarityScore(String left, String right) {
+    String normalizedLeft = normalizeIdentifierForMatch(left);
+    String normalizedRight = normalizeIdentifierForMatch(right);
+    if (normalizedLeft.equals(normalizedRight)) {
+      return 30;
+    }
+    if (normalizedLeft.contains(normalizedRight) || normalizedRight.contains(normalizedLeft)) {
+      return 20;
+    }
+    int commonPrefix = 0;
+    int max = Math.min(normalizedLeft.length(), normalizedRight.length());
+    while (commonPrefix < max && normalizedLeft.charAt(commonPrefix) == normalizedRight.charAt(commonPrefix)) {
+      commonPrefix++;
+    }
+    return commonPrefix >= 4 ? 10 : 0;
+  }
+
+  private static String normalizeIdentifierForMatch(String value) {
+    return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+  }
+
+  private static int sampleSimilarityScore(List<String> left, List<String> right) {
+    if (left == null || right == null || left.isEmpty() || right.isEmpty()) {
+      return 0;
+    }
+    Set<String> leftSet = new HashSet<>(left);
+    Set<String> rightSet = new HashSet<>(right);
+    int intersection = 0;
+    for (String value : leftSet) {
+      if (rightSet.contains(value)) {
+        intersection++;
+      }
+    }
+    int denominator = Math.max(leftSet.size(), rightSet.size());
+    if (denominator == 0) {
+      return 0;
+    }
+    double ratio = (double) intersection / (double) denominator;
+    if (ratio >= 0.9d) {
+      return 35;
+    }
+    if (ratio >= 0.6d) {
+      return 25;
+    }
+    if (ratio >= 0.3d) {
+      return 10;
+    }
+    return 0;
+  }
+
+  private static String columnDefinition(ColumnInfo column) {
+    StringBuilder sql = new StringBuilder();
+    sql.append(quoteIdentifier(column.name)).append(' ').append(renderColumnType(column));
+    if (column.nullable == DatabaseMetaData.columnNoNulls) {
+      sql.append(" NOT NULL");
+    }
+    String normalizedDefault = normalizeDefault(column.defaultValue);
+    if (column.defaultValue != null
+        && !column.defaultValue.isBlank()
+        && !"null".equals(normalizedDefault)) {
+      sql.append(" DEFAULT ").append(column.defaultValue.trim());
+    }
+    return sql.toString();
+  }
+
+  private static String renderColumnType(ColumnInfo column) {
+    String typeName = column.typeName == null || column.typeName.isBlank() ? "VARCHAR" : column.typeName.trim();
+    String lower = typeName.toLowerCase(Locale.ROOT);
+    if (lower.contains("char") || lower.contains("bit") || lower.contains("numeric") || lower.contains("decimal")) {
+      if (column.size > 0 && column.scale > 0 && (lower.contains("numeric") || lower.contains("decimal"))) {
+        return typeName + "(" + column.size + "," + column.scale + ")";
+      }
+      if (column.size > 0) {
+        return typeName + "(" + column.size + ")";
+      }
+    }
+    return typeName;
+  }
+
+  private static boolean sameColumnShape(ColumnInfo left, ColumnInfo right) {
+    return Objects.equals(normalize(left.typeName), normalize(right.typeName))
+        && left.size == right.size
+        && left.scale == right.scale
+        && left.nullable == right.nullable
+        && Objects.equals(normalizeDefault(left.defaultValue), normalizeDefault(right.defaultValue));
+  }
+
+  private static boolean sameIndexShape(IndexInfo left, IndexInfo right) {
+    return left.unique == right.unique
+        && normalizeList(left.columns).equals(normalizeList(right.columns));
+  }
+
+  private static boolean isUnsupportedCubridDomainChange(ColumnInfo sourceColumn, ColumnInfo targetColumn) {
+    String sourceType = normalize(sourceColumn.typeName);
+    String targetType = normalize(targetColumn.typeName);
+    if (sourceType.equals(targetType)) {
+      return false;
+    }
+    return (isLobType(sourceType) && isTextualType(targetType))
+        || (isLobType(targetType) && isTextualType(sourceType));
+  }
+
+  private static boolean isLobType(String typeName) {
+    return typeName.contains("clob") || typeName.contains("blob");
+  }
+
+  private static boolean isTextualType(String typeName) {
+    return typeName.contains("char")
+        || typeName.contains("string")
+        || typeName.contains("text")
+        || typeName.contains("varchar");
+  }
+
+  private static List<String> normalizeList(List<String> values) {
+    List<String> normalized = new ArrayList<>();
+    if (values == null) {
+      return normalized;
+    }
+    for (String value : values) {
+      normalized.add(normalize(value));
+    }
+    return normalized;
+  }
+
+  private static String quoteIdentifierList(List<String> values) {
+    List<String> quoted = new ArrayList<>();
+    if (values != null) {
+      for (String value : values) {
+        quoted.add(quoteIdentifier(value));
+      }
+    }
+    return String.join(", ", quoted);
+  }
+
+  private static String addIndexStatement(String tableName, IndexInfo index) {
+    if (index.unique) {
+      return "ALTER TABLE " + quoteIdentifier(tableName)
+          + " ADD CONSTRAINT " + quoteIdentifier(index.name)
+          + " UNIQUE (" + quoteIdentifierList(index.columns) + ");";
+    }
+    return "ALTER TABLE " + quoteIdentifier(tableName)
+        + " ADD INDEX " + quoteIdentifier(index.name)
+        + " (" + quoteIdentifierList(index.columns) + ");";
+  }
+
+  private static String dropIndexStatement(String tableName, IndexInfo index) {
+    if (index.unique) {
+      return "ALTER TABLE " + quoteIdentifier(tableName)
+          + " DROP CONSTRAINT " + quoteIdentifier(index.name) + ";";
+    }
+    return "ALTER TABLE " + quoteIdentifier(tableName)
+        + " DROP INDEX " + quoteIdentifier(index.name) + ";";
+  }
+
+  private static String normalize(String value) {
+    return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+  }
+
+  private static String normalizeDefault(String value) {
+    return value == null ? "" : value.trim().replace("'", "").toLowerCase(Locale.ROOT);
+  }
+
+  private static final class TableInfo {
+    final String name;
+    final Map<String, ColumnInfo> columns = new LinkedHashMap<>();
+    final Map<String, IndexInfo> indexes = new LinkedHashMap<>();
+
+    TableInfo(String name) {
+      this.name = name;
+    }
+  }
+
+  private static final class ColumnInfo {
+    String name;
+    String typeName;
+    int size;
+    int scale;
+    int nullable;
+    String defaultValue;
+    List<String> sampleValues = new ArrayList<>();
+  }
+
+  private static final class IndexInfo {
+    String name;
+    boolean unique;
+    List<String> columns = new ArrayList<>();
   }
 
   private static Map<String, Set<String>> loadDependencies(Connection connection, List<String> tables) throws SQLException {
@@ -442,7 +1249,15 @@ public class CarbonetJdbcSnapshotTool {
   }
 
   private static String quoteIdentifier(String value) {
-    return "\"" + value.replace("\"", "\"\"") + "\"";
+    if (value == null) {
+      return "\"\"";
+    }
+    String[] parts = value.split("\\.");
+    List<String> quotedParts = new ArrayList<>();
+    for (String part : parts) {
+      quotedParts.add("\"" + part.replace("\"", "\"\"") + "\"");
+    }
+    return String.join(".", quotedParts);
   }
 
   private static void runSqlFile(Connection connection, Path file) throws Exception {
@@ -563,12 +1378,53 @@ run_java_tool() {
   local db_user="$3"
   local db_password="$4"
   local file_path="$5"
-  local extra_arg="${6:-}"
+  shift 5
 
   CARBONET_DB_URL="$db_url" \
   CARBONET_DB_USER="$db_user" \
   CARBONET_DB_PASSWORD="$db_password" \
-    java -cp "$TMP_DIR:$JDBC_JAR" CarbonetJdbcSnapshotTool "$mode" "$file_path" ${extra_arg:+"$extra_arg"}
+    java -cp "$TMP_DIR:$JDBC_JAR" CarbonetJdbcSnapshotTool "$mode" "$file_path" "$@"
+}
+
+ensure_patch_history() {
+  local db_url="$1"
+  local db_user="$2"
+  local db_password="$3"
+  run_java_tool ensure-history "$db_url" "$db_user" "$db_password" /dev/null
+}
+
+record_patch_history() {
+  local db_url="$1"
+  local db_user="$2"
+  local db_password="$3"
+  local sql_file="$4"
+  local patch_id="$5"
+  local patch_name="$6"
+  local source_env="$7"
+  local target_env="$8"
+  local direction="$9"
+  local risk_level="${10}"
+  local status="${11}"
+
+  run_java_tool record-patch "$db_url" "$db_user" "$db_password" "$sql_file" \
+    "$patch_id" "$patch_name" "$source_env" "$target_env" "$direction" "$risk_level" "$status"
+}
+
+run_java_diff_tool() {
+  local local_to_remote_file="$1"
+  local remote_to_local_file="$2"
+  local remote_url="jdbc:cubrid:127.0.0.1:${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8"
+
+  CARBONET_LOCAL_DB_URL="$LOCAL_DB_URL" \
+  CARBONET_LOCAL_DB_USER="$LOCAL_DB_USER" \
+  CARBONET_LOCAL_DB_PASSWORD="$LOCAL_DB_PASSWORD" \
+  CARBONET_REMOTE_DB_URL="$remote_url" \
+  CARBONET_REMOTE_DB_USER="$REMOTE_DB_USER" \
+  CARBONET_REMOTE_DB_PASSWORD="$REMOTE_DB_PASSWORD" \
+  FORCE_DESTRUCTIVE_DB_DIFF="$FORCE_DESTRUCTIVE_DB_DIFF" \
+  DB_DIFF_DROP_POLICY="$DB_DIFF_DROP_POLICY" \
+  BACKUP_RUN_STAMP="$BACKUP_RUN_STAMP" \
+    java -cp "$TMP_DIR:$JDBC_JAR" CarbonetJdbcSnapshotTool diff "$local_to_remote_file" "$remote_to_local_file"
 }
 
 remote_db_ssh_cmd() {
@@ -627,9 +1483,88 @@ should_skip_remote_sql_file() {
         return 0
       fi
       ;;
+    20260413_fleet_common_upgrade_governance.sql)
+      if remote_table_exists_via_csql "ARTIFACT_LOCK" && remote_table_exists_via_csql "PROJECT_COMPATIBILITY_RUN"; then
+        log "remote SQL skipped because fleet upgrade governance tables already exist: $sql_file"
+        return 0
+      fi
+      ;;
   esac
 
   return 1
+}
+
+append_artifact_lock_schema_sql() {
+  local output_file="$1"
+  cat >>"$output_file" <<'SQL'
+CREATE TABLE ARTIFACT_LOCK (
+    PROJECT_ID       VARCHAR(80) NOT NULL,
+    RELEASE_UNIT_ID  VARCHAR(120) NOT NULL,
+    GROUP_ID         VARCHAR(160) NOT NULL,
+    ARTIFACT_ID      VARCHAR(160) NOT NULL,
+    ARTIFACT_VERSION VARCHAR(80) NOT NULL,
+    ARTIFACT_SHA256  VARCHAR(128) NOT NULL,
+    LOCK_SOURCE      VARCHAR(40),
+    CREATED_AT       DATETIME NOT NULL,
+    PRIMARY KEY (PROJECT_ID, RELEASE_UNIT_ID, GROUP_ID, ARTIFACT_ID)
+);
+
+CREATE INDEX IX_ARTIFACT_LOCK_PROJECT
+    ON ARTIFACT_LOCK (PROJECT_ID, CREATED_AT);
+
+SQL
+}
+
+append_project_compatibility_run_schema_sql() {
+  local output_file="$1"
+  cat >>"$output_file" <<'SQL'
+CREATE TABLE PROJECT_COMPATIBILITY_RUN (
+    RUN_ID                    VARCHAR(120) PRIMARY KEY,
+    PROJECT_ID                VARCHAR(80) NOT NULL,
+    SOURCE_RELEASE_UNIT_ID    VARCHAR(120),
+    TARGET_COMMON_VERSION     VARCHAR(80),
+    BUILD_STATUS              VARCHAR(40) NOT NULL,
+    ADAPTER_CONTRACT_STATUS   VARCHAR(40) NOT NULL,
+    DB_DIFF_STATUS            VARCHAR(40) NOT NULL,
+    SMOKE_STATUS              VARCHAR(40) NOT NULL,
+    COMPATIBILITY_STATUS      VARCHAR(40) NOT NULL,
+    BLOCKING_REASON           VARCHAR(4000),
+    ROLLBACK_RELEASE_UNIT_ID  VARCHAR(120),
+    TESTED_AT                 DATETIME NOT NULL,
+    TESTED_BY                 VARCHAR(80)
+);
+
+CREATE INDEX IX_PROJECT_COMPATIBILITY_RUN_PROJECT
+    ON PROJECT_COMPATIBILITY_RUN (PROJECT_ID, TESTED_AT);
+
+SQL
+}
+
+apply_fleet_governance_schema_to_remote() {
+  local generated_sql="$TMP_DIR/fleet-common-upgrade-governance-${BACKUP_RUN_STAMP}.sql"
+  local remote_tmp="/tmp/$(basename "$generated_sql")"
+  local remote_target="${REMOTE_DB_SSH_USER}@${REMOTE_DB_SSH_HOST}:${remote_tmp}"
+  local remote_log="${remote_tmp}.log"
+
+  : >"$generated_sql"
+  if ! remote_table_exists_via_csql "ARTIFACT_LOCK"; then
+    append_artifact_lock_schema_sql "$generated_sql"
+  fi
+  if ! remote_table_exists_via_csql "PROJECT_COMPATIBILITY_RUN"; then
+    append_project_compatibility_run_schema_sql "$generated_sql"
+  fi
+
+  if [[ ! -s "$generated_sql" ]]; then
+    log "remote SQL skipped because fleet upgrade governance tables already exist"
+    rm -f "$generated_sql"
+    return 0
+  fi
+
+  log "remote DB apply fleet governance SQL started: $generated_sql"
+  remote_db_scp_cmd "$generated_sql" "$remote_target"
+  remote_db_ssh_cmd "bash -lc 'set -o pipefail; /opt/util/cubrid/11.2/scripts/csql_local.sh -u \"$REMOTE_DB_USER\" \"$REMOTE_DB_NAME\" < \"$remote_tmp\" 2>&1 | tee \"$remote_log\"; status=\${PIPESTATUS[0]}; if grep -Eq \"SYNTAX ERROR|^ERROR:|Semantic:\" \"$remote_log\"; then exit 1; fi; rm -f \"$remote_tmp\" \"$remote_log\"; exit \$status'"
+  rm -f "$generated_sql"
+  log "remote DB apply fleet governance SQL completed"
 }
 
 backup_local_db() {
@@ -647,43 +1582,188 @@ backup_local_db() {
 }
 
 publish_snapshot_aliases() {
-  local latest_link="$BACKUP_DIR/latest-local-db-snapshot.sql"
+  local latest_link="$BACKUP_ROOT_DIR/latest-local-db-snapshot.sql"
   [[ -f "$SNAPSHOT_FILE" ]] || return 0
 
   ln -sfn "$SNAPSHOT_FILE" "$latest_link"
   log "latest snapshot alias updated: $latest_link -> $SNAPSHOT_FILE"
 }
 
-backup_remote_db() {
+backup_remote_snapshot() {
+  local output_file="$1"
+  local latest_link="$2"
+  local label="$3"
   local remote_url="jdbc:cubrid:127.0.0.1:${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8"
-  local latest_link="$BACKUP_DIR/latest-remote-db-before-deploy.sql"
   local attempt=1
   local tmp_snapshot=""
 
+  while (( attempt <= REMOTE_DB_SNAPSHOT_ATTEMPTS )); do
+    tmp_snapshot="${output_file}.tmp.$$.$attempt"
+    rm -f "$tmp_snapshot"
+    log "${label} started attempt ${attempt}/${REMOTE_DB_SNAPSHOT_ATTEMPTS}"
+    if run_java_tool dump "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$tmp_snapshot"; then
+      mv "$tmp_snapshot" "$output_file"
+      log "${label} completed: $output_file"
+      ln -sfn "$output_file" "$latest_link"
+      log "latest ${label} alias updated: $latest_link -> $output_file"
+      return 0
+    fi
+    rm -f "$tmp_snapshot"
+    if (( attempt == REMOTE_DB_SNAPSHOT_ATTEMPTS )); then
+      fail "${label} failed after ${REMOTE_DB_SNAPSHOT_ATTEMPTS} attempts"
+    fi
+    log "${label} attempt ${attempt} failed; retrying in ${REMOTE_DB_SNAPSHOT_RETRY_SECONDS}s"
+    sleep "$REMOTE_DB_SNAPSHOT_RETRY_SECONDS"
+    attempt=$((attempt + 1))
+  done
+}
+
+backup_remote_db() {
   if [[ "$SKIP_REMOTE_DB_SNAPSHOT" == "true" ]]; then
     log "remote DB snapshot skipped by SKIP_REMOTE_DB_SNAPSHOT=true"
     return 0
   fi
 
-  while (( attempt <= REMOTE_DB_SNAPSHOT_ATTEMPTS )); do
-    tmp_snapshot="${REMOTE_DB_SNAPSHOT_FILE}.tmp.$$.$attempt"
-    rm -f "$tmp_snapshot"
-    log "remote DB snapshot started attempt ${attempt}/${REMOTE_DB_SNAPSHOT_ATTEMPTS}"
-    if run_java_tool dump "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$tmp_snapshot"; then
-      mv "$tmp_snapshot" "$REMOTE_DB_SNAPSHOT_FILE"
-      log "remote DB snapshot completed: $REMOTE_DB_SNAPSHOT_FILE"
-      ln -sfn "$REMOTE_DB_SNAPSHOT_FILE" "$latest_link"
-      log "latest remote snapshot alias updated: $latest_link -> $REMOTE_DB_SNAPSHOT_FILE"
-      return 0
+  backup_remote_snapshot \
+    "$REMOTE_DB_SNAPSHOT_FILE" \
+    "$BACKUP_ROOT_DIR/latest-remote-db-before-deploy.sql" \
+    "remote DB snapshot"
+}
+
+backup_remote_db_after_sql() {
+  if [[ "$SKIP_REMOTE_DB_AFTER_SQL_SNAPSHOT" == "true" ]]; then
+    log "remote DB after SQL snapshot skipped by SKIP_REMOTE_DB_AFTER_SQL_SNAPSHOT=true"
+    return 0
+  fi
+
+  backup_remote_snapshot \
+    "$REMOTE_DB_AFTER_SQL_SNAPSHOT_FILE" \
+    "$BACKUP_ROOT_DIR/latest-remote-db-after-sql.sql" \
+    "remote DB after SQL snapshot"
+}
+
+generate_db_schema_diff() {
+  if [[ "$SKIP_DB_SCHEMA_DIFF" == "true" ]]; then
+    log "DB schema diff skipped by SKIP_DB_SCHEMA_DIFF=true"
+    return 0
+  fi
+
+  local remote_url="jdbc:cubrid:127.0.0.1:${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8"
+
+  log "DB patch history ensure started"
+  ensure_patch_history "$LOCAL_DB_URL" "$LOCAL_DB_USER" "$LOCAL_DB_PASSWORD"
+  ensure_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD"
+  log "DB patch history ensure completed"
+
+  log "DB schema diff started"
+  run_java_diff_tool "$DB_DIFF_LOCAL_TO_REMOTE_FILE" "$DB_DIFF_REMOTE_TO_LOCAL_FILE"
+  log "DB schema diff local->remote file: $DB_DIFF_LOCAL_TO_REMOTE_FILE"
+  log "DB schema diff remote->local file: $DB_DIFF_REMOTE_TO_LOCAL_FILE"
+}
+
+apply_generated_db_diff_patches() {
+  local remote_url="jdbc:cubrid:127.0.0.1:${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8"
+  local risk_level=""
+
+  if [[ "$APPLY_DB_DIFF_TO_REMOTE" == "true" ]]; then
+    [[ -f "$DB_DIFF_LOCAL_TO_REMOTE_FILE" ]] || fail "local->remote DB diff file not found: $DB_DIFF_LOCAL_TO_REMOTE_FILE"
+    risk_level="AUTO"
+    if has_untracked_destructive_diff "$DB_DIFF_LOCAL_TO_REMOTE_FILE"; then
+      risk_level="DESTRUCTIVE"
     fi
-    rm -f "$tmp_snapshot"
-    if (( attempt == REMOTE_DB_SNAPSHOT_ATTEMPTS )); then
-      fail "remote DB snapshot failed after ${REMOTE_DB_SNAPSHOT_ATTEMPTS} attempts"
+    if [[ "$FAIL_ON_UNTRACKED_DESTRUCTIVE_DIFF" == "true" ]] && [[ "$risk_level" == "DESTRUCTIVE" ]]; then
+      record_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$DB_DIFF_LOCAL_TO_REMOTE_FILE" \
+        "dbdiff-${BACKUP_RUN_STAMP}-local-to-remote" "schema diff local to remote" "local" "remote" "LOCAL_TO_REMOTE" "DESTRUCTIVE" "BLOCKED"
+      fail "untracked destructive local->remote DB diff detected; review $DB_DIFF_LOCAL_TO_REMOTE_FILE"
     fi
-    log "remote DB snapshot attempt ${attempt} failed; retrying in ${REMOTE_DB_SNAPSHOT_RETRY_SECONDS}s"
-    sleep "$REMOTE_DB_SNAPSHOT_RETRY_SECONDS"
-    attempt=$((attempt + 1))
-  done
+    record_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$DB_DIFF_LOCAL_TO_REMOTE_FILE" \
+      "dbdiff-${BACKUP_RUN_STAMP}-local-to-remote" "schema diff local to remote" "local" "remote" "LOCAL_TO_REMOTE" "$risk_level" "RUNNING"
+    log "DB schema diff local->remote apply started"
+    if run_java_tool run "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$DB_DIFF_LOCAL_TO_REMOTE_FILE"; then
+      record_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$DB_DIFF_LOCAL_TO_REMOTE_FILE" \
+        "dbdiff-${BACKUP_RUN_STAMP}-local-to-remote" "schema diff local to remote" "local" "remote" "LOCAL_TO_REMOTE" "$risk_level" "SUCCESS"
+    else
+      record_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$DB_DIFF_LOCAL_TO_REMOTE_FILE" \
+        "dbdiff-${BACKUP_RUN_STAMP}-local-to-remote" "schema diff local to remote" "local" "remote" "LOCAL_TO_REMOTE" "$risk_level" "FAILED"
+      fail "DB schema diff local->remote apply failed: $DB_DIFF_LOCAL_TO_REMOTE_FILE"
+    fi
+    log "DB schema diff local->remote apply completed"
+  else
+    log "DB schema diff local->remote apply skipped by APPLY_DB_DIFF_TO_REMOTE=false"
+  fi
+
+  if [[ "$APPLY_DB_DIFF_TO_LOCAL" == "true" ]]; then
+    [[ -f "$DB_DIFF_REMOTE_TO_LOCAL_FILE" ]] || fail "remote->local DB diff file not found: $DB_DIFF_REMOTE_TO_LOCAL_FILE"
+    risk_level="AUTO"
+    if has_untracked_destructive_diff "$DB_DIFF_REMOTE_TO_LOCAL_FILE"; then
+      risk_level="DESTRUCTIVE"
+    fi
+    if [[ "$FAIL_ON_UNTRACKED_DESTRUCTIVE_DIFF" == "true" ]] && [[ "$risk_level" == "DESTRUCTIVE" ]]; then
+      record_patch_history "$LOCAL_DB_URL" "$LOCAL_DB_USER" "$LOCAL_DB_PASSWORD" "$DB_DIFF_REMOTE_TO_LOCAL_FILE" \
+        "dbdiff-${BACKUP_RUN_STAMP}-remote-to-local" "schema diff remote to local" "remote" "local" "REMOTE_TO_LOCAL" "DESTRUCTIVE" "BLOCKED"
+      fail "untracked destructive remote->local DB diff detected; review $DB_DIFF_REMOTE_TO_LOCAL_FILE"
+    fi
+    record_patch_history "$LOCAL_DB_URL" "$LOCAL_DB_USER" "$LOCAL_DB_PASSWORD" "$DB_DIFF_REMOTE_TO_LOCAL_FILE" \
+      "dbdiff-${BACKUP_RUN_STAMP}-remote-to-local" "schema diff remote to local" "remote" "local" "REMOTE_TO_LOCAL" "$risk_level" "RUNNING"
+    log "DB schema diff remote->local apply started"
+    if run_java_tool run "$LOCAL_DB_URL" "$LOCAL_DB_USER" "$LOCAL_DB_PASSWORD" "$DB_DIFF_REMOTE_TO_LOCAL_FILE"; then
+      record_patch_history "$LOCAL_DB_URL" "$LOCAL_DB_USER" "$LOCAL_DB_PASSWORD" "$DB_DIFF_REMOTE_TO_LOCAL_FILE" \
+        "dbdiff-${BACKUP_RUN_STAMP}-remote-to-local" "schema diff remote to local" "remote" "local" "REMOTE_TO_LOCAL" "$risk_level" "SUCCESS"
+    else
+      record_patch_history "$LOCAL_DB_URL" "$LOCAL_DB_USER" "$LOCAL_DB_PASSWORD" "$DB_DIFF_REMOTE_TO_LOCAL_FILE" \
+        "dbdiff-${BACKUP_RUN_STAMP}-remote-to-local" "schema diff remote to local" "remote" "local" "REMOTE_TO_LOCAL" "$risk_level" "FAILED"
+      fail "DB schema diff remote->local apply failed: $DB_DIFF_REMOTE_TO_LOCAL_FILE"
+    fi
+    log "DB schema diff remote->local apply completed"
+  else
+    log "DB schema diff remote->local apply skipped by APPLY_DB_DIFF_TO_LOCAL=false"
+  fi
+}
+
+count_executable_sql_statements() {
+  local sql_file="$1"
+  [[ -f "$sql_file" ]] || {
+    printf '0'
+    return 0
+  }
+  awk '
+    /^[[:space:]]*--/ { next }
+    /^[[:space:]]*$/ { next }
+    /;[[:space:]]*$/ { count++ }
+    END { print count + 0 }
+  ' "$sql_file"
+}
+
+has_untracked_destructive_diff() {
+  local sql_file="$1"
+  [[ -f "$sql_file" ]] || return 1
+  grep -Eq '^[[:space:]]*(DROP|RENAME|ALTER[[:space:]]+TABLE[[:space:]].*(DROP|MODIFY|RENAME))' "$sql_file"
+}
+
+verify_db_schema_diff_closed() {
+  if [[ "$FAIL_ON_DB_DIFF_REMAINS" != "true" ]]; then
+    log "DB schema diff closure verification skipped by FAIL_ON_DB_DIFF_REMAINS=false"
+    return 0
+  fi
+  if [[ "$SKIP_DB_SCHEMA_DIFF" == "true" ]]; then
+    log "DB schema diff closure verification skipped by SKIP_DB_SCHEMA_DIFF=true"
+    return 0
+  fi
+
+  log "DB schema diff closure verification started"
+  run_java_diff_tool "$DB_DIFF_VERIFY_LOCAL_TO_REMOTE_FILE" "$DB_DIFF_VERIFY_REMOTE_TO_LOCAL_FILE"
+
+  local local_to_remote_count=""
+  local remote_to_local_count=""
+  local_to_remote_count="$(count_executable_sql_statements "$DB_DIFF_VERIFY_LOCAL_TO_REMOTE_FILE")"
+  remote_to_local_count="$(count_executable_sql_statements "$DB_DIFF_VERIFY_REMOTE_TO_LOCAL_FILE")"
+
+  log "DB schema diff closure local->remote remaining statements: $local_to_remote_count"
+  log "DB schema diff closure remote->local remaining statements: $remote_to_local_count"
+
+  if [[ "$local_to_remote_count" != "0" || "$remote_to_local_count" != "0" ]]; then
+    fail "DB schema diff remains after auto patch; review $DB_DIFF_VERIFY_LOCAL_TO_REMOTE_FILE and $DB_DIFF_VERIFY_REMOTE_TO_LOCAL_FILE"
+  fi
 }
 
 open_remote_db_tunnel() {
@@ -752,6 +1832,10 @@ apply_configured_sql_files_to_remote_db() {
   parse_sql_file_list
   for sql_file in "${SQL_FILES[@]}"; do
     [[ -f "$sql_file" ]] || fail "SQL file not found: $sql_file"
+    if [[ "$(basename "$sql_file")" == "20260413_fleet_common_upgrade_governance.sql" ]]; then
+      apply_fleet_governance_schema_to_remote
+      continue
+    fi
     if should_skip_remote_sql_file "$sql_file"; then
       continue
     fi
@@ -763,6 +1847,32 @@ apply_configured_sql_files_to_remote_db() {
     remote_db_ssh_cmd "bash -lc 'set -o pipefail; /opt/util/cubrid/11.2/scripts/csql_local.sh -u \"$REMOTE_DB_USER\" \"$REMOTE_DB_NAME\" < \"$remote_tmp\" 2>&1 | tee \"$remote_log\"; status=\${PIPESTATUS[0]}; if grep -Eq \"SYNTAX ERROR|^ERROR:|Semantic:\" \"$remote_log\"; then exit 1; fi; rm -f \"$remote_tmp\" \"$remote_log\"; exit \$status'"
     log "remote DB apply SQL completed: $sql_file"
   done
+}
+
+build_package_and_archive_local_jar() {
+  if [[ "$SKIP_LOCAL_BUILD_PACKAGE" == "true" ]]; then
+    log "local build/package skipped by SKIP_LOCAL_BUILD_PACKAGE=true"
+    return 0
+  fi
+
+  require_command npm
+  require_command mvn
+
+  log "local frontend build started"
+  (cd "$ROOT_DIR/frontend" && npm run build)
+  log "local frontend build completed"
+
+  log "local backend package started"
+  mvn -q -DskipTests package
+  log "local backend package completed"
+
+  local target_jar="$ROOT_DIR/apps/carbonet-app/target/carbonet.jar"
+  [[ -f "$target_jar" ]] || fail "packaged jar not found: $target_jar"
+  cp "$target_jar" "$LOCAL_JAR_ARCHIVE_FILE"
+  sha256sum "$LOCAL_JAR_ARCHIVE_FILE" >"${LOCAL_JAR_ARCHIVE_FILE}.sha256"
+  git -C "$ROOT_DIR" rev-parse HEAD >"$RELEASE_RUN_DIR/git-commit.txt"
+  ln -sfn "$RELEASE_RUN_DIR" "$RELEASE_ROOT_DIR/latest"
+  log "local packaged jar archived: $LOCAL_JAR_ARCHIVE_FILE"
 }
 
 commit_and_push_all() {
@@ -882,20 +1992,37 @@ main() {
     backup_local_db
     open_remote_db_tunnel
     backup_remote_db
+    generate_db_schema_diff
+    apply_generated_db_diff_patches
+    verify_db_schema_diff_closed
     bootstrap_remote_schema_if_needed
     apply_snapshot_to_remote_db
+    backup_remote_db_after_sql
   else
     backup_local_db
     open_remote_db_tunnel
     backup_remote_db
+    generate_db_schema_diff
+    apply_generated_db_diff_patches
+    verify_db_schema_diff_closed
     apply_configured_sql_files_to_remote_db
+    backup_remote_db_after_sql
   fi
+  build_package_and_archive_local_jar
   commit_and_push_all
   run_remote_clone_and_restart
 
   log "completed at $(date '+%Y-%m-%d %H:%M:%S')"
+  log "backup folder: $BACKUP_DIR"
   log "db snapshot file: $SNAPSHOT_FILE"
   log "remote db snapshot file: $REMOTE_DB_SNAPSHOT_FILE"
+  log "remote db after SQL snapshot file: $REMOTE_DB_AFTER_SQL_SNAPSHOT_FILE"
+  log "db schema diff local->remote file: $DB_DIFF_LOCAL_TO_REMOTE_FILE"
+  log "db schema diff remote->local file: $DB_DIFF_REMOTE_TO_LOCAL_FILE"
+  log "db schema diff verify local->remote file: $DB_DIFF_VERIFY_LOCAL_TO_REMOTE_FILE"
+  log "db schema diff verify remote->local file: $DB_DIFF_VERIFY_REMOTE_TO_LOCAL_FILE"
+  log "release folder: $RELEASE_RUN_DIR"
+  log "local jar archive file: $LOCAL_JAR_ARCHIVE_FILE"
   log "full log file: $LOG_FILE"
 }
 

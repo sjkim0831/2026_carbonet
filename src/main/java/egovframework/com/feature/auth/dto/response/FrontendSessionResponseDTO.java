@@ -13,6 +13,7 @@ public class FrontendSessionResponseDTO {
     private String companyScope;
     private boolean simulationAvailable;
     private boolean simulationActive;
+    private boolean canEnterAdminConsole;
     private String csrfToken;
     private String csrfHeaderName;
     private List<String> featureCodes = new ArrayList<>();
@@ -80,6 +81,14 @@ public class FrontendSessionResponseDTO {
 
     public void setSimulationActive(boolean simulationActive) {
         this.simulationActive = simulationActive;
+    }
+
+    public boolean isCanEnterAdminConsole() {
+        return canEnterAdminConsole;
+    }
+
+    public void setCanEnterAdminConsole(boolean canEnterAdminConsole) {
+        this.canEnterAdminConsole = canEnterAdminConsole;
     }
 
     public String getCsrfToken() {

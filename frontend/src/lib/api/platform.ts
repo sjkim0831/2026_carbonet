@@ -31,6 +31,7 @@ import type {
   ProjectUpgradeImpactResponse,
   ProjectVersionListPayload,
   ProjectVersionManagementPagePayload,
+  ProjectFleetUpgradeGovernancePayload,
   ProjectVersionOpsPayload,
   ProjectVersionOverviewPayload,
   ProjectVersionServerStatePayload,
@@ -250,7 +251,7 @@ export async function fetchProjectVersionManagementPage(params?: {
     pageSize: params?.pageSize
   });
 
-  const [overview, adapterHistory, releaseUnits, serverDeployState, candidateArtifacts] = await Promise.all([
+  const [overview, adapterHistory, releaseUnits, serverDeployState, candidateArtifacts, fleetGovernance] = await Promise.all([
     fetchJsonWithoutCache<ProjectVersionOverviewPayload>({
       url: `${buildVersionControlApiPath("/overview")}${overviewQuery}`,
       mapError: (body, status) => versionPermissionError(body, status, `Failed to load version overview: ${status}`, "A0060404_VIEW")
@@ -270,6 +271,10 @@ export async function fetchProjectVersionManagementPage(params?: {
     fetchJsonWithoutCache<ProjectVersionListPayload>({
       url: `${buildVersionControlApiPath("/candidate-artifacts")}${listQuery}`,
       mapError: (body, status) => versionPermissionError(body, status, `Failed to load candidate artifacts: ${status}`, "A0060404_VIEW")
+    }),
+    fetchJsonWithoutCache<ProjectFleetUpgradeGovernancePayload>({
+      url: `${buildVersionControlApiPath("/fleet-governance")}${listQuery}`,
+      mapError: (body, status) => versionPermissionError(body, status, `Failed to load fleet governance: ${status}`, "A0060404_VIEW")
     })
   ]);
 
@@ -278,7 +283,8 @@ export async function fetchProjectVersionManagementPage(params?: {
     adapterHistory,
     releaseUnits,
     serverDeployState,
-    candidateArtifacts
+    candidateArtifacts,
+    fleetGovernance
   };
 }
 

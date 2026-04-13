@@ -7,6 +7,7 @@ export type FrontendSession = {
   companyScope: string;
   simulationAvailable: boolean;
   simulationActive: boolean;
+  canEnterAdminConsole: boolean;
   csrfToken: string;
   csrfHeaderName: string;
   featureCodes: string[];

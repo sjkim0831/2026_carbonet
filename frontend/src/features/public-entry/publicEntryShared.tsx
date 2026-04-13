@@ -7,6 +7,7 @@ export type LoginResponse = {
   certified?: boolean;
   userId?: string;
   userSe?: string;
+  canEnterAdminConsole?: boolean;
 };
 
 export function PublicFrame(props: {

@@ -113,11 +113,17 @@ public class AdminBackupOperationsMenuBootstrapSupport {
                         VERSION_VIEW_FEATURE_CODE,
                         VERSION_ANALYZE_FEATURE_CODE,
                         VERSION_APPLY_FEATURE_CODE,
+                        VERSION_ROLLBACK_FEATURE_CODE),
+                authorRequest("ROLE_ADMIN", "일반 관리자", "General Administrator",
+                        VERSION_VIEW_FEATURE_CODE,
+                        VERSION_ANALYZE_FEATURE_CODE,
+                        VERSION_APPLY_FEATURE_CODE,
                         VERSION_ROLLBACK_FEATURE_CODE))
                 : Arrays.asList(
                 authorRequest("ROLE_SYSTEM_MASTER", "시스템 마스터", "System Master", menu.menuCode + "_VIEW"),
                 authorRequest("ROLE_SYSTEM_ADMIN", "시스템 관리자", "System Administrator", menu.menuCode + "_VIEW"),
-                authorRequest("ROLE_OPERATION_ADMIN", "운영 관리자", "Operation Administrator", menu.menuCode + "_VIEW")
+                authorRequest("ROLE_OPERATION_ADMIN", "운영 관리자", "Operation Administrator", menu.menuCode + "_VIEW"),
+                authorRequest("ROLE_ADMIN", "일반 관리자", "General Administrator", menu.menuCode + "_VIEW")
         ));
         return request;
     }

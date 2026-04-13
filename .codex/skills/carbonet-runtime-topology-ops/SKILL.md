@@ -1,6 +1,6 @@
 ---
 name: carbonet-runtime-topology-ops
-description: Design, review, document, or standardize Carbonet runtime topology and operations-platform build flow for small-memory multi-node environments, including Jenkins plus Nomad coordination, main/sub web nodes, shared idle-node pools, per-system DB isolation, Nginx entrypoints, central scaffolding/build/deploy authority, and latest-vs-archive file placement. Use when the request is about splitting or sharing runtime roles across servers or centralizing operations-system build ownership rather than implementing application feature logic.
+description: Design, review, document, or standardize Carbonet runtime topology and operations-platform build flow for small-memory multi-node environments, including Jenkins plus Nomad coordination, main/sub web nodes, shared idle-node pools, per-system DB isolation, Nginx entrypoints, blue-green web traffic switching, deploy manifests, rollback gates, central scaffolding/build/deploy authority, and latest-vs-archive file placement. Use when the request is about splitting or sharing runtime roles across servers, webserver-inclusive deploy safety, or centralizing operations-system build ownership rather than implementing application feature logic.
 ---
 
 # Carbonet Runtime Topology Ops
@@ -13,6 +13,8 @@ Use this skill when the main problem is runtime layout or server-role allocation
 - shared idle web-node pools
 - per-system DB isolation versus shared web workers
 - Nginx entrypoint ownership and internal upstream access
+- blue-green web traffic switching through Nginx
+- deploy manifests, release artifact retention, and rollback gates
 - latest-file versus archive-file placement
 - small-memory capacity planning for multiple systems
 - tmux session and pane layout for safe multi-node operations work
@@ -26,6 +28,7 @@ Read only what you need:
 - Read [`/opt/projects/carbonet/docs/ai/80-skills/skill-gaps.md`](/opt/projects/carbonet/docs/ai/80-skills/skill-gaps.md) when a new topology pattern exposes remaining gaps.
 - Read [`/opt/projects/carbonet/.codex/skills/carbonet-codex-execution-console/SKILL.md`](/opt/projects/carbonet/.codex/skills/carbonet-codex-execution-console/SKILL.md) when Jenkins, runner scripts, or execution-console behavior overlaps with the topology request.
 - Read [`/opt/projects/carbonet/docs/architecture/operations-platform-console-architecture.md`](/opt/projects/carbonet/docs/architecture/operations-platform-console-architecture.md) when the work includes centralized scaffolding, common artifacts, project artifacts, or operations-system governance.
+- Read [`/opt/projects/carbonet/docs/operations/web-runtime-blue-green-deploy.md`](/opt/projects/carbonet/docs/operations/web-runtime-blue-green-deploy.md) when the work includes Nginx traffic switching, external-domain smoke checks, deploy manifests, app rollback, or webserver-inclusive production deployment.
 
 ## Workflow
 
@@ -37,6 +40,8 @@ Read only what you need:
    - DB split strategy
    - file placement strategy
    - traffic and failover flow
+   - blue-green candidate activation
+   - deploy manifest and rollback traceability
    - tmux/operator workflow
 2. Keep these boundaries explicit:
    - DB is dedicated per system or per approved DB group
@@ -73,6 +78,7 @@ Read only what you need:
    - validate web instance placement and DB connectivity
    - validate Nginx upstream reachability
    - only then scale the pattern to more systems
+10. For production web deploys, require a candidate app instance, external-domain smoke checks, Nginx config validation, atomic traffic switch, and a recorded rollback target before declaring success.
 
 ## Operations-System Build Rules
 
@@ -86,6 +92,7 @@ When the request is about how systems are developed and shipped:
 6. Runtime servers should receive artifacts and configuration, not act as the primary build origin.
 7. Prefer common jars and shared runtime modules for stable controller/service contracts with low import churn.
 8. Keep project-specific thin layers small and explicit.
+9. Runtime servers should prefer receiving already-built artifacts over rebuilding from a fresh clone unless the target explicitly owns build authority.
 
 ## tmux Working Rules
 
@@ -124,6 +131,9 @@ Do not run unrelated project rollouts in the same pane group when they share Ngi
 - When Jenkins and Nomad are colocated, treat that as a small-environment compromise.
 - When the operations system is the build authority, document where common jars are built, versioned, and consumed.
 - Prefer project selection plus folder-mapping metadata over ad hoc path edits during scaffold generation.
+- Do not stop the active app port before a candidate port has passed health and smoke checks during production web deploy.
+- Do not mark a deploy as successful until Nginx config validation, reload, external URL checks, artifact hash verification, and rollback anchor recording have all passed.
+- Treat DB rollback and app/web rollback as separate tracks. App rollback can switch ports or artifacts quickly; DB rollback requires backup, rollback SQL, or a forward-fix decision.
 
 ## Recommended Decision Order
 
@@ -149,6 +159,10 @@ Do not run unrelated project rollouts in the same pane group when they share Ngi
 - Is the proposed topology simple enough for current memory and disk limits?
 - Is the operations system clearly defined as the scaffold/build authority or not?
 - Are tmux session and window counts explicit for the rollout complexity?
+- Is there a deploy manifest containing release id, deploy trace id, git commit, artifact hash, DB backup folder, diff SQL paths, Nginx config hash, active/candidate ports, and rollback target?
+- Did the candidate app pass internal health checks and external-domain smoke checks before Nginx traffic switched?
+- Was `nginx -t` run before reload, and was the previous Nginx config archived?
+- Is rollback split into app/web rollback and DB rollback, with both targets recorded?
 
 ## Delivery Shape
 
@@ -164,3 +178,4 @@ For a topology request, produce:
 - tmux working layout when operators must touch more than one node family
 - rollout order
 - operational risks and what to verify first
+- webserver switch gates, manifest files, smoke URLs, and rollback boundaries when production traffic is involved

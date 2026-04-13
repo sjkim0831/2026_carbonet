@@ -81,6 +81,10 @@ public class AuthPageController {
     }
 
     private boolean isAdminLoginRequest(HttpServletRequest request) {
+        String console = request.getParameter("console");
+        if ("admin".equalsIgnoreCase(console)) {
+            return true;
+        }
         String requestUri = request.getRequestURI();
         if (!ObjectUtils.isEmpty(requestUri) && requestUri.startsWith("/admin/login")) {
             return true;

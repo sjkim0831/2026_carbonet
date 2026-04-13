@@ -124,6 +124,21 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
     }
 
     @Override
+    public Map<String, Object> getFleetUpgradeGovernance(ProjectVersionPageRequest request) throws Exception {
+        String projectId = required(request == null ? null : request.getProjectId(), "projectId");
+        Map<String, Object> params = pagingParams(projectId, request);
+        return orderedMap(
+                "projectId", projectId,
+                "artifactLocks", orderedMap(
+                        "itemSet", safeListOrEmpty(() -> projectVersionManagementMapper.selectArtifactLockList(params)),
+                        "totalCount", safeIntOrZero(() -> projectVersionManagementMapper.countArtifactLocks(projectId))),
+                "compatibilityRuns", orderedMap(
+                        "itemSet", safeListOrEmpty(() -> projectVersionManagementMapper.selectCompatibilityRunList(params)),
+                        "totalCount", safeIntOrZero(() -> projectVersionManagementMapper.countCompatibilityRuns(projectId))),
+                "recommendedNextStepSet", buildFleetGovernanceNextSteps());
+    }
+
+    @Override
     public Map<String, Object> analyzeUpgradeImpact(ProjectUpgradeImpactRequest request) throws Exception {
         String projectId = required(request == null ? null : request.getProjectId(), "projectId");
         Map<String, Object> overview = getProjectVersionOverview(projectId);
@@ -167,7 +182,7 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
                     "capabilityCatalogVersion", targetCapabilityCatalogVersion,
                     "compatibilityClass", candidateCompatibilityClass));
         }
-        return orderedMap(
+        Map<String, Object> impact = orderedMap(
                 "projectId", projectId,
                 "currentVersionSet", orderedMap(
                         "commonCoreVersion", stringValue(overview.get("activeCommonCoreVersion")),
@@ -183,6 +198,8 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
                 "blockerSet", blockerSet,
                 "rollbackTargetReleaseId", stringValue(overview.get("rollbackReadyReleaseUnitId")),
                 "upgradeReadyYn", !"ADAPTER_BREAKING".equals(compatibilityClass));
+        recordCompatibilityRunIfPossible(projectId, impact, targetArtifactSet, request == null ? null : request.getOperator());
+        return impact;
     }
 
     @Override
@@ -241,6 +258,7 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
                     "artifactId", artifactId,
                     "artifactVersion", artifactVersion,
                     "rollbackTargetVersion", rollbackTargetVersion));
+            recordArtifactLockIfPossible(projectId, releaseUnitId, artifactId, artifactVersion, artifactVersionRow);
         }
         projectVersionManagementMapper.insertAdapterChangeLog(orderedMap(
                 "adapterChangeId", "acl-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16),
@@ -358,6 +376,124 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
             return "Adapter mapping review is required.";
         }
         return "No adapter rewrite required.";
+    }
+
+    private List<Map<String, Object>> buildFleetGovernanceNextSteps() {
+        List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
+        rows.add(orderedMap(
+                "stepId", "artifact-lock",
+                "title", "Pin artifact lock per release unit",
+                "description", "Each successful upgrade stores the exact artifact versions and checksums used by the release unit.",
+                "status", "ACTIVE"));
+        rows.add(orderedMap(
+                "stepId", "compatibility-run",
+                "title", "Record compatibility decision",
+                "description", "Each impact analysis records adapter, DB diff, smoke, and final compatibility status for audit.",
+                "status", "ACTIVE"));
+        rows.add(orderedMap(
+                "stepId", "ring-rollout",
+                "title", "Promote passing projects through rollout rings",
+                "description", "Use compatibility runs to decide which projects can be updated automatically and which require adapter work.",
+                "status", "READY_FOR_AUTOMATION"));
+        return rows;
+    }
+
+    private void recordArtifactLockIfPossible(String projectId,
+                                              String releaseUnitId,
+                                              String artifactId,
+                                              String artifactVersion,
+                                              Map<String, Object> artifactVersionRow) throws Exception {
+        String groupId = resolveArtifactGroupId(artifactVersionRow);
+        Map<String, Object> lock = orderedMap(
+                "projectId", projectId,
+                "releaseUnitId", releaseUnitId,
+                "groupId", groupId,
+                "artifactId", artifactId,
+                "artifactVersion", artifactVersion,
+                "artifactSha256", firstNonBlank(stringValue(artifactVersionRow.get("checksumSha256")), "UNKNOWN"),
+                "lockSource", "APPLY_UPGRADE");
+        try {
+            projectVersionManagementMapper.deleteArtifactLock(lock);
+            projectVersionManagementMapper.insertArtifactLock(lock);
+        } catch (Exception ex) {
+            if (!isMissingVersionControlTable(ex)) {
+                throw ex;
+            }
+        }
+    }
+
+    private void recordCompatibilityRunIfPossible(String projectId,
+                                                  Map<String, Object> impact,
+                                                  List<Map<String, Object>> targetArtifactSet,
+                                                  String operator) throws Exception {
+        String compatibilityClass = stringValue(impact.get("compatibilityClass"));
+        String adapterStatus = "PASS";
+        String finalStatus = "PASS";
+        if ("ADAPTER_BREAKING".equals(compatibilityClass)) {
+            adapterStatus = "BLOCKED";
+            finalStatus = "BLOCKED";
+        } else if ("ADAPTER_REVIEW_REQUIRED".equals(compatibilityClass)) {
+            adapterStatus = "REVIEW";
+            finalStatus = "REVIEW";
+        }
+        Map<String, Object> run = orderedMap(
+                "runId", "pcr-" + UUID.randomUUID().toString().replace("-", "").substring(0, 18),
+                "projectId", projectId,
+                "sourceReleaseUnitId", resolveLatestReleaseUnitId(projectId),
+                "targetCommonVersion", resolveTargetCommonVersion(targetArtifactSet),
+                "buildStatus", "NOT_RUN",
+                "adapterContractStatus", adapterStatus,
+                "dbDiffStatus", "NOT_RUN",
+                "smokeStatus", "NOT_RUN",
+                "compatibilityStatus", finalStatus,
+                "blockingReason", buildCompatibilityBlockingReason(impact),
+                "rollbackReleaseUnitId", stringValue(impact.get("rollbackTargetReleaseId")),
+                "testedBy", firstNonBlank(safe(operator), "system-operator"));
+        try {
+            projectVersionManagementMapper.insertCompatibilityRun(run);
+        } catch (Exception ex) {
+            if (!isMissingVersionControlTable(ex)) {
+                throw ex;
+            }
+        }
+    }
+
+    private String resolveLatestReleaseUnitId(String projectId) throws Exception {
+        List<Map<String, Object>> releaseUnits = safeListOrEmpty(() -> projectVersionManagementMapper.selectReleaseUnits(projectId));
+        return releaseUnits.isEmpty() ? "" : stringValue(releaseUnits.get(0).get("releaseUnitId"));
+    }
+
+    private String resolveTargetCommonVersion(List<Map<String, Object>> targetArtifactSet) {
+        for (Map<String, Object> artifact : targetArtifactSet) {
+            String artifactId = stringValue(artifact.get("artifactId")).toLowerCase(Locale.ROOT);
+            if (artifactId.contains("common") || artifactId.contains("platform")) {
+                return stringValue(artifact.get("artifactVersion"));
+            }
+        }
+        return targetArtifactSet.isEmpty() ? "" : stringValue(targetArtifactSet.get(0).get("artifactVersion"));
+    }
+
+    private String resolveArtifactGroupId(Map<String, Object> artifactVersionRow) {
+        String family = stringValue(artifactVersionRow.get("artifactFamily"));
+        if (!family.isEmpty()) {
+            return "carbonet." + family.toLowerCase(Locale.ROOT).replace('_', '-');
+        }
+        return "carbonet.platform";
+    }
+
+    private String buildCompatibilityBlockingReason(Map<String, Object> impact) {
+        List<Map<String, Object>> blockers = safeList(impact.get("blockerSet"));
+        if (blockers.isEmpty()) {
+            return "";
+        }
+        List<String> messages = new ArrayList<String>();
+        for (Object blocker : blockers) {
+            String message = stringValue(blocker);
+            if (!message.isEmpty()) {
+                messages.add(message);
+            }
+        }
+        return String.join("; ", messages);
     }
 
     private String resolveAdapterArtifactVersion(String projectId, List<Map<String, Object>> targetArtifactSet, String fallback) {
@@ -567,6 +703,8 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
                         || normalized.contains("unknown class \"dba.server_deployment_state\"")
                         || normalized.contains("unknown class \"dba.artifact_version_registry\"")
                         || normalized.contains("unknown class \"dba.project_artifact_install\"")
+                        || normalized.contains("unknown class \"dba.artifact_lock\"")
+                        || normalized.contains("unknown class \"dba.project_compatibility_run\"")
                         || normalized.contains("unknown class \"dba.install_unit\"")) {
                     return true;
                 }

@@ -1,5 +1,6 @@
 package egovframework.com.feature.auth.external.service.impl;
 
+import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.auth.dto.response.LoginResponseDTO;
 import egovframework.com.feature.auth.external.service.AuthTokenLoginService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
@@ -31,6 +32,7 @@ import java.util.Map;
 public class AuthTokenLoginServiceImpl implements AuthTokenLoginService {
 
     private final JwtTokenProvider jwtProvider;
+    private final AuthGroupManageService authGroupManageService;
 
     @Override
     public Map<String, Object> issueLogin(LoginResponseDTO loginResult, boolean autoLogin, HttpServletRequest request,
@@ -95,10 +97,38 @@ public class AuthTokenLoginServiceImpl implements AuthTokenLoginService {
         message.put("userInfo", loginResult.getName() + "(" + loginResult.getUserId() + ")");
         message.put("userId", loginResult.getUserId());
         message.put("userSe", loginResult.getUserSe());
+        message.put("canEnterAdminConsole", canEnterAdminConsole(loginResult));
         message.put("certified", certified);
         message.put("errors", "");
         log.debug("Issued external auth login token. userId={}, userSe={}", loginResult.getUserId(),
                 loginResult.getUserSe());
         return message;
+    }
+
+    private String safeString(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private boolean canEnterAdminConsole(LoginResponseDTO loginResult) {
+        String authorCode = safeString(loginResult == null ? null : loginResult.getAuthorCode()).toUpperCase();
+        if (authorCode.isEmpty()) {
+            return false;
+        }
+        if ("ROLE_SYSTEM_MASTER".equals(authorCode)
+                || "ROLE_SYSTEM_ADMIN".equals(authorCode)
+                || "ROLE_ADMIN".equals(authorCode)
+                || "ROLE_OPERATION_ADMIN".equals(authorCode)
+                || "ROLE_COMPANY_ADMIN".equals(authorCode)
+                || "ROLE_CS_ADMIN".equals(authorCode)) {
+            return true;
+        }
+        try {
+            List<String> featureCodes = authGroupManageService.selectAuthorFeatureCodes(authorCode);
+            return featureCodes != null && !featureCodes.isEmpty();
+        } catch (Exception e) {
+            log.warn("Failed to resolve admin console entry permission. userId={}, authorCode={}",
+                    loginResult == null ? "" : loginResult.getUserId(), authorCode, e);
+            return false;
+        }
     }
 }

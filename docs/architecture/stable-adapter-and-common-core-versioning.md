@@ -238,6 +238,7 @@ This rule should guide:
 See also:
 
 - `docs/architecture/artifact-registry-and-project-version-governance.md`
+- `docs/architecture/fleet-common-upgrade-operating-model.md`
 
 ## Practical Conclusion
 
@@ -257,3 +258,10 @@ The normal project-upgrade expectation should be:
 not:
 
 - rewrite project adapter code after every common-core improvement
+
+For many-project maintenance, use the fleet operating model:
+
+- common-core patch/minor updates should create compatibility candidates for every project
+- passing projects can move through ring rollout
+- failing projects should create adapter-fix tickets instead of blocking all projects
+- no common update should be considered fleet-safe until artifact locks, compatibility results, and rollback anchors are recorded

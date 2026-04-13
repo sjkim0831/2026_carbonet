@@ -199,17 +199,23 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
     @Override
     public Map<String, Object> runProjectPipeline(ProjectPipelineRunRequest request) throws Exception {
         String projectId = required(request.getProjectId(), "projectId");
-        String releaseUnitId = hasText(request.getReleaseUnitId())
-                ? request.getReleaseUnitId().trim()
+        String requestedReleaseUnitId = hasText(request.getReleaseUnitId()) ? request.getReleaseUnitId().trim() : "";
+        Map<String, Object> selectedReleaseUnit = hasText(requestedReleaseUnitId)
+                ? defaultMap(projectVersionManagementMapper.selectReleaseUnit(requestedReleaseUnitId))
+                : orderedMap();
+        String releaseUnitId = hasText(requestedReleaseUnitId)
+                ? requestedReleaseUnitId
                 : buildReleaseUnitId(orDefault(request.getReleaseUnitPrefix(), "rel"), projectId);
         String runtimePackageId = hasText(request.getRuntimePackageId())
                 ? request.getRuntimePackageId().trim()
-                : buildRuntimePackageId(orDefault(request.getRuntimePackagePrefix(), "pkg"), projectId);
+                : firstNonBlank(value(selectedReleaseUnit, "runtimePackageId"), buildRuntimePackageId(orDefault(request.getRuntimePackagePrefix(), "pkg"), projectId));
         String pipelineRunId = "pipe-" + shortId();
         String releaseFamilyId = ScreenBuilderPlatformFamilyRegistry.releaseFamilyId(projectId);
         String deployTraceId = "deploy-" + shortId();
         String artifactManifestId = "manifest-" + shortId();
-        String rollbackTargetReleaseUnitId = buildReleaseUnitId("rollback", projectId);
+        String rollbackTargetReleaseUnitId = firstNonBlank(
+                resolvePreviousReleaseUnitId(projectId, releaseUnitId),
+                value(selectedReleaseUnit, "rollbackTargetReleaseId"));
         String occurredAt = now();
 
         Map<String, Object> installableProduct = orderedMap();
@@ -231,14 +237,22 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         List<Map<String, Object>> validatorCheckSet = new ArrayList<Map<String, Object>>();
         validatorCheckSet.add(orderedMap("validatorId", "boundary-schema", "status", "PASS", "summary", "common/project adapter boundary is fixed"));
         validatorCheckSet.add(orderedMap("validatorId", "installable-package", "status", "PASS", "summary", "installable product can be packaged"));
-        validatorCheckSet.add(orderedMap("validatorId", "rollback-anchor", "status", "PASS", "summary", "rollback target release is registered"));
+        validatorCheckSet.add(orderedMap(
+                "validatorId", "rollback-anchor",
+                "status", hasText(rollbackTargetReleaseUnitId) ? "PASS" : "WARN",
+                "summary", hasText(rollbackTargetReleaseUnitId)
+                        ? "rollback target release is registered"
+                        : "previous release unit is not available yet"));
 
         List<Map<String, Object>> stageSet = new ArrayList<Map<String, Object>>();
         stageSet.add(stage("scaffold", "DONE", "governed project scaffold prepared"));
         stageSet.add(stage("validate", "DONE", "validator set completed"));
         stageSet.add(stage("package", "DONE", "installable package produced"));
         stageSet.add(stage("deploy", "READY", "artifact deploy contract emitted"));
-        stageSet.add(stage("rollback-ready", "READY", "rollback anchor persisted"));
+        stageSet.add(stage(
+                "rollback-ready",
+                hasText(rollbackTargetReleaseUnitId) ? "READY" : "PENDING",
+                hasText(rollbackTargetReleaseUnitId) ? "rollback anchor persisted" : "waiting for previous release unit"));
 
         Map<String, Object> artifactVersionSet = orderedMap();
         artifactVersionSet.put(ScreenBuilderPlatformFamilyRegistry.COMMON_CORE_ARTIFACT_ID, versionStamp("common-core"));
@@ -624,6 +638,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         String runtimePackageId = value(response, "runtimePackageId");
         String rollbackTargetReleaseId = value(valueMap(response, "rollbackPlan"), "rollbackTargetReleaseUnitId");
         String operator = firstNonBlank(value(response, "operator"), orDefault(request.getOperator(), "system"));
+        boolean existingReleaseUnit = !defaultMap(projectVersionManagementMapper.selectReleaseUnit(releaseUnitId)).isEmpty();
 
         Map<String, Object> artifactVersionSet = canonicalizeArtifactVersionSet(
                 projectId,
@@ -634,67 +649,69 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
                 projectId,
                 normalizeObjectMapList(response.get("artifactRegistryEntrySet")));
 
-        projectVersionManagementMapper.insertReleaseUnitRegistry(orderedMap(
-                "releaseUnitId", releaseUnitId,
-                "projectId", projectId,
-                "runtimePackageId", runtimePackageId,
-                "projectRuntimeVersion", runtimePackageId,
-                "adapterArtifactVersion", firstNonBlank(
-                        valueFromMap(artifactVersionSet, adapterArtifactId(projectId)),
-                        ""),
-                "adapterContractVersion", valueFromMap(artifactVersionSet, adapterContractArtifactId(projectId)),
-                "commonArtifactSetJson", objectMapper.writeValueAsString(commonArtifactSet),
-                "packageVersionSetJson", objectMapper.writeValueAsString(artifactVersionSet),
-                "rollbackTargetReleaseId", rollbackTargetReleaseId,
-                "approvedBy", operator));
-
-        List<Map<String, Object>> currentInstalls = canonicalArtifactRows(
-                projectId,
-                projectVersionManagementMapper.selectInstalledArtifacts(projectId));
-        Map<String, String> rollbackVersionByArtifactId = new LinkedHashMap<String, String>();
-        for (Map<String, Object> installed : currentInstalls) {
-            rollbackVersionByArtifactId.put(value(installed, "artifactId"), value(installed, "installedArtifactVersion"));
-        }
-        projectVersionManagementMapper.deactivateProjectArtifactInstalls(projectId);
-
-        for (Map<String, Object> entry : artifactRegistryEntrySet) {
-            String artifactId = value(entry, "artifactId");
-            String artifactVersion = firstNonBlank(value(entry, "artifactVersion"), valueFromMap(artifactVersionSet, artifactId));
-            if (!hasText(artifactId) || !hasText(artifactVersion)) {
-                continue;
-            }
-            Map<String, Object> artifactVersionRow = projectVersionManagementMapper.selectArtifactVersionByKey(orderedMap(
-                    "artifactId", artifactId,
-                    "artifactVersion", artifactVersion));
-            if (artifactVersionRow == null) {
-                continue;
-            }
-            projectVersionManagementMapper.insertProjectArtifactInstall(orderedMap(
-                    "projectArtifactInstallId", "pai-" + shortId(),
-                    "projectId", projectId,
-                    "artifactVersionId", value(artifactVersionRow, "artifactVersionId"),
-                    "installScope", firstNonBlank(value(entry, "installScope"), resolveInstallScope(artifactId)),
+        if (!existingReleaseUnit) {
+            projectVersionManagementMapper.insertReleaseUnitRegistry(orderedMap(
                     "releaseUnitId", releaseUnitId,
-                    "rollbackTargetVersion", rollbackVersionByArtifactId.get(artifactId),
-                    "installedBy", operator));
-        }
-
-        String adapterArtifactVersion = firstNonBlank(
-                valueFromMap(artifactVersionSet, adapterArtifactId(projectId)));
-        String adapterContractVersion = valueFromMap(artifactVersionSet, adapterContractArtifactId(projectId));
-        if (hasText(adapterArtifactVersion) || hasText(adapterContractVersion)) {
-            projectVersionManagementMapper.insertAdapterChangeLog(orderedMap(
-                    "adapterChangeId", "chg-" + shortId(),
                     "projectId", projectId,
-                    "adapterArtifactVersion", adapterArtifactVersion,
-                    "adapterContractVersion", adapterContractVersion,
-                    "changedPortSetJson", objectMapper.writeValueAsString(stringList("screen-binding", "menu-binding")),
-                    "changedDtoSetJson", objectMapper.writeValueAsString(stringList("ProjectRuntimeContract", "ProjectDeployContract")),
-                    "mappingImpactSummary", "Project pipeline run persisted into release/install registry.",
-                    "compatibilityClass", "ADAPTER_SAFE",
-                    "migrationRequiredYn", "N",
-                    "relatedReleaseUnitId", releaseUnitId,
-                    "recordedBy", operator));
+                    "runtimePackageId", runtimePackageId,
+                    "projectRuntimeVersion", runtimePackageId,
+                    "adapterArtifactVersion", firstNonBlank(
+                            valueFromMap(artifactVersionSet, adapterArtifactId(projectId)),
+                            ""),
+                    "adapterContractVersion", valueFromMap(artifactVersionSet, adapterContractArtifactId(projectId)),
+                    "commonArtifactSetJson", objectMapper.writeValueAsString(commonArtifactSet),
+                    "packageVersionSetJson", objectMapper.writeValueAsString(artifactVersionSet),
+                    "rollbackTargetReleaseId", rollbackTargetReleaseId,
+                    "approvedBy", operator));
+
+            List<Map<String, Object>> currentInstalls = canonicalArtifactRows(
+                    projectId,
+                    projectVersionManagementMapper.selectInstalledArtifacts(projectId));
+            Map<String, String> rollbackVersionByArtifactId = new LinkedHashMap<String, String>();
+            for (Map<String, Object> installed : currentInstalls) {
+                rollbackVersionByArtifactId.put(value(installed, "artifactId"), value(installed, "installedArtifactVersion"));
+            }
+            projectVersionManagementMapper.deactivateProjectArtifactInstalls(projectId);
+
+            for (Map<String, Object> entry : artifactRegistryEntrySet) {
+                String artifactId = value(entry, "artifactId");
+                String artifactVersion = firstNonBlank(value(entry, "artifactVersion"), valueFromMap(artifactVersionSet, artifactId));
+                if (!hasText(artifactId) || !hasText(artifactVersion)) {
+                    continue;
+                }
+                Map<String, Object> artifactVersionRow = projectVersionManagementMapper.selectArtifactVersionByKey(orderedMap(
+                        "artifactId", artifactId,
+                        "artifactVersion", artifactVersion));
+                if (artifactVersionRow == null) {
+                    continue;
+                }
+                projectVersionManagementMapper.insertProjectArtifactInstall(orderedMap(
+                        "projectArtifactInstallId", "pai-" + shortId(),
+                        "projectId", projectId,
+                        "artifactVersionId", value(artifactVersionRow, "artifactVersionId"),
+                        "installScope", firstNonBlank(value(entry, "installScope"), resolveInstallScope(artifactId)),
+                        "releaseUnitId", releaseUnitId,
+                        "rollbackTargetVersion", rollbackVersionByArtifactId.get(artifactId),
+                        "installedBy", operator));
+            }
+
+            String adapterArtifactVersion = firstNonBlank(
+                    valueFromMap(artifactVersionSet, adapterArtifactId(projectId)));
+            String adapterContractVersion = valueFromMap(artifactVersionSet, adapterContractArtifactId(projectId));
+            if (hasText(adapterArtifactVersion) || hasText(adapterContractVersion)) {
+                projectVersionManagementMapper.insertAdapterChangeLog(orderedMap(
+                        "adapterChangeId", "chg-" + shortId(),
+                        "projectId", projectId,
+                        "adapterArtifactVersion", adapterArtifactVersion,
+                        "adapterContractVersion", adapterContractVersion,
+                        "changedPortSetJson", objectMapper.writeValueAsString(stringList("screen-binding", "menu-binding")),
+                        "changedDtoSetJson", objectMapper.writeValueAsString(stringList("ProjectRuntimeContract", "ProjectDeployContract")),
+                        "mappingImpactSummary", "Project pipeline run persisted into release/install registry.",
+                        "compatibilityClass", "ADAPTER_SAFE",
+                        "migrationRequiredYn", "N",
+                        "relatedReleaseUnitId", releaseUnitId,
+                        "recordedBy", operator));
+            }
         }
 
         String deploymentTarget = firstNonBlank(value(response, "deploymentTarget"), "ops-runtime-main-01");
@@ -984,6 +1001,26 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         return releaseUnits.get(0);
     }
 
+    private String resolvePreviousReleaseUnitId(String projectId, String releaseUnitId) {
+        if (!hasText(projectId)) {
+            return "";
+        }
+        List<Map<String, Object>> releaseUnits = projectVersionManagementMapper.selectReleaseUnits(projectId);
+        if (releaseUnits == null || releaseUnits.isEmpty()) {
+            return "";
+        }
+        if (!hasText(releaseUnitId)) {
+            return value(releaseUnits.get(0), "releaseUnitId");
+        }
+        for (int index = 0; index < releaseUnits.size(); index++) {
+            if (!releaseUnitId.equals(value(releaseUnits.get(index), "releaseUnitId"))) {
+                continue;
+            }
+            return index + 1 < releaseUnits.size() ? value(releaseUnits.get(index + 1), "releaseUnitId") : "";
+        }
+        return value(releaseUnits.get(0), "releaseUnitId");
+    }
+
     private Map<String, Object> buildRepairPackageVersionSet(
             String projectId,
             Map<String, Object> baseReleaseUnit,
@@ -1108,6 +1145,10 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         }
         Object value = source.get(key);
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private Map<String, Object> defaultMap(Map<String, Object> value) {
+        return value == null ? orderedMap() : value;
     }
 
     private Map<String, Object> valueMap(Map<String, Object> source, String key) {

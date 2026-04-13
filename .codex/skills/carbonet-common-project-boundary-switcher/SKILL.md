@@ -1,6 +1,6 @@
 ---
 name: carbonet-common-project-boundary-switcher
-description: Keep Carbonet work reversible between common-platform ownership and project-specific ownership. Use when requests involve common vs project splitting, platform-common extraction, project adapter creation, common DB vs project DB ownership, menu scope separation, installable builder/module packaging, or making code easy to move between core and project layers later.
+description: Keep Carbonet work reversible between common-platform ownership and project-specific ownership. Use when requests involve common vs project splitting, platform-common extraction, project adapter creation, common DB vs project DB ownership, menu scope separation, installable builder/module packaging, fleet-wide common-core upgrades, compatibility matrices, ring rollout, or making code easy to move between core and project layers later.
 ---
 
 # Carbonet Common Project Boundary Switcher
@@ -18,12 +18,18 @@ Read only what you need:
 - Read [`/opt/projects/carbonet/docs/architecture/system-folder-structure-alignment.md`](/opt/projects/carbonet/docs/architecture/system-folder-structure-alignment.md) when the request also affects folder placement, module extraction, app assembly placement, or keeping new files out of the root legacy tree.
 - Read [`/opt/projects/carbonet/docs/architecture/large-move-completion-contract.md`](/opt/projects/carbonet/docs/architecture/large-move-completion-contract.md) when the request explicitly asks for a fully completed large move instead of an open-ended transitional cleanup.
 - Read [`/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md`](/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md) when DB ownership or table split is involved.
+- Read [`/opt/projects/carbonet/docs/architecture/admin-ops-and-project-admin-separation-plan.md`](/opt/projects/carbonet/docs/architecture/admin-ops-and-project-admin-separation-plan.md) when the request is about central operator screens versus project-admin screens, keeping the same UI first, or separating current shared admin pages into later-separable runtime lanes.
+- Read [`/opt/projects/carbonet/docs/architecture/common-jar-platform-and-project-runtime-plan.md`](/opt/projects/carbonet/docs/architecture/common-jar-platform-and-project-runtime-plan.md) when the request is about splitting project runtime first, delivering reusable common jars, adding new projects from templates, or postponing control-plane extraction until later.
+- Read [`/opt/projects/carbonet/docs/architecture/carbonet-runtime-split-classification-matrix.md`](/opt/projects/carbonet/docs/architecture/carbonet-runtime-split-classification-matrix.md) when the user wants the current Carbonet menus, route families, or DB lanes classified into `COMMON_RUNTIME`, `PROJECT_RUNTIME`, `PROJECT_ADAPTER`, and `CONTROL_PLANE_LATER`.
+- Read [`/opt/projects/carbonet/docs/architecture/carbonet-backend-and-db-split-starter-matrix.md`](/opt/projects/carbonet/docs/architecture/carbonet-backend-and-db-split-starter-matrix.md) when the task needs a first-pass backend package, service, mapper, or DB table-family split plan before actual code moves.
+- Read [`/opt/projects/carbonet/docs/architecture/carbonet-first-code-move-candidates.md`](/opt/projects/carbonet/docs/architecture/carbonet-first-code-move-candidates.md) when the task is about the first concrete extraction batch order, initial module targets, or which classes should move first.
 - Read [`/opt/projects/carbonet/docs/architecture/screenbuilder-core-jar-adapter-plan.md`](/opt/projects/carbonet/docs/architecture/screenbuilder-core-jar-adapter-plan.md) when the task affects builder-core extraction, shared jar packaging, or project adapter lines.
 - Read [`/opt/projects/carbonet/docs/architecture/installable-builder-upgrade-roadmap.md`](/opt/projects/carbonet/docs/architecture/installable-builder-upgrade-roadmap.md) when the task is driven by "3-minute new-project bootstrap", installable builder/module delivery, theme-installable upgrades, API-installable upgrades, or framework-level builder packaging.
 - Read [`/opt/projects/carbonet/docs/architecture/installable-business-process-package-model.md`](/opt/projects/carbonet/docs/architecture/installable-business-process-package-model.md) when the task involves installable workflow/process packaging, reusable process stages, or thin project executors.
 - Read [`/opt/projects/carbonet/docs/architecture/reusable-read-module-separation-plan.md`](/opt/projects/carbonet/docs/architecture/reusable-read-module-separation-plan.md) when the task involves reusable list/detail/dashboard queries or screen-installable read models.
 - Read [`/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md`](/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md) when the task affects reusable jars, frontend shared bundles, or version-pinned rollout.
 - Read [`/opt/projects/carbonet/docs/architecture/stable-adapter-and-common-core-versioning.md`](/opt/projects/carbonet/docs/architecture/stable-adapter-and-common-core-versioning.md) when the user wants AI agents to keep evolving the common system while project adapters remain stable and versioned.
+- Read [`/opt/projects/carbonet/docs/architecture/fleet-common-upgrade-operating-model.md`](/opt/projects/carbonet/docs/architecture/fleet-common-upgrade-operating-model.md) when the task is about keeping many projects on maintained common versions, automatic compatibility runs, update waves, or common maintenance operations across customers.
 - Read [`/opt/projects/carbonet/docs/architecture/artifact-registry-and-project-version-governance.md`](/opt/projects/carbonet/docs/architecture/artifact-registry-and-project-version-governance.md) when the task affects artifact preservation, project-installed version records, adapter change history, or project-management-console upgrade flow.
 - Read [`/opt/projects/carbonet/docs/architecture/artifact-and-release-naming-contract.md`](/opt/projects/carbonet/docs/architecture/artifact-and-release-naming-contract.md) when the task affects artifact naming, release-unit IDs, runtime-package IDs, or deploy-trace identity rules.
 
@@ -43,6 +49,8 @@ Read only what you need:
 - 3-minute new-project bootstrap preparation
 - installable builder/module packaging with versioned upgrades
 - stable adapter plus changeable common-core governance
+- fleet-wide common-core maintenance and patch rollout
+- compatibility matrix, upgrade candidate, and ring rollout governance
 - artifact registry and adapter change recording governance
 - "do this first so future conversion is easy"
 
@@ -186,6 +194,8 @@ Adapter safety rule:
 - prefer stable project-facing ports and DTOs
 - let common-core internals evolve behind them
 - when breaking adapter changes are unavoidable, publish a new versioned contract line instead of silently rewriting existing project adapters
+- common-core patch and minor releases should be designed to keep project adapters unchanged in the normal case
+- fleet updates should create compatibility candidates and ring rollout plans instead of immediately changing all production projects
 
 When business-facing screens are involved, prefer:
 
@@ -196,6 +206,26 @@ When business-facing screens are involved, prefer:
 Do not force write-heavy business behavior into common packages just to increase reuse numbers.
 
 Copying source is allowed only for prototypes, not as the normal delivery rule.
+
+## Fleet Upgrade Rule
+
+For many-project maintenance, prefer this order:
+
+1. define the stable adapter contract and artifact lock format
+2. publish a common-core patch artifact
+3. generate project compatibility candidates
+4. run build, adapter contract, DB diff, and smoke checks per project
+5. update only passing projects automatically
+6. route failing projects to adapter-fix tickets
+7. roll out by rings instead of all-at-once production updates
+
+Default policy:
+
+- `PATCH`: automatic candidate, automatic ring rollout if checks pass
+- `MINOR`: automatic candidate, operator approval before broad rollout
+- `MAJOR`: explicit migration plan and versioned contract line
+
+Do not claim a common update is fleet-safe without a compatibility matrix.
 
 ## Productization Rule
 

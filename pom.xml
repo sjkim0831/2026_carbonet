@@ -14,6 +14,10 @@
 		<module>modules/carbonet-web-support</module>
 		<module>modules/carbonet-contract-metadata</module>
 		<module>modules/carbonet-builder-observability</module>
+		<module>modules/common-auth</module>
+		<module>modules/common-admin-runtime</module>
+		<module>modules/common-content-runtime</module>
+		<module>modules/common-payment</module>
 		<module>modules/platform-request-contracts</module>
 		<module>modules/platform-service-contracts</module>
 		<module>modules/platform-help-content</module>
@@ -26,6 +30,8 @@
 		<module>modules/screenbuilder-core</module>
 		<module>modules/screenbuilder-runtime-common-adapter</module>
 		<module>modules/screenbuilder-carbonet-adapter</module>
+		<module>projects/carbonet-adapter</module>
+		<module>projects/carbonet-runtime</module>
 		<module>apps/carbonet-app</module>
 	</modules>
 

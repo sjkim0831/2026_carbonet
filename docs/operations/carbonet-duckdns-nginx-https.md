@@ -12,6 +12,7 @@
 
 - nginx 템플릿: [carbonet-duckdns.org.conf.example](/opt/projects/carbonet/ops/config/nginx/carbonet-duckdns.org.conf.example)
 - 설치 스크립트: [install-carbonet-duckdns-nginx.sh](/opt/projects/carbonet/ops/scripts/install-carbonet-duckdns-nginx.sh)
+- 웹서버 포함 blue-green 배포 기준: [web-runtime-blue-green-deploy.md](/opt/projects/carbonet/docs/operations/web-runtime-blue-green-deploy.md)
 
 ## 운영 서버 반영
 
@@ -45,6 +46,8 @@ bash /opt/projects/carbonet/ops/scripts/install-carbonet-duckdns-nginx.sh
 - `location = /home` 는 upstream 으로 직접 전달한다
 - `location /` 는 나머지 Carbonet 경로를 upstream 으로 전달한다
 - upstream 은 `/etc/nginx/carbonet/carbonet-main-upstream.inc`, `/etc/nginx/carbonet/carbonet-idle-upstream.inc` 를 그대로 사용한다
+- 운영 배포 중 upstream 변경은 candidate 앱 health/smoke test 통과 후에만 수행한다
+- upstream 변경 전 기존 Nginx 설정을 release folder에 백업하고, 변경 후 설정 hash를 deploy manifest에 기록한다
 - `server_name` 에 운영 IP(`136.117.100.221`)나 `_` 를 섞지 않는다
 - HTTPS 서버는 HSTS와 `upgrade-insecure-requests` 헤더를 내려 브라우저가 혼합 콘텐츠를 HTTPS로 승격하도록 한다
 

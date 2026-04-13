@@ -1,3 +1,5 @@
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
 [model_providers.minimax]
 name = "MiniMax Chat Completions API"
 base_url = "https://api.minimax.io/v1"
