@@ -26,6 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 @RequiredArgsConstructor
 @RequestMapping({
         "/api/platform/version-control",
+        "/en/api/platform/version-control",
         "/admin/api/platform/version-control",
         "/en/admin/api/platform/version-control"
 })

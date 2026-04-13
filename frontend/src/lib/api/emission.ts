@@ -221,15 +221,7 @@ async function fetchEmissionJson<T>(koPath: string, enPath: string, query?: stri
 }
 
 async function postEmissionAction<T>(koPath: string, enPath: string): Promise<T> {
-  const response = await apiFetch(buildLocalizedPath(koPath, enPath), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    })
-  });
-  return readJsonResponse<T>(response);
+  return postLocalizedAction<T>(koPath, enPath);
 }
 
 async function deleteEmissionAction<T>(koPath: string, enPath: string, query?: string): Promise<T> {

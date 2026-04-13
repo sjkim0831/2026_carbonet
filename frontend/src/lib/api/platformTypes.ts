@@ -29,6 +29,40 @@ export type ProjectVersionManagementPagePayload = {
   candidateArtifacts: ProjectVersionListPayload;
 };
 
+export type ProjectVersionOpsJobPayload = {
+  jobId?: string;
+  projectId?: string;
+  executionType?: string;
+  profileName?: string;
+  actorId?: string;
+  status?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  updatedAt?: string;
+  duration?: string;
+  resultMessage?: string;
+  logLines?: string[];
+};
+
+export type ProjectVersionOpsPayload = {
+  projectId?: string;
+  remoteHost?: string;
+  launcherPath?: string;
+  scriptPath?: string;
+  launcherPresentYn?: string;
+  scriptPresentYn?: string;
+  deployAutomationConfiguredYn?: string;
+  backupCoverageSet?: string[];
+  launcherExclusiveSet?: string[];
+  recommendedFlowSet?: string[];
+  recentDeploymentHistory?: Array<Record<string, unknown>>;
+  currentRemoteJob?: ProjectVersionOpsJobPayload | null;
+  recentRemoteJobs?: ProjectVersionOpsJobPayload[];
+  remoteJobStarted?: boolean;
+  remoteJobId?: string;
+  message?: string;
+};
+
 export type ProjectVersionTargetArtifactPayload = {
   artifactId: string;
   artifactVersion: string;

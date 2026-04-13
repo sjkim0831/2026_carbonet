@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
   calculateEmissionInputSession,
@@ -23,7 +24,7 @@ import type {
   EmissionTierItem,
   EmissionVariableDefinition
 } from "../../lib/api/emissionTypes";
-import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, CollectionResultPanel, DiagnosticCard, LookupContextStrip, MemberActionBar, MemberButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
@@ -851,7 +852,15 @@ export function EmissionManagementMigrationPage() {
     blocking?: boolean;
   };
 
+  const allowedSessionActionRoles = new Set([
+    "ROLE_SYSTEM_MASTER",
+    "ROLE_SYSTEM_ADMIN",
+    "ROLE_ADMIN",
+    "ROLE_OPERATION_ADMIN"
+  ]);
+
   const en = isEnglish();
+  const frontendSession = useFrontendSession();
   const [page, setPage] = useState<EmissionManagementPagePayload | null>(null);
   const [elementRegistryRows, setElementRegistryRows] = useState<Array<Record<string, unknown>>>([]);
   const [selectedElementDefinitionId, setSelectedElementDefinitionId] = useState("");
@@ -896,6 +905,20 @@ export function EmissionManagementMigrationPage() {
   const [hoveredFormulaToken, setHoveredFormulaToken] = useState("");
   const [highlightedHelpId, setHighlightedHelpId] = useState("");
   const [activityFeedOverlayOpen, setActivityFeedOverlayOpen] = useState(false);
+  const canExecuteSessionActions = Boolean(
+    frontendSession.value?.authenticated
+      && frontendSession.value?.csrfToken
+      && allowedSessionActionRoles.has(String(frontendSession.value?.authorCode || "").trim().toUpperCase())
+  );
+
+  useEffect(() => {
+    if (frontendSession.loading || !frontendSession.value) {
+      return;
+    }
+    if (!frontendSession.value.authenticated) {
+      navigate(buildLocalizedPath("/admin/login/loginView", "/en/admin/login/loginView"));
+    }
+  }, [frontendSession.loading, frontendSession.value]);
   const elementRegistrySummary = (page?.elementRegistrySummary || []) as Array<Record<string, string>>;
   const elementTypeOptions = (page?.elementTypeOptions || []) as Array<Record<string, string>>;
   const layoutZoneOptions = (page?.layoutZoneOptions || []) as Array<Record<string, string>>;
@@ -3398,6 +3421,10 @@ export function EmissionManagementMigrationPage() {
   }
 
   async function handleSave() {
+    if (!canExecuteSessionActions) {
+      setError(en ? "Admin execution permission is required." : "관리자 실행 권한이 필요합니다.");
+      return 0;
+    }
     if (selectedCategoryId <= 0 || selectedTier <= 0) {
       setError(en ? "Select a category and tier first." : "카테고리와 Tier를 먼저 선택하세요.");
       return 0;
@@ -3445,6 +3472,10 @@ export function EmissionManagementMigrationPage() {
   }
 
   async function handleCalculate() {
+    if (!canExecuteSessionActions) {
+      setError(en ? "Admin execution permission is required." : "관리자 실행 권한이 필요합니다.");
+      return;
+    }
     const lineAlignmentWarning = validateLineAlignment();
     if (lineAlignmentWarning) {
       setWarning(lineAlignmentWarning);
@@ -5186,9 +5217,9 @@ export function EmissionManagementMigrationPage() {
                 <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedTier > 0 ? `Tier ${selectedTier}` : "-"}</p>
               </div>
             </div>
-            <div className={`mt-4 ${effectiveFormulaSummary ? "lg:grid lg:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] lg:items-start lg:gap-4" : ""}`}>
+            <div className="mt-4 space-y-4">
               {effectiveFormulaSummary ? (
-                <div className="lg:sticky lg:top-20 lg:z-10">
+                <section className="space-y-3">
                   <div className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-blue-50/95">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -5274,9 +5305,9 @@ export function EmissionManagementMigrationPage() {
                       </div>
                     </div>
                   ) : null}
-                </div>
+                </section>
               ) : null}
-              <div className={effectiveFormulaSummary ? "mt-4 lg:mt-0" : ""}>
+              <div>
                 <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -5395,6 +5426,7 @@ export function EmissionManagementMigrationPage() {
                   eyebrow={en ? "Execution" : "실행"}
                   secondary={{
                     label: saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save session" : "세션 저장"),
+                    disabled: saving || calculating || visibleVariables.length === 0 || !canExecuteSessionActions,
                     onClick: () => {
                       void handleSave();
                     }
@@ -5402,7 +5434,7 @@ export function EmissionManagementMigrationPage() {
                   primary={(
                     <div className="flex flex-wrap items-center justify-end gap-3">
                       <MemberButton
-                        disabled={saving || calculating || selectedCategoryId <= 0 || selectedTier <= 0 || variables.length === 0}
+                        disabled={saving || calculating || selectedCategoryId <= 0 || selectedTier <= 0 || variables.length === 0 || !canExecuteSessionActions}
                         onClick={() => {
                           resetCurrentDraft();
                         }}
@@ -5412,7 +5444,7 @@ export function EmissionManagementMigrationPage() {
                         {en ? "Reset draft" : "입력 초기화"}
                       </MemberButton>
                       <MemberButton
-                        disabled={saving || calculating}
+                        disabled={saving || calculating || !canExecuteSessionActions}
                         onClick={() => {
                           setWizardStep(1);
                         }}
@@ -5421,7 +5453,7 @@ export function EmissionManagementMigrationPage() {
                       >
                         {en ? "Change selection" : "선택 변경"}
                       </MemberButton>
-                      <MemberButton disabled={saving || calculating || visibleVariables.length === 0} onClick={() => void handleCalculate()} type="button">
+                      <MemberButton disabled={saving || calculating || visibleVariables.length === 0 || !canExecuteSessionActions} onClick={() => void handleCalculate()} type="button">
                         {calculating ? (en ? "Calculating..." : "계산 중...") : (en ? "Run calculation" : "계산 실행")}
                       </MemberButton>
                     </div>

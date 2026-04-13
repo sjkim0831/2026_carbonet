@@ -4,6 +4,7 @@ import egovframework.com.common.mapper.support.BaseMapperSupport;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Repository("projectVersionManagementMapper")
@@ -12,15 +13,15 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
     private static final String NAMESPACE = "egovframework.com.platform.versioncontrol.mapper.ProjectVersionManagementMapper";
 
     public Map<String, Object> selectProjectOverview(String projectId) {
-        return selectOne(NAMESPACE + ".selectProjectOverview", projectId);
+        return selectOne(NAMESPACE + ".selectProjectOverview", idParam("projectId", projectId));
     }
 
     public List<Map<String, Object>> selectInstalledArtifactList(String projectId) {
-        return selectList(NAMESPACE + ".selectInstalledArtifactList", projectId);
+        return selectList(NAMESPACE + ".selectInstalledArtifactList", idParam("projectId", projectId));
     }
 
     public List<Map<String, Object>> selectInstalledPackageList(String projectId) {
-        return selectList(NAMESPACE + ".selectInstalledPackageList", projectId);
+        return selectList(NAMESPACE + ".selectInstalledPackageList", idParam("projectId", projectId));
     }
 
     public List<Map<String, Object>> selectAdapterHistoryList(Map<String, Object> params) {
@@ -28,7 +29,7 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
     }
 
     public Integer countAdapterHistory(String projectId) {
-        return selectOne(NAMESPACE + ".countAdapterHistory", projectId);
+        return selectOne(NAMESPACE + ".countAdapterHistory", idParam("projectId", projectId));
     }
 
     public List<Map<String, Object>> selectReleaseUnitList(Map<String, Object> params) {
@@ -40,11 +41,11 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
     }
 
     public Integer countReleaseUnits(String projectId) {
-        return selectOne(NAMESPACE + ".countReleaseUnits", projectId);
+        return selectOne(NAMESPACE + ".countReleaseUnits", idParam("projectId", projectId));
     }
 
     public List<Map<String, Object>> selectServerDeploymentStateList(String projectId) {
-        return selectList(NAMESPACE + ".selectServerDeploymentStateList", projectId);
+        return selectList(NAMESPACE + ".selectServerDeploymentStateList", idParam("projectId", projectId));
     }
 
     public List<Map<String, Object>> selectServerDeploymentState(String projectId) {
@@ -56,7 +57,7 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
     }
 
     public Integer countCandidateArtifacts(String projectId) {
-        return selectOne(NAMESPACE + ".countCandidateArtifacts", projectId);
+        return selectOne(NAMESPACE + ".countCandidateArtifacts", idParam("projectId", projectId));
     }
 
     public Map<String, Object> selectArtifactVersion(Map<String, Object> params) {
@@ -72,11 +73,11 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
     }
 
     public Map<String, Object> selectReleaseUnit(String releaseUnitId) {
-        return selectOne(NAMESPACE + ".selectReleaseUnit", releaseUnitId);
+        return selectOne(NAMESPACE + ".selectReleaseUnit", idParam("releaseUnitId", releaseUnitId));
     }
 
     public Map<String, Object> selectProjectRegistry(String projectId) {
-        return selectOne(NAMESPACE + ".selectProjectRegistry", projectId);
+        return selectOne(NAMESPACE + ".selectProjectRegistry", idParam("projectId", projectId));
     }
 
     public List<Map<String, Object>> selectInstalledArtifacts(String projectId) {
@@ -100,7 +101,7 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
     }
 
     public int deactivateProjectArtifactInstalls(String projectId) {
-        return update(NAMESPACE + ".deactivateProjectArtifactInstalls", projectId);
+        return update(NAMESPACE + ".deactivateProjectArtifactInstalls", idParam("projectId", projectId));
     }
 
     public void insertProjectArtifactInstall(Map<String, Object> params) {
@@ -119,11 +120,29 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
         insert(NAMESPACE + ".insertServerDeploymentState", params);
     }
 
+    public List<Map<String, Object>> selectRecentDeploymentHistory(String projectId) {
+        return selectList(NAMESPACE + ".selectRecentDeploymentHistory", idParam("projectId", projectId));
+    }
+
+    public void insertProjectDeploymentHistory(Map<String, Object> params) {
+        insert(NAMESPACE + ".insertProjectDeploymentHistory", params);
+    }
+
+    public int updateProjectDeploymentHistory(Map<String, Object> params) {
+        return update(NAMESPACE + ".updateProjectDeploymentHistory", params);
+    }
+
     private Map<String, Object> defaultPageParams(String projectId) {
-        Map<String, Object> params = new java.util.LinkedHashMap<String, Object>();
+        Map<String, Object> params = new LinkedHashMap<String, Object>();
         params.put("projectId", projectId);
         params.put("pageSize", Integer.valueOf(200));
         params.put("offset", Integer.valueOf(0));
+        return params;
+    }
+
+    private Map<String, Object> idParam(String key, String value) {
+        Map<String, Object> params = new LinkedHashMap<String, Object>();
+        params.put(key, value);
         return params;
     }
 }

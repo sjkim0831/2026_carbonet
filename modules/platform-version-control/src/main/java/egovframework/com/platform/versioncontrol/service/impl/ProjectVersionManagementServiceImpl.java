@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -39,16 +40,20 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
     @Override
     public Map<String, Object> getProjectVersionOverview(String projectId) throws Exception {
         String normalizedProjectId = required(projectId, "projectId");
-        Map<String, Object> overview = defaultMap(projectVersionManagementMapper.selectProjectOverview(normalizedProjectId));
+        Map<String, Object> overview = safeMap(() -> projectVersionManagementMapper.selectProjectOverview(normalizedProjectId));
+        Map<String, Object> commonArtifactSet = parseJsonMap(overview.get("commonArtifactSet"));
         List<Map<String, Object>> installedArtifacts = canonicalArtifactRows(
                 normalizedProjectId,
-                safeList(projectVersionManagementMapper.selectInstalledArtifactList(normalizedProjectId)));
-        List<Map<String, Object>> installedPackages = safeList(projectVersionManagementMapper.selectInstalledPackageList(normalizedProjectId));
+                safeListOrEmpty(() -> projectVersionManagementMapper.selectInstalledArtifactList(normalizedProjectId)));
+        List<Map<String, Object>> installedPackages = safeListOrEmpty(
+                () -> projectVersionManagementMapper.selectInstalledPackageList(normalizedProjectId));
         return orderedMap(
                 "projectId", normalizedProjectId,
-                "projectDisplayName", stringValue(overview.get("projectDisplayName")),
+                "projectDisplayName", firstNonBlank(stringValue(overview.get("projectDisplayName")), normalizedProjectId),
                 "activeRuntimeVersion", stringValue(overview.get("activeRuntimeVersion")),
-                "activeCommonCoreVersion", stringValue(overview.get("activeCommonCoreVersion")),
+                "activeCommonCoreVersion", firstNonBlank(
+                        stringValue(commonArtifactSet.get("commonCoreVersion")),
+                        stringValue(overview.get("activeCommonCoreVersion"))),
                 "activeAdapterContractVersion", stringValue(overview.get("activeAdapterContractVersion")),
                 "activeAdapterArtifactVersion", stringValue(overview.get("activeAdapterArtifactVersion")),
                 "installedArtifactSet", installedArtifacts,
@@ -62,8 +67,8 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         Map<String, Object> params = pagingParams(projectId, request);
         return orderedMap(
                 "projectId", projectId,
-                "itemSet", safeList(projectVersionManagementMapper.selectAdapterHistoryList(params)),
-                "totalCount", safeInt(projectVersionManagementMapper.countAdapterHistory(projectId)));
+                "itemSet", safeListOrEmpty(() -> projectVersionManagementMapper.selectAdapterHistoryList(params)),
+                "totalCount", safeIntOrZero(() -> projectVersionManagementMapper.countAdapterHistory(projectId)));
     }
 
     @Override
@@ -72,8 +77,8 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         Map<String, Object> params = pagingParams(projectId, request);
         return orderedMap(
                 "projectId", projectId,
-                "itemSet", safeList(projectVersionManagementMapper.selectReleaseUnitList(params)),
-                "totalCount", safeInt(projectVersionManagementMapper.countReleaseUnits(projectId)));
+                "itemSet", safeListOrEmpty(() -> projectVersionManagementMapper.selectReleaseUnitList(params)),
+                "totalCount", safeIntOrZero(() -> projectVersionManagementMapper.countReleaseUnits(projectId)));
     }
 
     @Override
@@ -81,7 +86,8 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         String normalizedProjectId = required(projectId, "projectId");
         return orderedMap(
                 "projectId", normalizedProjectId,
-                "serverStateSet", safeList(projectVersionManagementMapper.selectServerDeploymentStateList(normalizedProjectId)));
+                "serverStateSet", safeListOrEmpty(
+                        () -> projectVersionManagementMapper.selectServerDeploymentStateList(normalizedProjectId)));
     }
 
     @Override
@@ -95,7 +101,7 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         Map<String, String> latestVersionByArtifact = new LinkedHashMap<String, String>();
         List<Map<String, Object>> rawCandidates = canonicalArtifactRows(
                 projectId,
-                safeList(projectVersionManagementMapper.selectCandidateArtifactList(params)));
+                safeListOrEmpty(() -> projectVersionManagementMapper.selectCandidateArtifactList(params)));
         for (Map<String, Object> rawCandidate : rawCandidates) {
             String artifactId = stringValue(rawCandidate.get("artifactId"));
             if (!artifactId.isEmpty() && !latestVersionByArtifact.containsKey(artifactId)) {
@@ -114,7 +120,7 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
                 "projectId", projectId,
                 "activeAdapterContractVersion", activeAdapterContractVersion,
                 "itemSet", enrichedCandidates,
-                "totalCount", safeInt(projectVersionManagementMapper.countCandidateArtifacts(projectId)));
+                "totalCount", safeIntOrZero(() -> projectVersionManagementMapper.countCandidateArtifacts(projectId)));
     }
 
     @Override
@@ -516,6 +522,65 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         return value == null ? 0 : value.intValue();
     }
 
+    private Map<String, Object> safeMap(QuerySupplier<Map<String, Object>> supplier) throws Exception {
+        try {
+            return defaultMap(supplier.get());
+        } catch (Exception ex) {
+            if (isMissingVersionControlTable(ex)) {
+                return new LinkedHashMap<String, Object>();
+            }
+            throw ex;
+        }
+    }
+
+    private List<Map<String, Object>> safeListOrEmpty(QuerySupplier<List<Map<String, Object>>> supplier) throws Exception {
+        try {
+            return safeList(supplier.get());
+        } catch (Exception ex) {
+            if (isMissingVersionControlTable(ex)) {
+                return Collections.emptyList();
+            }
+            throw ex;
+        }
+    }
+
+    private int safeIntOrZero(QuerySupplier<Integer> supplier) throws Exception {
+        try {
+            return safeInt(supplier.get());
+        } catch (Exception ex) {
+            if (isMissingVersionControlTable(ex)) {
+                return 0;
+            }
+            throw ex;
+        }
+    }
+
+    private boolean isMissingVersionControlTable(Exception exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String normalized = message.toLowerCase(Locale.ROOT);
+                if (normalized.contains("unknown class \"dba.project_registry\"")
+                        || normalized.contains("unknown class \"dba.release_unit_registry\"")
+                        || normalized.contains("unknown class \"dba.adapter_change_log\"")
+                        || normalized.contains("unknown class \"dba.server_deployment_state\"")
+                        || normalized.contains("unknown class \"dba.artifact_version_registry\"")
+                        || normalized.contains("unknown class \"dba.project_artifact_install\"")
+                        || normalized.contains("unknown class \"dba.install_unit\"")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    @FunctionalInterface
+    private interface QuerySupplier<T> {
+        T get() throws Exception;
+    }
+
     private String required(String value, String fieldName) {
         String safe = safe(value);
         if (safe.isEmpty()) {
@@ -546,4 +611,5 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         }
         return values;
     }
+
 }

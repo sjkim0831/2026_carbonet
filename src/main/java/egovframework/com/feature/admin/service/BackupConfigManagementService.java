@@ -90,6 +90,7 @@ public class BackupConfigManagementService {
     private final MaintenanceModeService maintenanceModeService;
     private final Path documentPath = Paths.get("data", "backup-config", "settings.json");
     private final Path jobLogDirectory = Paths.get("data", "backup-config", "jobs");
+    private final Path deployAutomationEnvPath = Paths.get("ops", "config", "deploy-automation.env");
     private final ConcurrentMap<String, BackupExecutionJob> jobs = new ConcurrentHashMap<>();
     private final ExecutorService backupExecutionExecutor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "carbonet-backup-execution");
@@ -149,6 +150,7 @@ public class BackupConfigManagementService {
         trim(document.executionRows, 20);
         trim(document.versionRows, VERSION_HISTORY_LIMIT);
         writeDocument(document);
+        syncDeployAutomationEnv(settings);
 
         Map<String, Object> payload = buildPageData(isEn);
         payload.put("backupConfigUpdated", true);
@@ -195,6 +197,7 @@ public class BackupConfigManagementService {
         trim(document.executionRows, 20);
         trim(document.versionRows, VERSION_HISTORY_LIMIT);
         writeDocument(document);
+        syncDeployAutomationEnv(restoredSettings);
 
         Map<String, Object> payload = buildPageData(isEn);
         payload.put("backupConfigUpdated", true);
@@ -291,6 +294,76 @@ public class BackupConfigManagementService {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to write backup settings.", e);
         }
+    }
+
+    private void syncDeployAutomationEnv(BackupSettings settings) {
+        try {
+            Map<String, String> env = loadShellEnvFile(deployAutomationEnvPath);
+            putIfNotBlank(env, "BACKUP_GIT_USERNAME", resolveConfiguredGitUsername(settings));
+            putIfNotBlank(env, "BACKUP_GIT_AUTH_TOKEN", resolveConfiguredGitAuthToken(settings));
+            putIfNotBlank(env, "GITHUB_TOKEN", resolveConfiguredGitAuthToken(settings));
+            putIfNotBlank(env, "GIT_REMOTE_NAME", safe(settings == null ? null : settings.gitRemoteName));
+            putIfNotBlank(env, "GIT_BRANCH", safe(settings == null ? null : settings.gitBranchPattern));
+            putIfNotBlank(env, "REPO_URL", resolveConfiguredGitRemoteUrl(settings));
+            writeShellEnvFile(deployAutomationEnvPath, env);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to sync deploy automation settings.", e);
+        }
+    }
+
+    private Map<String, String> loadShellEnvFile(Path envPath) throws Exception {
+        Map<String, String> env = new LinkedHashMap<String, String>();
+        if (!Files.exists(envPath)) {
+            return env;
+        }
+        List<String> lines = Files.readAllLines(envPath, StandardCharsets.UTF_8);
+        for (String line : lines) {
+            String trimmed = safe(line);
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                continue;
+            }
+            int separator = trimmed.indexOf('=');
+            if (separator <= 0) {
+                continue;
+            }
+            String key = safe(trimmed.substring(0, separator));
+            String rawValue = trimmed.substring(separator + 1).trim();
+            env.put(key, unquoteShellValue(rawValue));
+        }
+        return env;
+    }
+
+    private void writeShellEnvFile(Path envPath, Map<String, String> env) throws Exception {
+        Files.createDirectories(envPath.getParent());
+        List<String> lines = new ArrayList<String>();
+        lines.add("# Managed by BackupConfigManagementService");
+        for (Map.Entry<String, String> entry : env.entrySet()) {
+            lines.add(entry.getKey() + "=" + shellQuoteEnvValue(entry.getValue()));
+        }
+        Files.write(envPath, lines, StandardCharsets.UTF_8);
+    }
+
+    private void putIfNotBlank(Map<String, String> env, String key, String value) {
+        String normalized = safe(value);
+        if (normalized.isEmpty()) {
+            return;
+        }
+        env.put(key, normalized);
+    }
+
+    private String shellQuoteEnvValue(String value) {
+        return "'" + safe(value).replace("'", "'\"'\"'") + "'";
+    }
+
+    private String unquoteShellValue(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.length() >= 2 && normalized.startsWith("'") && normalized.endsWith("'")) {
+            return normalized.substring(1, normalized.length() - 1).replace("'\"'\"'", "'");
+        }
+        if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
+            return normalized.substring(1, normalized.length() - 1);
+        }
+        return normalized;
     }
 
     private BackupConfigDocument defaultDocument() {
@@ -2174,6 +2247,14 @@ public class BackupConfigManagementService {
             return configured;
         }
         return safe(System.getenv("BACKUP_GIT_USERNAME"));
+    }
+
+    private String resolveConfiguredGitRemoteUrl(BackupSettings settings) {
+        String configured = safe(settings == null ? null : settings.gitRemoteUrl);
+        if (!configured.isEmpty()) {
+            return configured;
+        }
+        return safe(System.getenv("REPO_URL"));
     }
 
     private String resolveConfiguredGitAuthToken(BackupSettings settings) {

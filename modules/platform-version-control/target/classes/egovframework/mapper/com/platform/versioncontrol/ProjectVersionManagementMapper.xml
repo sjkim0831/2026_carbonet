@@ -10,7 +10,7 @@
             P.PROJECT_ID AS projectId,
             P.PROJECT_NAME AS projectDisplayName,
             R.PROJECT_RUNTIME_VERSION AS activeRuntimeVersion,
-            COALESCE(JSON_EXTRACT_SCALAR(R.COMMON_ARTIFACT_SET_JSON, '$.commonCoreVersion'), '') AS activeCommonCoreVersion,
+            R.COMMON_ARTIFACT_SET_JSON AS commonArtifactSet,
             R.ADAPTER_CONTRACT_VERSION AS activeAdapterContractVersion,
             R.ADAPTER_ARTIFACT_VERSION AS activeAdapterArtifactVersion,
             R.ROLLBACK_TARGET_RELEASE_ID AS rollbackReadyReleaseUnitId
@@ -350,5 +350,77 @@
             #{deployedBy}
         )
     </insert>
+
+    <select id="selectRecentDeploymentHistory" parameterType="map" resultType="map">
+        SELECT
+            DEPLOYMENT_HISTORY_ID AS deploymentHistoryId,
+            PROJECT_ID AS projectId,
+            RELEASE_VERSION AS releaseVersion,
+            RELEASE_TITLE AS releaseTitle,
+            RELEASE_CONTENT AS releaseContent,
+            STATUS AS status,
+            SERVER_TARGET AS serverTarget,
+            RELEASE_UNIT_ID AS releaseUnitId,
+            DEPLOY_TRACE_ID AS deployTraceId,
+            GIT_COMMIT_SHA AS gitCommitSha,
+            RESULT_MESSAGE AS resultMessage,
+            STARTED_AT AS startedAt,
+            FINISHED_AT AS finishedAt,
+            UPDATED_AT AS updatedAt,
+            CREATED_BY AS createdBy
+        FROM PROJECT_DEPLOYMENT_HISTORY
+        WHERE PROJECT_ID = #{projectId}
+        ORDER BY STARTED_AT DESC
+        LIMIT 10
+    </select>
+
+    <insert id="insertProjectDeploymentHistory" parameterType="map">
+        INSERT INTO PROJECT_DEPLOYMENT_HISTORY (
+            DEPLOYMENT_HISTORY_ID,
+            PROJECT_ID,
+            RELEASE_VERSION,
+            RELEASE_TITLE,
+            RELEASE_CONTENT,
+            STATUS,
+            SERVER_TARGET,
+            RELEASE_UNIT_ID,
+            DEPLOY_TRACE_ID,
+            GIT_COMMIT_SHA,
+            RESULT_MESSAGE,
+            STARTED_AT,
+            UPDATED_AT,
+            CREATED_BY
+        ) VALUES (
+            #{deploymentHistoryId},
+            #{projectId},
+            #{releaseVersion},
+            #{releaseTitle},
+            #{releaseContent, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
+            #{status},
+            #{serverTarget},
+            #{releaseUnitId},
+            #{deployTraceId},
+            #{gitCommitSha},
+            #{resultMessage},
+            CURRENT_DATETIME,
+            CURRENT_DATETIME,
+            #{createdBy}
+        )
+    </insert>
+
+    <update id="updateProjectDeploymentHistory" parameterType="map">
+        UPDATE PROJECT_DEPLOYMENT_HISTORY
+        <set>
+            <if test="status != null">STATUS = #{status},</if>
+            <if test="serverTarget != null">SERVER_TARGET = #{serverTarget},</if>
+            <if test="releaseUnitId != null">RELEASE_UNIT_ID = #{releaseUnitId},</if>
+            <if test="deployTraceId != null">DEPLOY_TRACE_ID = #{deployTraceId},</if>
+            <if test="gitCommitSha != null">GIT_COMMIT_SHA = #{gitCommitSha},</if>
+            <if test="resultMessage != null">RESULT_MESSAGE = #{resultMessage},</if>
+            UPDATED_AT = CURRENT_DATETIME,
+            <if test="finishedYn != null and finishedYn == 'Y'">FINISHED_AT = CURRENT_DATETIME,</if>
+        </set>
+        WHERE DEPLOYMENT_HISTORY_ID = #{deploymentHistoryId}
+    </update>
 
 </mapper>

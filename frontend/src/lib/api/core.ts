@@ -7,6 +7,17 @@ type ApiRequestInit = RequestInit & Record<string, unknown>;
 type QueryParamPrimitive = string | number | boolean | null | undefined;
 type QueryParamValue = QueryParamPrimitive | QueryParamPrimitive[];
 
+function buildJsonRequestHeaders(headers?: HeadersInit): Headers {
+  const next = new Headers(headers || {});
+  if (!next.has("Accept")) {
+    next.set("Accept", "application/json");
+  }
+  if (!next.has("X-Requested-With")) {
+    next.set("X-Requested-With", "XMLHttpRequest");
+  }
+  return next;
+}
+
 export function buildPublicApiPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return buildLocalizedPath(normalized, `/en${normalized}`);
@@ -56,8 +67,19 @@ export async function readJsonResponse<T>(response: Response): Promise<T> {
 
   const text = await response.text();
   const compact = text.replace(/\s+/g, " ").trim();
+  const responsePath = (() => {
+    if (!response.url) {
+      return "";
+    }
+    try {
+      const parsed = new URL(response.url, typeof window === "undefined" ? "http://localhost" : window.location.origin);
+      return `${parsed.pathname}${parsed.search}`;
+    } catch {
+      return response.url;
+    }
+  })();
   throw new Error(compact.startsWith("<!DOCTYPE") || compact.startsWith("<html")
-    ? `Server returned HTML instead of JSON (${response.status})`
+    ? `Server returned HTML instead of JSON (${response.status})${responsePath ? ` ${responsePath}` : ""}`
     : (compact || `Unexpected response format (${response.status})`));
 }
 
@@ -129,7 +151,12 @@ export function buildFormUrlEncoded<T extends object>(
 
 async function fetchFallbackFrontendSession() {
   const response = await apiFetch("/api/frontend/session", {
-    credentials: "include"
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }
   });
   if (!response.ok) {
     throw new Error(`Failed to load session: ${response.status}`);
@@ -137,10 +164,13 @@ async function fetchFallbackFrontendSession() {
   return response.json() as Promise<{ csrfToken?: string; csrfHeaderName?: string }>;
 }
 
-export async function buildResilientCsrfHeaders(extraHeaders?: Record<string, string>): Promise<Record<string, string>> {
+export async function buildResilientCsrfHeaders(
+  extraHeaders?: Record<string, string>,
+  options?: { forceRefresh?: boolean }
+): Promise<Record<string, string>> {
   const headers = buildCsrfHeaders(extraHeaders);
   const { token } = getCsrfMeta();
-  if (token) {
+  if (token && !options?.forceRefresh) {
     return headers;
   }
   try {
@@ -152,6 +182,38 @@ export async function buildResilientCsrfHeaders(extraHeaders?: Record<string, st
     // Keep request handling deterministic. The server will still reject if no token is available.
   }
   return headers;
+}
+
+async function isCsrfForbiddenResponse(response: Response): Promise<boolean> {
+  if (response.status !== 403) {
+    return false;
+  }
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    return false;
+  }
+  try {
+    const body = await response.clone().json() as { reason?: string; status?: string };
+    return body.status === "forbidden" && body.reason === "csrf";
+  } catch {
+    return false;
+  }
+}
+
+async function apiFetchWithCsrfRetry(
+  url: string,
+  init: RequestInit,
+  csrfHeaderSource?: Record<string, string>
+): Promise<Response> {
+  const response = await apiFetch(url, init);
+  if (!await isCsrfForbiddenResponse(response)) {
+    return response;
+  }
+  const retryHeaders = await buildResilientCsrfHeaders(csrfHeaderSource, { forceRefresh: true });
+  return apiFetch(url, {
+    ...init,
+    headers: retryHeaders
+  });
 }
 
 export function buildJsonHeaders(session: { csrfHeaderName?: string; csrfToken?: string }) {
@@ -237,7 +299,8 @@ export async function fetchPageJson<T>(
 ): Promise<T> {
   const response = await apiFetch(url, {
     credentials: "include",
-    ...(options?.init || {})
+    ...(options?.init || {}),
+    headers: buildJsonRequestHeaders(options?.init?.headers)
   });
   const body = await readJsonResponse<T>(response);
   if (!response.ok) {
@@ -307,16 +370,17 @@ export async function postJsonWithResponse<T>(
   payload: unknown,
   init?: RequestInit
 ): Promise<{ response: Response; body: T }> {
-  const response = await apiFetch(url, {
+  const csrfHeaders = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> | undefined)
+  };
+  const response = await apiFetchWithCsrfRetry(url, {
+    ...init,
     method: "POST",
     credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      ...(init?.headers as Record<string, string> | undefined)
-    }),
-    body: JSON.stringify(payload),
-    ...init
-  });
+    headers: await buildResilientCsrfHeaders(csrfHeaders, { forceRefresh: true }),
+    body: JSON.stringify(payload)
+  }, csrfHeaders);
   const body = await readJsonResponse<T>(response);
   return { response, body };
 }
@@ -406,16 +470,17 @@ export async function postLocalizedAction<T>(
   enPath: string,
   init?: RequestInit
 ): Promise<T> {
-  const response = await apiFetch(buildLocalizedPath(koPath, enPath), {
+  const csrfHeaders = {
+    Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+    ...(init?.headers as Record<string, string> | undefined)
+  };
+  const response = await apiFetchWithCsrfRetry(buildLocalizedPath(koPath, enPath), {
+    ...init,
     method: "POST",
     credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "X-Requested-With": "XMLHttpRequest",
-      ...(init?.headers as Record<string, string> | undefined)
-    }),
-    ...init
-  });
+    headers: await buildResilientCsrfHeaders(csrfHeaders, { forceRefresh: true })
+  }, csrfHeaders);
   return readJsonResponse<T>(response);
 }
 
@@ -469,17 +534,18 @@ export async function postFormUrlEncodedWithResponse<T>(
   payload: URLSearchParams,
   init?: RequestInit
 ): Promise<{ response: Response; body: T }> {
-  const response = await apiFetch(url, {
+  const csrfHeaders = {
+    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest",
+    ...(init?.headers as Record<string, string> | undefined)
+  };
+  const response = await apiFetchWithCsrfRetry(url, {
+    ...init,
     method: "POST",
     credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest",
-      ...(init?.headers as Record<string, string> | undefined)
-    }),
-    body: payload.toString(),
-    ...init
-  });
+    headers: await buildResilientCsrfHeaders(csrfHeaders, { forceRefresh: true }),
+    body: payload.toString()
+  }, csrfHeaders);
   const body = await readJsonResponse<T>(response);
   return { response, body };
 }
@@ -498,18 +564,19 @@ export async function postFormDataWithResponse<T>(
   payload: FormData,
   init?: RequestInit
 ): Promise<{ response: Response; body: T }> {
-  const headers = await buildResilientCsrfHeaders({
+  const csrfHeaders = {
     "X-Requested-With": "XMLHttpRequest",
     ...(init?.headers as Record<string, string> | undefined)
-  });
+  };
+  const headers = await buildResilientCsrfHeaders(csrfHeaders, { forceRefresh: true });
   delete headers["Content-Type"];
-  const response = await apiFetch(url, {
+  const response = await apiFetchWithCsrfRetry(url, {
+    ...init,
     method: "POST",
     credentials: "include",
     headers,
-    body: payload,
-    ...init
-  });
+    body: payload
+  }, csrfHeaders);
   const body = await readJsonResponse<T>(response);
   return { response, body };
 }
@@ -519,17 +586,18 @@ export async function submitFormUrlEncoded(
   payload: URLSearchParams,
   init?: RequestInit
 ): Promise<Response> {
-  const response = await apiFetch(url, {
+  const csrfHeaders = {
+    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest",
+    ...(init?.headers as Record<string, string> | undefined)
+  };
+  const response = await apiFetchWithCsrfRetry(url, {
+    ...init,
     method: "POST",
     credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest",
-      ...(init?.headers as Record<string, string> | undefined)
-    }),
-    body: payload.toString(),
-    ...init
-  });
+    headers: await buildResilientCsrfHeaders(csrfHeaders, { forceRefresh: true }),
+    body: payload.toString()
+  }, csrfHeaders);
 
   if (isLoginRedirectResponse(response)) {
     redirectToLogin(response);

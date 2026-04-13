@@ -31,6 +31,7 @@ import type {
   ProjectUpgradeImpactResponse,
   ProjectVersionListPayload,
   ProjectVersionManagementPagePayload,
+  ProjectVersionOpsPayload,
   ProjectVersionOverviewPayload,
   ProjectVersionServerStatePayload,
   ProjectVersionTargetArtifactPayload,
@@ -56,8 +57,8 @@ import type {
 function buildVersionControlApiPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return buildLocalizedPath(
-    `/admin/api/platform/version-control${normalized}`,
-    `/en/admin/api/platform/version-control${normalized}`
+    `/api/platform/version-control${normalized}`,
+    `/en/api/platform/version-control${normalized}`
   );
 }
 
@@ -317,6 +318,31 @@ export async function rollbackProjectVersion(payload: {
     payload,
     "Failed to rollback project version.",
     "A0060404_ROLLBACK"
+  );
+}
+
+export async function fetchProjectVersionOperations(params?: {
+  projectId?: string;
+}) {
+  const query = buildQueryString({ projectId: params?.projectId });
+  return fetchJsonWithoutCache<ProjectVersionOpsPayload>({
+    url: `${buildVersionControlApiPath("/operations")}${query}`,
+    mapError: (body, status) => versionPermissionError(body, status, `Failed to load version operations: ${status}`, "A0060404_VIEW")
+  });
+}
+
+export async function runProjectVersionSyncAndDeploy(payload: {
+  projectId: string;
+  operator: string;
+  releaseVersion: string;
+  releaseTitle?: string;
+  releaseContent: string;
+}) {
+  return postProjectVersionJson<ProjectVersionOpsPayload>(
+    buildVersionControlApiPath("/operations/sync-and-deploy"),
+    payload,
+    "Failed to start remote sync and deploy.",
+    "A0060404_APPLY"
   );
 }
 

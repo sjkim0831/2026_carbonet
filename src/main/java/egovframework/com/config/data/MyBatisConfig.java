@@ -18,7 +18,7 @@ public class MyBatisConfig {
         sessionFactory.setDataSource(dataSource);
 
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-        sessionFactory.setMapperLocations(resolver.getResources("classpath:/egovframework/mapper/com/**/*.xml"));
+        sessionFactory.setMapperLocations(resolver.getResources("classpath*:/egovframework/mapper/com/**/*.xml"));
 
         sessionFactory.setTypeAliasesPackage(
                 "egovframework.com.common.model,egovframework.com.feature.member.model.vo,egovframework.com.feature.admin.model.vo");

@@ -6,6 +6,8 @@ import {
   analyzeProjectUpgradeImpact,
   applyProjectUpgrade,
   fetchProjectVersionManagementPage,
+  fetchProjectVersionOperations,
+  runProjectVersionSyncAndDeploy,
   rollbackProjectVersion
 } from "../../lib/api/platform";
 import type {
@@ -13,8 +15,10 @@ import type {
   ProjectRollbackResponse,
   ProjectUpgradeImpactResponse,
   ProjectVersionManagementPagePayload,
+  ProjectVersionOpsPayload,
   ProjectVersionTargetArtifactPayload
 } from "../../lib/api/platformTypes";
+import { fetchBackupConfigPage, runBackupExecution, saveBackupConfig } from "../../lib/api/ops";
 import {
   fetchProjectPipelineStatus,
   runProjectPipeline,
@@ -233,6 +237,33 @@ function buildUnifiedLogTargetHref(projectId: string, targetType: string, target
   });
 }
 
+function jobStatusTone(value: string) {
+  const upper = value.toUpperCase();
+  if (upper.includes("SUCCESS")) return "bg-emerald-100 text-emerald-700";
+  if (upper.includes("RUNNING") || upper.includes("QUEUED")) return "bg-blue-100 text-blue-700";
+  if (upper.includes("FAILED") || upper.includes("ERROR")) return "bg-rose-100 text-rose-700";
+  return "bg-slate-100 text-slate-700";
+}
+
+function noticeTone(value: string): "success" | "error" | "warning" {
+  const normalized = value.toLowerCase();
+  if (normalized.includes("fail") || value.includes("실패") || normalized.includes("error")) {
+    return "error";
+  }
+  if (normalized.includes("permission") || value.includes("권한") || normalized.includes("forbidden")) {
+    return "warning";
+  }
+  return "success";
+}
+
+function backupValueOf(form: Record<string, string>, key: string) {
+  return form[key] || "";
+}
+
+function backupYes(form: Record<string, string>, key: string) {
+  return backupValueOf(form, key) === "Y";
+}
+
 export function ProjectVersionManagementMigrationPage() {
   const en = isEnglish();
   const initialProjectId = readProjectIdFromLocation();
@@ -255,9 +286,27 @@ export function ProjectVersionManagementMigrationPage() {
   const [pipelineRunLoading, setPipelineRunLoading] = useState(false);
   const [pipelineRunError, setPipelineRunError] = useState("");
   const [pipelineRunSuccess, setPipelineRunSuccess] = useState("");
+  const [opsSubmitting, setOpsSubmitting] = useState<"" | "db-backup" | "git-precheck" | "git-push" | "remote-sync">("");
+  const [opsMessage, setOpsMessage] = useState("");
+  const [backupSettingsForm, setBackupSettingsForm] = useState<Record<string, string>>({});
+  const [backupSettingsSaving, setBackupSettingsSaving] = useState(false);
+  const [deployForm, setDeployForm] = useState({
+    releaseVersion: "",
+    releaseTitle: "",
+    releaseContent: ""
+  });
+
+  const backupSettingsState = useAsyncValue(
+    () => fetchBackupConfigPage("/admin/system/backup_config"),
+    [refreshNonce]
+  );
 
   const pageState = useAsyncValue<ProjectVersionManagementPagePayload>(
     () => fetchProjectVersionManagementPage({ projectId, page: 1, pageSize: 20 }),
+    [projectId, refreshNonce]
+  );
+  const operationsState = useAsyncValue<ProjectVersionOpsPayload>(
+    () => fetchProjectVersionOperations({ projectId }),
     [projectId, refreshNonce]
   );
   const pipelineStatusState = useAsyncValue(
@@ -276,12 +325,18 @@ export function ProjectVersionManagementMigrationPage() {
   );
 
   const overview = pageState.value?.overview;
+  const operationsPayload = operationsState.value;
+  const backupSettingsPayload = backupSettingsState.value;
   const sessionFeatureCodes = sessionState.value?.featureCodes || [];
   const canViewVersionManagement = sessionFeatureCodes.includes(VERSION_VIEW_FEATURE);
   const canAnalyzeUpgrade = sessionFeatureCodes.includes(VERSION_ANALYZE_FEATURE);
   const canApplyUpgrade = sessionFeatureCodes.includes(VERSION_APPLY_FEATURE);
   const canRollbackRelease = sessionFeatureCodes.includes(VERSION_ROLLBACK_FEATURE);
-  const pagePermissionDenied = !sessionState.loading && (!canViewVersionManagement || isPermissionDeniedMessage(pageState.error || ""));
+  const pagePermissionDenied = !sessionState.loading && isPermissionDeniedMessage(pageState.error || "");
+  const showSessionFeatureWarning = !sessionState.loading
+    && !canViewVersionManagement
+    && !pageState.value
+    && !operationsState.value;
   const missingFeatureCodes = useMemo(
     () => VERSION_REQUIRED_FEATURE_SET.filter((featureCode) => !sessionFeatureCodes.includes(featureCode)),
     [sessionFeatureCodes]
@@ -292,6 +347,38 @@ export function ProjectVersionManagementMigrationPage() {
   const candidateArtifacts = (pageState.value?.candidateArtifacts?.itemSet || []) as Array<Record<string, unknown>>;
   const installedArtifacts = ((overview?.installedArtifactSet || []) as Array<Record<string, unknown>>);
   const installedPackages = ((overview?.installedPackageSet || []) as Array<Record<string, unknown>>);
+  const currentRemoteJob = toRecord(operationsPayload?.currentRemoteJob);
+  const recentRemoteJobs = toList(operationsPayload?.recentRemoteJobs);
+  const currentBackupJob = toRecord(backupSettingsPayload?.backupCurrentJob);
+  const recentBackupJobs = toList(backupSettingsPayload?.backupRecentJobs);
+  const backupCoverageSet = toList(operationsPayload?.backupCoverageSet).map((item) => stringOf(item));
+  const launcherExclusiveSet = toList(operationsPayload?.launcherExclusiveSet).map((item) => stringOf(item));
+  const recommendedFlowSet = toList(operationsPayload?.recommendedFlowSet).map((item) => stringOf(item));
+  const recentDeploymentHistory = toList(operationsPayload?.recentDeploymentHistory);
+  const hasOverviewVersionBaseline = Boolean(
+    stringOf(overview?.activeRuntimeVersion)
+    || stringOf(overview?.activeCommonCoreVersion)
+    || stringOf(overview?.activeAdapterContractVersion)
+    || stringOf(overview?.rollbackReadyReleaseUnitId)
+  );
+  const hasVersionGovernanceData = (
+    installedArtifacts.length > 0
+    || installedPackages.length > 0
+    || adapterHistory.length > 0
+    || releaseUnits.length > 0
+    || serverStates.length > 0
+    || candidateArtifacts.length > 0
+    || hasOverviewVersionBaseline
+  );
+  const isInitializationState = !pageState.loading && !pageState.error && canViewVersionManagement && !hasVersionGovernanceData;
+  const backupJobActive = (() => {
+    const status = stringOf(currentBackupJob.status).toUpperCase();
+    return status === "QUEUED" || status === "RUNNING";
+  })();
+  const remoteJobActive = (() => {
+    const status = stringOf(currentRemoteJob.status).toUpperCase();
+    return status === "QUEUED" || status === "RUNNING";
+  })();
   const filteredServerStates = useMemo(
     () => serverStates.filter((item) => serverRoleFilter === "ALL" || inferServerRole(item) === serverRoleFilter),
     [serverRoleFilter, serverStates]
@@ -391,6 +478,23 @@ export function ProjectVersionManagementMigrationPage() {
       serverStateCount: serverStates.length
     });
   }, [adapterHistory.length, installedArtifacts.length, projectId, releaseUnits.length, serverStates.length]);
+
+  useEffect(() => {
+    setBackupSettingsForm((backupSettingsPayload?.backupConfigForm || {}) as Record<string, string>);
+  }, [backupSettingsPayload?.backupConfigForm]);
+
+  useEffect(() => {
+    if (!backupJobActive && !remoteJobActive) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      void Promise.allSettled([
+        backupSettingsState.reload(),
+        operationsState.reload()
+      ]);
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [backupJobActive, remoteJobActive, backupSettingsState, operationsState]);
 
   const summaryCards = useMemo(() => ([
     {
@@ -708,6 +812,75 @@ export function ProjectVersionManagementMigrationPage() {
     await pipelineStatusState.reload();
   }
 
+  async function runEmbeddedBackupOperation(
+    operationKey: "db-backup" | "git-precheck" | "git-push",
+    executionType: "DB" | "GIT_PRECHECK" | "GIT_COMMIT_AND_PUSH_BASE",
+    successMessage: string
+  ) {
+    setOpsSubmitting(operationKey);
+    setOpsMessage("");
+    try {
+      const response = await runBackupExecution(executionType);
+      setOpsMessage(stringOf(response.backupConfigMessage) || successMessage);
+    } catch (error) {
+      setOpsMessage(error instanceof Error ? error.message : (en ? "Operation failed." : "작업 실행에 실패했습니다."));
+    } finally {
+      setOpsSubmitting("");
+    }
+  }
+
+  async function handleRunRemoteSyncAndDeploy() {
+    setOpsSubmitting("remote-sync");
+    setOpsMessage("");
+    try {
+      const response = await runProjectVersionSyncAndDeploy({
+        projectId,
+        operator: DEFAULT_OPERATOR,
+        releaseVersion: deployForm.releaseVersion,
+        releaseTitle: deployForm.releaseTitle,
+        releaseContent: deployForm.releaseContent
+      });
+      setOpsMessage(stringOf(response.message) || (en
+        ? "Remote sync and deploy job started."
+        : "원격 동기화 및 배포 작업을 시작했습니다."));
+      setDeployForm((current) => ({
+        ...current,
+        releaseContent: ""
+      }));
+      await operationsState.reload();
+    } catch (error) {
+      setOpsMessage(error instanceof Error ? error.message : (en ? "Failed to start remote sync and deploy." : "원격 동기화 및 배포 시작에 실패했습니다."));
+    } finally {
+      setOpsSubmitting("");
+    }
+  }
+
+  function updateBackupSetting(key: string, value: string) {
+    setBackupSettingsForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateDeployForm(key: "releaseVersion" | "releaseTitle" | "releaseContent", value: string) {
+    setDeployForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleSaveBackupSettings() {
+    setBackupSettingsSaving(true);
+    setOpsMessage("");
+    try {
+      const response = await saveBackupConfig(backupSettingsForm);
+      setBackupSettingsForm((response.backupConfigForm || {}) as Record<string, string>);
+      setOpsMessage(stringOf(response.backupConfigMessage) || (en ? "Backup settings saved." : "백업 설정을 저장했습니다."));
+      await Promise.all([
+        backupSettingsState.reload(),
+        operationsState.reload()
+      ]);
+    } catch (error) {
+      setOpsMessage(error instanceof Error ? error.message : (en ? "Failed to save backup settings." : "백업 설정 저장에 실패했습니다."));
+    } finally {
+      setBackupSettingsSaving(false);
+    }
+  }
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -759,13 +932,13 @@ export function ProjectVersionManagementMigrationPage() {
         </section>
 
         {sessionState.error ? <PageStatusNotice tone={isPermissionDeniedMessage(sessionState.error) ? "warning" : "error"}>{sessionState.error}</PageStatusNotice> : null}
-        {!sessionState.loading && !canViewVersionManagement ? (
+        {showSessionFeatureWarning ? (
           <MemberStateCard
             description={en
-              ? "You need the A0060404_VIEW permission to open project version management. The operator session should also expose analyze/apply/rollback feature codes for action buttons."
-              : "프로젝트 버전 관리 화면을 열려면 A0060404_VIEW 권한이 필요합니다. 실제 작업 버튼 사용에는 analyze/apply/rollback 기능 코드도 세션에 포함되어야 합니다."}
+              ? "The current session does not expose A0060404_VIEW. The page will still try to load, but analyze/apply/rollback buttons stay permission-gated and any real API 403 will be shown below."
+              : "현재 세션에 A0060404_VIEW가 노출되지 않았습니다. 화면 조회는 계속 시도하지만 analyze/apply/rollback 버튼은 권한 기준으로 유지되고, 실제 API 403이 발생하면 아래에 표시됩니다."}
             icon="lock"
-            title={en ? "Permission denied." : "권한이 없습니다."}
+            title={en ? "Session feature code missing." : "세션 기능 코드가 없습니다."}
             tone="warning"
           >
             <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-white px-4 py-3 text-left text-sm">
@@ -783,6 +956,11 @@ export function ProjectVersionManagementMigrationPage() {
             {pageState.error}
           </PageStatusNotice>
         ) : null}
+        {operationsState.error && canViewVersionManagement ? (
+          <PageStatusNotice tone={isPermissionDeniedMessage(operationsState.error) ? "warning" : "error"}>
+            {operationsState.error}
+          </PageStatusNotice>
+        ) : null}
         {operationMessage ? (
           <PageStatusNotice
             tone={isPermissionDeniedMessage(operationMessage)
@@ -792,11 +970,52 @@ export function ProjectVersionManagementMigrationPage() {
             {operationMessage}
           </PageStatusNotice>
         ) : null}
+        {opsMessage ? (
+          <PageStatusNotice tone={noticeTone(opsMessage)}>
+            {opsMessage}
+          </PageStatusNotice>
+        ) : null}
 
         {pagePermissionDenied ? null : (
           <>
         {pipelineRunError ? <PageStatusNotice tone="error">{pipelineRunError}</PageStatusNotice> : null}
         {pipelineRunSuccess ? <PageStatusNotice tone="success">{pipelineRunSuccess}</PageStatusNotice> : null}
+        {isInitializationState ? (
+          <MemberStateCard
+            description={en
+              ? "No version-management data is registered for this project yet."
+              : "이 프로젝트에는 아직 버전 관리 데이터가 등록되지 않았습니다."}
+            icon=""
+            title={en ? "Version Management Setup Required" : "버전 관리 설정이 필요합니다"}
+            tone="warning"
+          >
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <article className="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-white px-4 py-4 text-left">
+                <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Current status" : "현재 상태"}</p>
+                <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "No installed artifact, release unit, candidate version, adapter history, or deployment status records were found."
+                    : "설치 아티팩트, 릴리스 유닛, 후보 버전, 어댑터 이력, 배포 상태 데이터가 아직 없습니다."}
+                </p>
+              </article>
+              <article className="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-white px-4 py-4 text-left">
+                <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Next step" : "다음 작업"}</p>
+                <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "Load another project or populate the version-control registry tables for this project, then refresh the page."
+                    : "다른 프로젝트를 조회하거나 이 프로젝트의 버전 관리 레지스트리 테이블을 적재한 뒤 새로고침하세요."}
+                </p>
+              </article>
+            </div>
+            <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-white px-4 py-4 text-left">
+              <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "Release and deployment sections stay in setup mode until version data is registered. Pipeline runs require at least one release unit."
+                  : "버전 관리 데이터가 등록되기 전까지 릴리스/배포 영역은 설정 대기 상태로 유지됩니다. 파이프라인 실행은 릴리스 유닛 등록 후 사용할 수 있습니다."}
+              </p>
+            </div>
+          </MemberStateCard>
+        ) : null}
 
         <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
           {summaryCards.map((card) => (
@@ -807,6 +1026,447 @@ export function ProjectVersionManagementMigrationPage() {
               description={card.description}
             />
           ))}
+        </section>
+
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="gov-card overflow-hidden p-0">
+            <GridToolbar
+              title={en ? "DB And Git Operations" : "DB 및 Git 운영 작업"}
+              meta={en
+                ? "Reuse the backup/restore engine from this page so version management and restore points stay together."
+                : "버전 관리 화면에서 기존 백업/복구 엔진을 그대로 사용합니다."}
+              actions={<span className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Shared Backup Engine" : "공유 백업 엔진"}</span>}
+            />
+            <div className="space-y-4 px-6 py-6">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">DB</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">
+                    {en ? "Available" : "실행 가능"}
+                  </p>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {en ? "Backup and restore point creation." : "백업 및 복구 지점 생성."}
+                  </p>
+                </article>
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">Git</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">
+                    {en ? "Available" : "실행 가능"}
+                  </p>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {en ? "Precheck, bundle, commit, push, and rollback support." : "사전점검, 번들, 커밋, push, 롤백 지원."}
+                  </p>
+                </article>
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Execution Scope" : "실행 범위"}</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Backup / Restore / Git" : "백업 / 복구 / Git"}</p>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Runs through the existing shared observability backup engine." : "기존 공용 observability 백업 엔진을 그대로 사용합니다."}</p>
+                </article>
+              </div>
+
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Git Push Credentials" : "Git Push 자격 정보"}</p>
+                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "These fields are saved to the shared backup settings and then used by Git commit/push and 221 deploy automation."
+                        : "여기 입력한 값은 공용 백업 설정에 저장되고, 이후 Git commit/push와 221 배포 자동화에서 사용됩니다."}
+                    </p>
+                  </div>
+                  <MemberButton type="button" variant="primary" disabled={backupSettingsSaving} onClick={() => void handleSaveBackupSettings()}>
+                    {backupSettingsSaving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Credentials" : "자격 정보 저장")}
+                  </MemberButton>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Remote URL" : "원격 저장소 URL"}</span>
+                    <AdminInput
+                      value={backupValueOf(backupSettingsForm, "gitRemoteUrl")}
+                      onChange={(event) => updateBackupSetting("gitRemoteUrl", event.target.value)}
+                      placeholder="https://github.com/owner/repo.git"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Git Username" : "Git 사용자명"}</span>
+                    <AdminInput
+                      value={backupValueOf(backupSettingsForm, "gitUsername")}
+                      onChange={(event) => updateBackupSetting("gitUsername", event.target.value)}
+                      placeholder="github-user"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Base Branch" : "기준 브랜치"}</span>
+                    <AdminInput
+                      value={backupValueOf(backupSettingsForm, "gitBranchPattern")}
+                      onChange={(event) => updateBackupSetting("gitBranchPattern", event.target.value)}
+                      placeholder="main"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Git Token" : "Git 토큰"}</span>
+                    <AdminInput
+                      type="password"
+                      value={backupValueOf(backupSettingsForm, "gitAuthToken")}
+                      onChange={(event) => updateBackupSetting("gitAuthToken", event.target.value)}
+                      placeholder={en ? "Paste personal access token" : "개인 액세스 토큰 붙여넣기"}
+                    />
+                  </label>
+                </div>
+                <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                  {backupYes(backupSettingsForm, "gitAuthTokenConfigured")
+                    ? (en
+                      ? `Token is already stored. Current value stays hidden as ${backupValueOf(backupSettingsForm, "gitAuthTokenMasked") || "********"}. Leave the field blank to keep it.`
+                      : `토큰이 이미 저장되어 있습니다. 현재 값은 ${backupValueOf(backupSettingsForm, "gitAuthTokenMasked") || "********"} 로 숨김 처리됩니다. 유지하려면 입력란을 비워 두세요.`)
+                    : (en
+                      ? "No token is stored yet. Save a personal access token before running Git push or 221 deploy."
+                      : "저장된 토큰이 아직 없습니다. Git push 또는 221 배포 전에 개인 액세스 토큰을 저장하세요.")}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <MemberButton
+                  type="button"
+                  variant="secondary"
+                  disabled={opsSubmitting !== ""}
+                  onClick={() => runEmbeddedBackupOperation("db-backup", "DB", en ? "DB backup started." : "DB 백업을 시작했습니다.")}
+                >
+                  {opsSubmitting === "db-backup" ? (en ? "Running DB Backup..." : "DB 백업 실행 중...") : (en ? "Run DB Backup" : "DB 백업 실행")}
+                </MemberButton>
+                <MemberButton
+                  type="button"
+                  variant="secondary"
+                  disabled={opsSubmitting !== ""}
+                  onClick={() => runEmbeddedBackupOperation("git-precheck", "GIT_PRECHECK", en ? "Git precheck started." : "Git 사전점검을 시작했습니다.")}
+                >
+                  {opsSubmitting === "git-precheck" ? (en ? "Running Git Precheck..." : "Git 사전점검 실행 중...") : (en ? "Run Git Precheck" : "Git 사전점검")}
+                </MemberButton>
+                <MemberButton
+                  type="button"
+                  variant="secondary"
+                  disabled={opsSubmitting !== ""}
+                  onClick={() => runEmbeddedBackupOperation("git-push", "GIT_COMMIT_AND_PUSH_BASE", en ? "Git commit/push started." : "Git commit/push를 시작했습니다.")}
+                >
+                  {opsSubmitting === "git-push" ? (en ? "Running Git Push..." : "Git Push 실행 중...") : (en ? "Git Commit And Push" : "Git Commit And Push")}
+                </MemberButton>
+                <MemberButton
+                  type="button"
+                  variant="secondary"
+                  onClick={() => openProjectVersionHref(buildLocalizedPath("/admin/system/backup", "/en/admin/system/backup"))}
+                >
+                  {en ? "Open Backup Page" : "백업 화면 열기"}
+                </MemberButton>
+                <MemberButton
+                  type="button"
+                  variant="secondary"
+                  onClick={() => openProjectVersionHref(buildLocalizedPath("/admin/system/restore", "/en/admin/system/restore"))}
+                >
+                  {en ? "Open Restore Page" : "복구 화면 열기"}
+                </MemberButton>
+              </div>
+
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Backup Engine Status" : "백업 엔진 상태"}</p>
+                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "DB and Git actions on this page call the same backup/restore engine used by /admin/system/backup and /admin/system/restore."
+                        : "이 화면의 DB/Git 작업은 /admin/system/backup, /admin/system/restore와 같은 백업/복구 엔진을 호출합니다."}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                    {en ? "Shared Engine" : "공용 엔진"}
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Already Covered Here" : "현재 화면에서 바로 가능한 범위"}</p>
+                    <ul className="space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {backupCoverageSet.map((item) => (
+                        <li key={item} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "When To Use Backup / Restore Pages" : "백업 / 복구 전용 화면이 필요한 경우"}</p>
+                    <ul className="space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                      <li className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">{en ? "SQL / physical / PITR restore drill selection" : "SQL / 물리 / PITR 복구 대상 선택"}</li>
+                      <li className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">{en ? "Saved backup profile inspection and version restore" : "저장된 백업 프로파일 점검 및 버전 복원"}</li>
+                      <li className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">{en ? "Detailed Git restore branch workflows" : "상세 Git 복구 브랜치 워크플로우"}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Live Backup Job" : "실시간 백업 작업"}</p>
+                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "DB backup and Git execution progress from the shared backup engine is refreshed automatically while a job is running."
+                        : "공용 백업 엔진의 DB 백업과 Git 실행 상태는 작업이 실행 중일 때 자동으로 갱신됩니다."}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(stringOf(currentBackupJob.status))}`}>
+                      {stringOf(currentBackupJob.status) || "-"}
+                    </span>
+                    <MemberButton type="button" variant="secondary" onClick={() => void backupSettingsState.reload()}>
+                      {en ? "Refresh Backup State" : "백업 상태 새로고침"}
+                    </MemberButton>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Job ID" : "작업 ID"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(currentBackupJob.jobId) || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Profile" : "프로필"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(currentBackupJob.profileName) || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Started" : "시작"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(currentBackupJob.startedAt) || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duration" : "소요 시간"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(currentBackupJob.duration) || "-"}</p>
+                  </div>
+                </div>
+                <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-950 px-4 py-4">
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-slate-300">{en ? "Live Backup Log" : "실시간 백업 로그"}</p>
+                  <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-slate-100">
+                    {(toList(currentBackupJob.logLines).map((line) => stringOf(line)).join("\n")) || (en ? "No logs yet." : "아직 로그가 없습니다.")}
+                  </pre>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Recent Backup Jobs" : "최근 백업 작업"}</p>
+                  {recentBackupJobs.length === 0 ? (
+                    <p className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en ? "No backup jobs have been recorded yet." : "기록된 백업 작업이 없습니다."}
+                    </p>
+                  ) : recentBackupJobs.slice(0, 4).map((item, index) => {
+                    const row = toRecord(item);
+                    return (
+                      <div className="flex items-center justify-between gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3" key={`${stringOf(row.jobId)}-${index}`}>
+                        <div>
+                          <p className="text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(row.profileName) || stringOf(row.executionType) || "-"}</p>
+                          <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row.startedAt) || "-"}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(stringOf(row.status))}`}>{stringOf(row.status) || "-"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="gov-card overflow-hidden p-0">
+            <GridToolbar
+              title={en ? "221 Sync And Fresh Deploy" : "221 동기화 및 Fresh Deploy"}
+              meta={en
+                ? "This is the capability that existed in the Windows launcher but was missing from the version-management screen."
+                : "Windows 실행기에 있던 기능을 버전 관리 화면에 통합했습니다."}
+              actions={<span className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{stringOf(operationsPayload?.remoteHost) || "-"}</span>}
+            />
+            <div className="space-y-4 px-6 py-6">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Launcher" : "런처"}</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(operationsPayload?.launcherPresentYn) === "Y" ? "OK" : "-"}</p>
+                  <p className="mt-2 break-all text-sm text-[var(--kr-gov-text-secondary)]">{stringOf(operationsPayload?.launcherPath) || "-"}</p>
+                </article>
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Deploy Script" : "배포 스크립트"}</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(operationsPayload?.scriptPresentYn) === "Y" ? "OK" : "-"}</p>
+                  <p className="mt-2 break-all text-sm text-[var(--kr-gov-text-secondary)]">{stringOf(operationsPayload?.scriptPath) || "-"}</p>
+                </article>
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Automation Env" : "자동화 환경"}</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">
+                    {stringOf(operationsPayload?.deployAutomationConfiguredYn) === "Y" ? (en ? "Configured" : "설정됨") : (en ? "Check Required" : "확인 필요")}
+                  </p>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Uses repository env/config for remote credentials and automation." : "원격 계정과 자동화 설정은 저장소 env/config를 사용합니다."}</p>
+                </article>
+              </div>
+
+              <div className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Missing Capability Closed" : "부족했던 기능 보강"}</p>
+                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "The backup/restore pages already handled DB and Git backup flows. The gap versus the Windows launcher was remote DB SQL sync plus 221 fresh clone/build/restart."
+                        : "백업/복구 화면은 DB/Git 백업 흐름을 이미 제공했고, Windows 실행기 대비 부족했던 부분은 원격 DB SQL 반영과 221 fresh clone/build/restart였습니다."}
+                    </p>
+                  </div>
+                  <MemberPermissionButton
+                    allowed={canApplyUpgrade}
+                    reason={en ? "You need A0060404_APPLY permission to start remote sync and deploy." : "원격 동기화 및 배포를 실행하려면 A0060404_APPLY 권한이 필요합니다."}
+                    type="button"
+                    variant="primary"
+                    disabled={opsSubmitting !== "" || stringOf(currentRemoteJob.status) === "RUNNING" || stringOf(currentRemoteJob.status) === "QUEUED"}
+                    onClick={handleRunRemoteSyncAndDeploy}
+                  >
+                    {opsSubmitting === "remote-sync"
+                      ? (en ? "Starting 221 Deploy..." : "221 배포 시작 중...")
+                      : (en ? "Run 221 Sync And Deploy" : "221 동기화 및 배포 실행")}
+                  </MemberPermissionButton>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Release Version" : "배포 버전"}</span>
+                    <AdminInput
+                      value={deployForm.releaseVersion}
+                      onChange={(event) => updateDeployForm("releaseVersion", event.target.value)}
+                      placeholder={en ? "2026.04.13.1" : "2026.04.13.1"}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Release Title" : "배포 제목"}</span>
+                    <AdminInput
+                      value={deployForm.releaseTitle}
+                      onChange={(event) => updateDeployForm("releaseTitle", event.target.value)}
+                      placeholder={en ? "Carbonet server fresh deploy" : "Carbonet 서버 신규 배포"}
+                    />
+                  </label>
+                </div>
+                <label className="mt-4 flex flex-col gap-2">
+                  <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Release Content" : "배포 내용"}</span>
+                  <textarea
+                    className="min-h-[120px] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-3 text-sm text-[var(--kr-gov-text-primary)] outline-none"
+                    value={deployForm.releaseContent}
+                    onChange={(event) => updateDeployForm("releaseContent", event.target.value)}
+                    placeholder={en ? "Describe what changed in this deployment." : "이번 배포 변경 내용을 입력하세요."}
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div>
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Launcher-Only Coverage Now Integrated" : "이번에 통합된 실행기 기능"}</p>
+                  <ul className="space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {launcherExclusiveSet.map((item) => (
+                      <li key={item} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Recommended Operator Flow" : "권장 운영 순서"}</p>
+                  <ul className="space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {recommendedFlowSet.map((item) => (
+                      <li key={item} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Recent Deployment Records" : "최근 배포 기록"}</p>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Release version/title/content are stored in DB before remote deploy starts." : "원격 배포 시작 전에 버전/제목/내용이 DB에 저장됩니다."}
+                </p>
+                <div className="mt-4 space-y-3">
+                  {recentDeploymentHistory.length === 0 ? (
+                    <p className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en ? "No deployment records have been stored yet." : "저장된 배포 기록이 없습니다."}
+                    </p>
+                  ) : recentDeploymentHistory.slice(0, 5).map((item, index) => {
+                    const row = toRecord(item);
+                    return (
+                      <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4" key={`${stringOf(row.deploymentHistoryId)}-${index}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(row.releaseVersion) || "-"}</p>
+                            <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row.releaseTitle) || "-"}</p>
+                          </div>
+                          <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(stringOf(row.status))}`}>{stringOf(row.status) || "-"}</span>
+                        </div>
+                        <p className="mt-3 whitespace-pre-wrap text-sm text-[var(--kr-gov-text-secondary)]">{stringOf(row.releaseContent) || "-"}</p>
+                        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3">
+                            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Started" : "시작"}</p>
+                            <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(row.startedAt) || "-"}</p>
+                          </div>
+                          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3">
+                            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Git Commit" : "Git 커밋"}</p>
+                            <p className="mt-1 break-all text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(row.gitCommitSha) || "-"}</p>
+                          </div>
+                          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3">
+                            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Result" : "결과"}</p>
+                            <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(row.resultMessage) || "-"}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Current Remote Job" : "현재 원격 작업"}</p>
+                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{stringOf(currentRemoteJob.profileName) || "-"}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(stringOf(currentRemoteJob.status))}`}>{stringOf(currentRemoteJob.status) || "-"}</span>
+                    <MemberButton type="button" variant="secondary" onClick={() => void operationsState.reload()}>
+                      {en ? "Refresh Job State" : "작업 상태 새로고침"}
+                    </MemberButton>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Started" : "시작"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(currentRemoteJob.startedAt) || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duration" : "소요 시간"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(currentRemoteJob.duration) || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Result" : "결과"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(currentRemoteJob.resultMessage) || "-"}</p>
+                  </div>
+                </div>
+                <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-950 px-4 py-4">
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-slate-300">{en ? "Latest Log Lines" : "최근 로그"}</p>
+                  <div className="space-y-1 font-mono text-xs text-slate-100">
+                    {toList(currentRemoteJob.logLines).slice(-40).map((line, index) => (
+                      <div key={`${stringOf(line)}-${index}`}>{stringOf(line)}</div>
+                    ))}
+                    {toList(currentRemoteJob.logLines).length === 0 ? (
+                      <div className="text-slate-400">{en ? "No logs yet." : "아직 로그가 없습니다."}</div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Recent Remote Jobs" : "최근 원격 작업"}</p>
+                  {recentRemoteJobs.length === 0 ? (
+                    <p className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en ? "No remote deploy jobs have been recorded yet." : "기록된 원격 배포 작업이 없습니다."}
+                    </p>
+                  ) : recentRemoteJobs.slice(0, 4).map((item, index) => {
+                    const row = toRecord(item);
+                    return (
+                      <div className="flex items-center justify-between gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3" key={`${stringOf(row.jobId)}-${index}`}>
+                        <div>
+                          <p className="text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(row.profileName) || stringOf(row.executionType) || "-"}</p>
+                          <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row.startedAt) || "-"}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(stringOf(row.status))}`}>{stringOf(row.status) || "-"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
@@ -1068,7 +1728,7 @@ export function ProjectVersionManagementMigrationPage() {
                 <MemberButton disabled={pipelineRunLoading} onClick={handleRefreshProjectPipeline} type="button" variant="secondary">
                   {pipelineStatusState.loading ? (en ? "Loading..." : "불러오는 중...") : (en ? "Load Latest" : "최신 실행 조회")}
                 </MemberButton>
-                <MemberButton disabled={pipelineRunLoading} onClick={handleRunProjectPipeline} type="button" variant="primary">
+                <MemberButton disabled={pipelineRunLoading || !selectedReleaseUnit} onClick={handleRunProjectPipeline} type="button" variant="primary">
                   {pipelineRunLoading ? (en ? "Running..." : "실행 중...") : (en ? "Run Pipeline" : "파이프라인 실행")}
                 </MemberButton>
               </div>
@@ -1382,7 +2042,11 @@ export function ProjectVersionManagementMigrationPage() {
             />
             <div className="space-y-4 px-6 py-6">
               {!selectedReleaseUnit ? (
-                <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select a release unit to inspect details." : "상세를 보려면 릴리스 유닛을 선택하세요."}</p>
+                <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                  {isInitializationState
+                    ? (en ? "Release units will appear here after the version-control registry is initialized for this project." : "이 프로젝트의 버전 관리 레지스트리가 초기화되면 릴리스 유닛이 여기에 표시됩니다.")
+                    : (en ? "Select a release unit to inspect details." : "상세를 보려면 릴리스 유닛을 선택하세요.")}
+                </p>
               ) : (
                 <>
                   <dl className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
@@ -1601,7 +2265,7 @@ export function ProjectVersionManagementMigrationPage() {
 
         <section className="gov-card">
           <MemberSectionToolbar title={en ? "Upgrade Planner" : "업그레이드 플래너"} />
-          <div className="space-y-6 px-6 py-6">
+            <div className="space-y-6 px-6 py-6">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
               <div>
                 <label className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="artifact-id">
@@ -1656,7 +2320,7 @@ export function ProjectVersionManagementMigrationPage() {
             <div className="flex flex-wrap gap-2">
               <MemberPermissionButton
                 allowed={canAnalyzeUpgrade}
-                disabled={submitting !== "" || targetArtifactSet.length === 0}
+                disabled={submitting !== "" || targetArtifactSet.length === 0 || isInitializationState}
                 onClick={runImpactAnalysis}
                 reason={en ? "You need A0060404_ANALYZE permission to analyze upgrade impact." : "영향 분석을 실행하려면 A0060404_ANALYZE 권한이 필요합니다."}
                 type="button"
@@ -1666,7 +2330,7 @@ export function ProjectVersionManagementMigrationPage() {
               </MemberPermissionButton>
               <MemberPermissionButton
                 allowed={canApplyUpgrade}
-                disabled={submitting !== "" || targetArtifactSet.length === 0}
+                disabled={submitting !== "" || targetArtifactSet.length === 0 || isInitializationState}
                 onClick={runApplyUpgrade}
                 reason={en ? "You need A0060404_APPLY permission to apply an upgrade." : "업그레이드 적용을 실행하려면 A0060404_APPLY 권한이 필요합니다."}
                 type="button"
@@ -1676,7 +2340,7 @@ export function ProjectVersionManagementMigrationPage() {
               </MemberPermissionButton>
               <MemberPermissionButton
                 allowed={canRollbackRelease}
-                disabled={submitting !== "" || !rollbackTargetReleaseId}
+                disabled={submitting !== "" || !rollbackTargetReleaseId || isInitializationState}
                 onClick={runRollback}
                 reason={en ? "You need A0060404_ROLLBACK permission to run rollback." : "롤백을 실행하려면 A0060404_ROLLBACK 권한이 필요합니다."}
                 type="button"
