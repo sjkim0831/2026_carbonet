@@ -48,8 +48,10 @@ REMOTE_DB_PORT="${REMOTE_DB_PORT:-${CUBRID_PORT:-33000}}"
 REMOTE_DB_NAME="${REMOTE_DB_NAME:-${LOCAL_DB_NAME}}"
 REMOTE_DB_USER="${REMOTE_DB_USER:-${LOCAL_DB_USER}}"
 REMOTE_DB_PASSWORD="${REMOTE_DB_PASSWORD:-${LOCAL_DB_PASSWORD}}"
-REMOTE_DB_URL="${REMOTE_DB_URL:-jdbc:cubrid:127.0.0.1:${REMOTE_DB_PORT}000:${REMOTE_DB_NAME}:::?charset=UTF-8}"
+REMOTE_DB_URL="${REMOTE_DB_URL:-jdbc:cubrid:127.0.0.1:${REMOTE_DB_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8}"
 REMOTE_DB_TUNNEL_PORT="${REMOTE_DB_TUNNEL_PORT:-13300}"
+REMOTE_DB_SNAPSHOT_ATTEMPTS="${REMOTE_DB_SNAPSHOT_ATTEMPTS:-3}"
+REMOTE_DB_SNAPSHOT_RETRY_SECONDS="${REMOTE_DB_SNAPSHOT_RETRY_SECONDS:-10}"
 APPLY_MODE="${APPLY_MODE:-sql-files}"
 SQL_FILE_LIST_DEFAULT="$ROOT_DIR/docs/sql/20260409_admin_project_version_management_menu.sql:$ROOT_DIR/docs/sql/project_version_governance_schema.sql:$ROOT_DIR/docs/sql/platform_control_plane_schema.sql"
 SQL_FILE_LIST="${SQL_FILE_LIST:-$SQL_FILE_LIST_DEFAULT}"
@@ -68,8 +70,11 @@ MAIN_TARGET="${MAIN_REMOTE_USER}@${MAIN_REMOTE_HOST}"
 REPO_URL="${REPO_URL:-$(git -C "$ROOT_DIR" remote get-url "$GIT_REMOTE_NAME")}"
 
 DB_SNAPSHOT_FILE="$BACKUP_DIR/local-db-snapshot-$(date '+%Y%m%d-%H%M%S').sql"
+REMOTE_DB_SNAPSHOT_FILE_DEFAULT="$BACKUP_DIR/remote-db-before-deploy-$(date '+%Y%m%d-%H%M%S').sql"
 SNAPSHOT_FILE="${SNAPSHOT_FILE:-$DB_SNAPSHOT_FILE}"
+REMOTE_DB_SNAPSHOT_FILE="${REMOTE_DB_SNAPSHOT_FILE:-$REMOTE_DB_SNAPSHOT_FILE_DEFAULT}"
 SKIP_LOCAL_DB_SNAPSHOT="${SKIP_LOCAL_DB_SNAPSHOT:-false}"
+SKIP_REMOTE_DB_SNAPSHOT="${SKIP_REMOTE_DB_SNAPSHOT:-false}"
 SKIP_GIT_PUSH="${SKIP_GIT_PUSH:-false}"
 SKIP_REMOTE_DEPLOY="${SKIP_REMOTE_DEPLOY:-false}"
 JAVA_TOOL_SRC="$TMP_DIR/CarbonetJdbcSnapshotTool.java"
@@ -162,6 +167,12 @@ import java.util.Objects;
 import java.util.Set;
 
 public class CarbonetJdbcSnapshotTool {
+  private static final Set<String> EXCLUDED_DUMP_TABLES = Set.of(
+      "access_event",
+      "audit_event",
+      "trace_event"
+  );
+
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
       throw new IllegalArgumentException("Usage: CarbonetJdbcSnapshotTool <dump|run> <file>");
@@ -218,6 +229,7 @@ public class CarbonetJdbcSnapshotTool {
       writer.write("-- Carbonet JDBC snapshot\n");
       writer.write("-- generatedAt=" + LocalDateTime.now() + "\n");
       writer.write("-- tableCount=" + tables.size() + "\n\n");
+      writer.write("-- excludedTables=" + EXCLUDED_DUMP_TABLES + "\n\n");
 
       for (String table : deleteOrder) {
         writer.write("DELETE FROM " + quoteIdentifier(table) + ";\n");
@@ -248,12 +260,25 @@ public class CarbonetJdbcSnapshotTool {
         if (lower.startsWith("db_")) {
           continue;
         }
+        if (isExcludedDumpTable(lower)) {
+          System.out.println("[CarbonetJdbcSnapshotTool] dump table skipped by policy: " + name);
+          continue;
+        }
         tables.add(name);
       }
     }
     List<String> ordered = new ArrayList<>(tables);
     ordered.sort(Comparator.naturalOrder());
     return ordered;
+  }
+
+  private static boolean isExcludedDumpTable(String lowerTableName) {
+    if (EXCLUDED_DUMP_TABLES.contains(lowerTableName)) {
+      return true;
+    }
+    int schemaSeparator = lowerTableName.lastIndexOf('.');
+    return schemaSeparator >= 0
+        && EXCLUDED_DUMP_TABLES.contains(lowerTableName.substring(schemaSeparator + 1));
   }
 
   private static boolean tableExists(Connection connection, String tableName) throws SQLException {
@@ -629,6 +654,38 @@ publish_snapshot_aliases() {
   log "latest snapshot alias updated: $latest_link -> $SNAPSHOT_FILE"
 }
 
+backup_remote_db() {
+  local remote_url="jdbc:cubrid:127.0.0.1:${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8"
+  local latest_link="$BACKUP_DIR/latest-remote-db-before-deploy.sql"
+  local attempt=1
+  local tmp_snapshot=""
+
+  if [[ "$SKIP_REMOTE_DB_SNAPSHOT" == "true" ]]; then
+    log "remote DB snapshot skipped by SKIP_REMOTE_DB_SNAPSHOT=true"
+    return 0
+  fi
+
+  while (( attempt <= REMOTE_DB_SNAPSHOT_ATTEMPTS )); do
+    tmp_snapshot="${REMOTE_DB_SNAPSHOT_FILE}.tmp.$$.$attempt"
+    rm -f "$tmp_snapshot"
+    log "remote DB snapshot started attempt ${attempt}/${REMOTE_DB_SNAPSHOT_ATTEMPTS}"
+    if run_java_tool dump "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$tmp_snapshot"; then
+      mv "$tmp_snapshot" "$REMOTE_DB_SNAPSHOT_FILE"
+      log "remote DB snapshot completed: $REMOTE_DB_SNAPSHOT_FILE"
+      ln -sfn "$REMOTE_DB_SNAPSHOT_FILE" "$latest_link"
+      log "latest remote snapshot alias updated: $latest_link -> $REMOTE_DB_SNAPSHOT_FILE"
+      return 0
+    fi
+    rm -f "$tmp_snapshot"
+    if (( attempt == REMOTE_DB_SNAPSHOT_ATTEMPTS )); then
+      fail "remote DB snapshot failed after ${REMOTE_DB_SNAPSHOT_ATTEMPTS} attempts"
+    fi
+    log "remote DB snapshot attempt ${attempt} failed; retrying in ${REMOTE_DB_SNAPSHOT_RETRY_SECONDS}s"
+    sleep "$REMOTE_DB_SNAPSHOT_RETRY_SECONDS"
+    attempt=$((attempt + 1))
+  done
+}
+
 open_remote_db_tunnel() {
   require_env "REMOTE_DB_SSH_USER"
   require_env "REMOTE_DB_SSH_HOST"
@@ -824,9 +881,13 @@ main() {
   if [[ "$APPLY_MODE" == "snapshot" ]]; then
     backup_local_db
     open_remote_db_tunnel
+    backup_remote_db
     bootstrap_remote_schema_if_needed
     apply_snapshot_to_remote_db
   else
+    backup_local_db
+    open_remote_db_tunnel
+    backup_remote_db
     apply_configured_sql_files_to_remote_db
   fi
   commit_and_push_all
@@ -834,6 +895,7 @@ main() {
 
   log "completed at $(date '+%Y-%m-%d %H:%M:%S')"
   log "db snapshot file: $SNAPSHOT_FILE"
+  log "remote db snapshot file: $REMOTE_DB_SNAPSHOT_FILE"
   log "full log file: $LOG_FILE"
 }
 

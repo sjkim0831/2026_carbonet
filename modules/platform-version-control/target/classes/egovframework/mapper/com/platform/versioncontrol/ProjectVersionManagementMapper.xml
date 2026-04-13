@@ -418,7 +418,7 @@
             <if test="gitCommitSha != null">GIT_COMMIT_SHA = #{gitCommitSha},</if>
             <if test="resultMessage != null">RESULT_MESSAGE = #{resultMessage},</if>
             UPDATED_AT = CURRENT_DATETIME,
-            <if test="finishedYn != null and finishedYn == 'Y'">FINISHED_AT = CURRENT_DATETIME,</if>
+            <if test='finishedYn != null and finishedYn == "Y"'>FINISHED_AT = CURRENT_DATETIME,</if>
         </set>
         WHERE DEPLOYMENT_HISTORY_ID = #{deploymentHistoryId}
     </update>
