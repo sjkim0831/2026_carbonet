@@ -552,9 +552,11 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
   "external-webhooks": {
     pageId: "external-webhooks",
     title: "웹훅 설정 도움말",
-    summary: "웹훅 대상, 최근 전달 정책, 서명 상태를 함께 점검하는 운영 화면입니다.",
+    summary: "웹훅 대상, 최근 전달 정책, 서명 상태와 아직 차단된 endpoint CRUD, secret 회전, 테스트 발송, replay 계약을 함께 점검하는 운영 화면입니다.",
     items: [
       { id: "summary", title: "요약 지표", body: "활성 대상 수, 실패 건수, 서명 이상처럼 우선 점검할 상태를 먼저 봅니다.", anchorSelector: '[data-help-id="external-webhooks-summary"]', iconName: "dashboard", highlightStyle: "neutral" },
+      { id: "closeout", title: "완료 게이트", body: "현재 가능한 조회/정책 확인과 아직 필요한 CRUD, secret 회전, 테스트 발송, replay, 실패 정책 저장 계약을 구분합니다.", anchorSelector: '[data-help-id="external-webhooks-closeout-gate"]', iconName: "fact_check", highlightStyle: "warning" },
+      { id: "action-contract", title: "변경 조치 계약", body: "백엔드 실행, 권한, 감사가 연결되기 전까지 endpoint 추가, secret 회전, 테스트 발송, replay 버튼은 비활성화됩니다.", anchorSelector: '[data-help-id="external-webhooks-action-contract"]', iconName: "lock", highlightStyle: "warning" },
       { id: "filters", title: "웹훅 조회 조건", body: "검색어, 연계 방식, 전달 상태 기준으로 대상을 좁힙니다.", anchorSelector: '[data-help-id="external-webhooks-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
       { id: "targets", title: "웹훅 대상", body: "대상 연계, 엔드포인트, 서명 상태, 성공률, 실패 건수를 함께 확인합니다.", anchorSelector: '[data-help-id="external-webhooks-targets"]', iconName: "table_rows", highlightStyle: "neutral" },
       { id: "deliveries", title: "최근 전달 이력", body: "이벤트 유형, 재시도 정책, timeout, 실패 건수와 상태를 검토합니다.", anchorSelector: '[data-help-id="external-webhooks-deliveries"]', iconName: "history", highlightStyle: "warning" },
@@ -750,10 +752,12 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     title: "외부 인증키 관리 도움말",
     summary: "외부 연계 인증키의 교체 상태, 담당자, 인증 방식별 부담도를 한 화면에서 점검합니다.",
     items: [
+      { id: "closeout", title: "완료 게이트", body: "현재 가능한 마스킹·범위·만료 점검과 아직 차단된 발급·회전·폐기·감사 계약을 구분합니다.", anchorSelector: '[data-help-id="external-keys-closeout-gate"]', iconName: "fact_check", highlightStyle: "warning" },
       { id: "summary", title: "요약 지표", body: "긴급 교체와 만료 위험이 어느 정도인지 먼저 보고 인증키 운영 부담을 판단합니다.", anchorSelector: '[data-help-id="external-keys-summary"]', iconName: "dashboard", highlightStyle: "neutral" },
       { id: "filters", title: "조회 조건", body: "검색어, 인증 방식, 교체 상태로 인증키 대상을 빠르게 좁힙니다.", anchorSelector: '[data-help-id="external-keys-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
       { id: "inventory", title: "인증키 인벤토리", body: "연계, 권한 범위, 최근 교체일, 만료 예정일, 담당자를 함께 확인합니다.", anchorSelector: '[data-help-id="external-keys-inventory"]', iconName: "table_rows", highlightStyle: "neutral" },
       { id: "rotation", title: "교체 큐", body: "즉시 교체 또는 곧 만료될 항목을 우선순위대로 검토합니다.", anchorSelector: '[data-help-id="external-keys-rotation-queue"]', iconName: "priority_high", highlightStyle: "warning" },
+      { id: "action-contract", title: "실행 계약", body: "백엔드 액션과 감사 이벤트가 연결되기 전까지 운영 변경 버튼은 비활성 상태로 노출됩니다.", anchorSelector: '[data-help-id="external-keys-action-contract"]', iconName: "lock", highlightStyle: "warning" },
       { id: "breakdown", title: "인증 방식 분해", body: "어떤 인증 방식에 수동 교체와 긴급 조치가 몰려 있는지 분해해서 봅니다.", anchorSelector: '[data-help-id="external-keys-auth-breakdown"]', iconName: "vpn_key", highlightStyle: "success" },
       { id: "links", title: "바로가기", body: "연결 관리, 화이트리스트, 추적 화면으로 이동해 후속 조치를 이어갑니다.", anchorSelector: '[data-help-id="external-keys-quick-links"]', iconName: "link", highlightStyle: "neutral" },
       { id: "guidance", title: "운영 가이드", body: "비밀값 비노출, 점검 시간 연동, 관측 전용 등록 기준을 함께 확인합니다.", anchorSelector: '[data-help-id="external-keys-guidance"]', iconName: "fact_check", highlightStyle: "warning" }
@@ -966,6 +970,76 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
         title: "빌더 / 런타임 증거",
         body: "선택된 복구 대상이 어떤 빌더 초안과 발행 런타임 스냅샷에 연결되는지 검토합니다.",
         anchorSelector: '[data-help-id="repair-workbench-linkage"]'
+      }
+    ]
+  },
+  "verification-center": {
+    pageId: "verification-center",
+    title: "운영 검증 센터 도움말",
+    summary: "페이지 baseline, smoke 시나리오, 테스트 계정/데이터, 실행 증거를 한 곳에서 운영하기 위한 진입 화면입니다.",
+    items: [
+      {
+        id: "summary",
+        title: "검증 요약",
+        body: "baseline 묶음 수, 준비 상태, 통과 체크 수를 먼저 보고 현재 관리 수준을 빠르게 판단합니다.",
+        anchorSelector: '[data-help-id="verification-center-summary"]',
+        placement: "top",
+        iconName: "analytics",
+        highlightStyle: "focus"
+      },
+      {
+        id: "overview",
+        title: "도입 이유",
+        body: "변경 전후 무엇을 보존하고 무엇을 다시 확인할지 공통 기준을 만드는 목적을 설명합니다.",
+        anchorSelector: '[data-help-id="verification-center-overview"]',
+        placement: "right",
+        iconName: "rule",
+        highlightStyle: "neutral"
+      },
+      {
+        id: "catalog",
+        title: "baseline 카탈로그",
+        body: "페이지 baseline, 테스트 계정/데이터, 자동 점검, 증거 로그를 owner와 함께 묶어 봅니다.",
+        anchorSelector: '[data-help-id="verification-center-catalog"]',
+        placement: "left",
+        iconName: "inventory_2",
+        highlightStyle: "warning"
+      },
+      {
+        id: "runs",
+        title: "실행 주기와 규칙",
+        body: "변경 전, 변경 후, 정기 sweep, 만료 관리까지 어떤 주기로 돌릴지와 실패 후 라우팅 규칙을 확인합니다.",
+        anchorSelector: '[data-help-id="verification-center-runs"]',
+        placement: "bottom",
+        iconName: "schedule",
+        highlightStyle: "success"
+      },
+      {
+        id: "inventory-scope",
+        title: "전체 인벤토리 범위",
+        body: "현재 수집된 페이지, API, 함수, 테스트 자산 수와 원본 경로를 확인합니다.",
+        anchorSelector: '[data-help-id="verification-center-inventory-scope"]',
+        placement: "bottom",
+        iconName: "inventory",
+        highlightStyle: "warning"
+      },
+      {
+        id: "full-lists",
+        title: "전체 목록",
+        body: "모든 페이지, API, 함수, 보관 테스트 목록을 펼쳐서 직접 점검할 수 있습니다.",
+        anchorSelector: '[data-help-id="verification-center-full-lists"]',
+        placement: "bottom",
+        iconName: "list_alt",
+        highlightStyle: "neutral"
+      },
+      {
+        id: "log-policy",
+        title: "다음 구축 단계",
+        body: "baseline registry table, scenario runner, test account vault, sweep dashboard 순서로 확장하는 단계를 정리합니다.",
+        anchorSelector: '[data-help-id="verification-center-log-policy"]',
+        placement: "bottom",
+        iconName: "task",
+        highlightStyle: "neutral"
       }
     ]
   },
@@ -1576,6 +1650,77 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "filters", title: "검색 조건", body: "요청 유형, 처리 상태, 인증서 종류와 기간으로 감사 범위를 좁힙니다.", anchorSelector: '[data-help-id="certificate-audit-log-filters"]' },
       { id: "summary", title: "운영 요약", body: "대기, 반려, 재발급, 고위험 건수를 상단 카드로 빠르게 파악합니다.", anchorSelector: '[data-help-id="certificate-audit-log-summary"]' },
       { id: "table", title: "감사 로그 목록", body: "신청자, 승인자, 인증서 번호, 사유를 한 표에서 검토합니다.", anchorSelector: '[data-help-id="certificate-audit-log-table"]' }
+    ]
+  },
+  "batch-management": {
+    pageId: "batch-management",
+    title: "배치 관리 도움말",
+    summary: "배치 잡, 큐 적체, 워커 노드, 최근 실행 이력과 아직 차단된 실행 계약을 함께 점검합니다.",
+    items: [
+      { id: "closeout", title: "완료 게이트", body: "현재 가능한 잡·큐·워커·실행 이력 점검과 아직 차단된 일시중지·재개·재시도·큐 drain·감사 계약을 구분합니다.", anchorSelector: '[data-help-id="batch-management-closeout-gate"]' },
+      { id: "action-contract", title: "실행 계약", body: "백엔드 액션과 감사 이벤트가 연결되기 전까지 운영 변경 버튼은 비활성 상태로 노출됩니다.", anchorSelector: '[data-help-id="batch-management-action-contract"]' },
+      { id: "filters", title: "배치 조회 조건", body: "키워드, 잡 상태, 노드 상태로 점검 범위를 먼저 좁힙니다.", anchorSelector: '[data-help-id="batch-management-filters"]' },
+      { id: "summary", title: "배치 요약", body: "조회 잡 수, 큐 적체, 정상 노드, 실패/재검토 실행을 상단 카드로 봅니다.", anchorSelector: '[data-help-id="batch-management-summary"]' },
+      { id: "jobs", title: "배치 잡 목록", body: "잡 ID, 큐, 실행 유형, 상태, 최근/다음 실행, 담당자를 한 표에서 확인합니다.", anchorSelector: '[data-help-id="batch-management-jobs"]' },
+      { id: "queues", title: "큐 적체 현황", body: "대기 건수, 소비 노드, 최근 메시지 시각, SLA 상태를 함께 확인합니다.", anchorSelector: '[data-help-id="batch-management-queues"]' },
+      { id: "nodes", title: "워커 노드", body: "재실행 전에 노드 상태, 담당 큐, heartbeat를 확인합니다.", anchorSelector: '[data-help-id="batch-management-nodes"]' },
+      { id: "executions", title: "최근 실행 이력", body: "실패와 재검토 실행을 우선 확인하고 후속 조치 대상을 구분합니다.", anchorSelector: '[data-help-id="batch-management-executions"]' }
+    ]
+  },
+  "infra": {
+    pageId: "infra",
+    title: "인프라 콘솔 도움말",
+    summary: "정적 샘플 기반의 노드 점검 화면과 실제 인프라 콘솔이 되기 전 필요한 토폴로지, 헬스, 임계치, 조치 계약을 구분합니다.",
+    items: [
+      { id: "closeout", title: "완료 게이트", body: "토폴로지/노드 레지스트리, 라이브 헬스, 임계치, 인시던트 핸드오프가 아직 차단된 상태임을 확인합니다.", anchorSelector: '[data-help-id="infra-closeout-gate"]' },
+      { id: "action-contract", title: "런타임 조치 계약", body: "헬스 새로고침, 인시던트 생성, 노드 drain, 조치 핸드오프는 백엔드 실행 포트와 감사가 연결될 때까지 비활성화됩니다.", anchorSelector: '[data-help-id="infra-action-contract"]' },
+      { id: "summary", title: "인프라 요약", body: "필터 기준 노드 수, 점검 필요 수, 평균 CPU와 메모리 사용률을 확인합니다.", anchorSelector: '[data-help-id="infra-summary"]' },
+      { id: "filters", title: "노드 필터", body: "역할과 존 기준으로 정적 노드 샘플을 좁혀 봅니다.", anchorSelector: '[data-help-id="infra-filters"]' },
+      { id: "nodes", title: "노드 카드", body: "역할, 존, 상태, CPU, 메모리, 디스크 사용률을 카드 단위로 검토합니다.", anchorSelector: '[data-help-id="infra-node-grid"]' },
+      { id: "incidents", title: "현재 인프라 조치", body: "샘플 인시던트와 후속 조치 메모를 검토하고 운영 콘솔로 이동합니다.", anchorSelector: '[data-help-id="infra-incidents"]' },
+      { id: "consoles", title: "연결 콘솔", body: "운영센터, 통합 관측, 스케줄러 등 상세 원인 분석 화면으로 이동합니다.", anchorSelector: '[data-help-id="infra-connected-consoles"]' }
+    ]
+  },
+  "performance": {
+    pageId: "performance",
+    title: "성능 도움말",
+    summary: "최근 요청/JVM 진단과 아직 차단된 임계치, 알림, export, 보존기간, 인시던트 계약을 함께 확인합니다.",
+    items: [
+      { id: "status", title: "현재 상태", body: "최근 요청 샘플 수, slow threshold, 갱신 시각, 전체 성능 상태를 확인합니다.", anchorSelector: '[data-help-id="performance-status"]' },
+      { id: "closeout", title: "완료 게이트", body: "현재 가능한 진단과 아직 필요한 임계치 관리, 알림/인시던트, export/보존기간, 추세 비교를 구분합니다.", anchorSelector: '[data-help-id="performance-closeout-gate"]' },
+      { id: "action-contract", title: "차단된 거버넌스 조치", body: "임계치 저장, 알림 규칙 연결, 성능 리포트 export, 인시던트 생성은 백엔드 계약과 감사 전까지 비활성화됩니다.", anchorSelector: '[data-help-id="performance-action-contract"]' },
+      { id: "runtime", title: "JVM 용량", body: "힙 사용률, 가용 메모리, 프로세서, 관측 요청 수를 점검합니다.", anchorSelector: '[data-help-id="performance-runtime"]' },
+      { id: "request-summary", title: "지연 요약", body: "평균, p95, 지연 요청 비율, 오류 비율을 최근 요청 윈도우 기준으로 봅니다.", anchorSelector: '[data-help-id="performance-request-summary"]' },
+      { id: "hotspots", title: "지연 집중 경로", body: "평균 또는 최대 지연이 높은 경로를 trace/log 화면과 연결해 봅니다.", anchorSelector: '[data-help-id="performance-hotspot-routes"]' },
+      { id: "slow-requests", title: "최근 지연/오류 요청", body: "traceId, actor, 상태 코드, 지연 시간을 확인하고 상세 추적으로 이동합니다.", anchorSelector: '[data-help-id="performance-slow-requests"]' }
+    ]
+  },
+  "notification": {
+    pageId: "notification",
+    title: "알림센터 도움말",
+    summary: "보안 알림 라우팅, 즉시 발송, 발송/운영 이력과 아직 차단된 범용 알림 rule, 수신자 scope, 테스트 발송, 재시도 계약을 함께 확인합니다.",
+    items: [
+      { id: "snapshot", title: "운영 현황", body: "알림 경로 상태를 먼저 점검하고 보안 정책, 보안 모니터링, 통합 로그로 이동합니다.", anchorSelector: '[data-help-id="notification-snapshot"]' },
+      { id: "summary", title: "알림 요약", body: "활성 채널, 발송 실패, 라우팅 점검, Critical 탐지 수를 확인합니다.", anchorSelector: '[data-help-id="notification-summary"]' },
+      { id: "closeout", title: "완료 게이트", body: "현재 가능한 보안 알림 라우팅/발송/이력과 아직 필요한 rule CRUD, 수신자 scope, 테스트 발송, 재시도를 구분합니다.", anchorSelector: '[data-help-id="notification-closeout-gate"]' },
+      { id: "action-contract", title: "차단된 범용 조치", body: "알림 규칙 생성, 수신자 scope 미리보기, 테스트 발송, 실패 재시도는 백엔드 계약과 감사 전까지 비활성화됩니다.", anchorSelector: '[data-help-id="notification-action-contract"]' },
+      { id: "routing", title: "알림 라우팅", body: "Slack, Mail, Webhook, severity, digest 설정을 전체 관리자 권한으로 저장합니다.", anchorSelector: '[data-help-id="notification-routing"]' },
+      { id: "history", title: "전달 현황", body: "발송 이력과 운영자 조치 이력을 필터와 페이지네이션으로 검토합니다.", anchorSelector: '[data-help-id="notification-history"]' },
+      { id: "guidance", title: "운영 가이드", body: "Critical/High 알림 처리와 로그 확인 기준을 안내합니다.", anchorSelector: '[data-help-id="notification-guidance"]' }
+    ]
+  },
+  "db-sync-deploy": {
+    pageId: "db-sync-deploy",
+    title: "DB 동기화 배포 도움말",
+    summary: "고위험 DB 동기화와 fresh deploy를 analyze, validate-policy, server-up proof, evidence history 단계로 통제합니다.",
+    items: [
+      { id: "scope", title: "실행 범위", body: "대상 스크립트, 기본 SQL 세트, 가드레일, 실행 모드를 상단 카드로 확인합니다.", anchorSelector: '[data-help-id="db-sync-deploy-scope"]' },
+      { id: "policy", title: "사전 점검 가드레일", body: "스크립트 기반 가드레일과 서버 올리기 테스트, 정책 검증 진입점을 확인합니다.", anchorSelector: '[data-help-id="db-sync-deploy-policy"]' },
+      { id: "validation", title: "정책 검증", body: "가드레일, SQL 파일, EXECUTION_SOURCE, 증적 원장 조건이 실제 실행 전 준비됐는지 봅니다.", anchorSelector: '[data-help-id="db-sync-deploy-policy-validation"]' },
+      { id: "evidence", title: "실행 증적", body: "서버 올리기 테스트의 라우트, React shell, freshness 증적을 확인합니다.", anchorSelector: '[data-help-id="db-sync-deploy-evidence"]' },
+      { id: "history", title: "실행 이력", body: "로컬 증적 원장에 기록된 최근 중앙 실행 결과를 확인합니다.", anchorSelector: '[data-help-id="db-sync-deploy-history"]' },
+      { id: "script-chain", title: "스크립트 체인", body: "로컬/원격 스냅샷, diff, policy, apply, freshness 흐름을 단계별로 봅니다.", anchorSelector: '[data-help-id="db-sync-deploy-script-chain"]' },
+      { id: "breakglass", title: "긴급 우회", body: "breakglass 실행은 사유와 승인자, 사전 감사 기록이 있을 때만 예외적으로 허용됩니다.", anchorSelector: '[data-help-id="db-sync-deploy-breakglass"]' }
     ]
   },
   "scheduler-management": {

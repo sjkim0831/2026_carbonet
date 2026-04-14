@@ -1,8 +1,12 @@
 package egovframework.com.feature.admin.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.MenuFeatureManageService;
+import egovframework.com.feature.admin.model.vo.MenuFeatureVO;
+import egovframework.com.platform.dbchange.model.DbChangeCaptureRequest;
+import egovframework.com.platform.dbchange.service.DbChangeCaptureService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +16,7 @@ import org.springframework.stereotype.Service;
 import javax.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -27,6 +32,8 @@ public class AdminFeatureManagementCommandService {
     private final MenuFeatureManageService menuFeatureManageService;
     private final AuthGroupManageService authGroupManageService;
     private final AdminReactRouteSupport adminReactRouteSupport;
+    private final DbChangeCaptureService dbChangeCaptureService;
+    private final ObjectMapper objectMapper;
 
     public String createFeatureManagement(
             String menuType,
@@ -60,6 +67,7 @@ public class AdminFeatureManagementCommandService {
             }
             menuFeatureManageService.insertMenuFeature(
                     normalizedMenuCode, normalizedFeatureCode, normalizedFeatureNm, normalizedFeatureNmEn, normalizedFeatureDc, normalizedUseAt);
+            recordMenuFeatureDbChange(request, normalizedFeatureCode, "INSERT", null, menuFeatureManageService.selectMenuFeature(normalizedFeatureCode));
         } catch (Exception e) {
             log.error("Failed to create feature management. featureCode={}", normalizedFeatureCode, e);
             return redirectFunctionManagementError(request, locale, normalizedMenuType, normalizedMenuCode, null,
@@ -104,8 +112,10 @@ public class AdminFeatureManagementCommandService {
                 response.put("message", isEn ? "The feature code does not exist." : "등록된 기능 코드를 찾지 못했습니다.");
                 return ResponseEntity.badRequest().body(response);
             }
+            MenuFeatureVO before = menuFeatureManageService.selectMenuFeature(normalizedFeatureCode);
             menuFeatureManageService.updateMenuFeatureMetadata(
                     normalizedFeatureCode, normalizedFeatureNm, normalizedFeatureNmEn, normalizedFeatureDc, normalizedUseAt);
+            recordMenuFeatureDbChange(request, normalizedFeatureCode, "UPDATE", before, menuFeatureManageService.selectMenuFeature(normalizedFeatureCode));
         } catch (Exception e) {
             log.error("Failed to update environment feature. featureCode={}", normalizedFeatureCode, e);
             response.put("success", false);
@@ -190,7 +200,9 @@ public class AdminFeatureManagementCommandService {
         try {
             int assignedRoleCount = authGroupManageService.countAuthorFeatureRelationsByFeatureCode(normalizedFeatureCode);
             int userOverrideCount = authGroupManageService.countUserFeatureOverridesByFeatureCode(normalizedFeatureCode);
+            MenuFeatureVO before = menuFeatureManageService.selectMenuFeature(normalizedFeatureCode);
             deleteFeatureWithAssignments(normalizedFeatureCode);
+            recordMenuFeatureDbChange(request, normalizedFeatureCode, "DELETE", before, null);
             response.put("success", true);
             response.put("featureCode", normalizedFeatureCode);
             response.put("assignedRoleCount", assignedRoleCount);
@@ -298,6 +310,73 @@ public class AdminFeatureManagementCommandService {
 
     private String urlEncode(String value) {
         return URLEncoder.encode(safeString(value), StandardCharsets.UTF_8);
+    }
+
+    private void recordMenuFeatureDbChange(HttpServletRequest request,
+                                           String featureCode,
+                                           String changeType,
+                                           MenuFeatureVO before,
+                                           MenuFeatureVO after) {
+        try {
+            DbChangeCaptureRequest captureRequest = new DbChangeCaptureRequest();
+            captureRequest.setProjectId("carbonet");
+            captureRequest.setMenuCode(after != null ? safeString(after.getMenuCode()) : safeString(before == null ? null : before.getMenuCode()));
+            captureRequest.setPageId("function-management");
+            captureRequest.setApiPath(request == null ? "" : safeString(request.getRequestURI()));
+            captureRequest.setHttpMethod(request == null ? "" : safeString(request.getMethod()));
+            captureRequest.setActorId("system");
+            captureRequest.setActorRole("");
+            captureRequest.setActorScopeId("");
+            captureRequest.setTargetTableName("COMTNMENUFUNCTIONINFO");
+            captureRequest.setTargetPkJson(writeJson(singleKeyMap("featureCode", featureCode)));
+            captureRequest.setEntityType("MENU_FEATURE");
+            captureRequest.setEntityId(featureCode);
+            captureRequest.setChangeType(changeType);
+            captureRequest.setBeforeSummaryJson(writeJson(before));
+            captureRequest.setAfterSummaryJson(writeJson(after));
+            captureRequest.setChangeSummary(buildMenuFeatureChangeSummary(changeType, featureCode, before, after));
+            captureRequest.setPatchFormatCode("JSON_PATCH");
+            captureRequest.setPatchKindCode("DELETE".equals(changeType) ? "ROW_DELETE" : ("INSERT".equals(changeType) ? "ROW_INSERT" : "ROW_UPSERT"));
+            captureRequest.setTargetEnv("PROD");
+            captureRequest.setTargetKeysJson(writeJson(singleKeyMap("featureCode", featureCode)));
+            captureRequest.setPatchPayloadJson(writeJson(after));
+            captureRequest.setRenderedSqlPreview("");
+            captureRequest.setRiskLevel("HIGH");
+            captureRequest.setLogicalObjectId("COMTNMENUFUNCTIONINFO:" + featureCode);
+            captureRequest.setSourceEnv("LOCAL");
+            dbChangeCaptureService.captureChange(captureRequest);
+        } catch (Exception e) {
+            log.warn("Failed to capture menu feature DB change. featureCode={}, changeType={}", featureCode, changeType, e);
+        }
+    }
+
+    private String buildMenuFeatureChangeSummary(String changeType, String featureCode, MenuFeatureVO before, MenuFeatureVO after) {
+        String menuCode = after != null ? safeString(after.getMenuCode()) : safeString(before == null ? null : before.getMenuCode());
+        if ("INSERT".equals(changeType)) {
+            return "Menu feature created: " + featureCode + " on " + menuCode;
+        }
+        if ("DELETE".equals(changeType)) {
+            return "Menu feature deleted: " + featureCode + " from " + menuCode;
+        }
+        return "Menu feature updated: " + featureCode + " on " + menuCode;
+    }
+
+    private String writeJson(Object value) {
+        if (value == null) {
+            return "";
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            log.warn("Failed to serialize menu feature DB capture payload.", e);
+            return "";
+        }
+    }
+
+    private Map<String, String> singleKeyMap(String key, String value) {
+        Map<String, String> map = new HashMap<>();
+        map.put(key, value);
+        return map;
     }
 
     private String safeString(Object value) {

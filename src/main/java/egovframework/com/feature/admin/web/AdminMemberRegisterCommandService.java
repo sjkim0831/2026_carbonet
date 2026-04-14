@@ -2,6 +2,7 @@ package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.dto.request.AdminMemberRegisterSaveRequestDTO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
+import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
 import egovframework.com.feature.member.model.vo.InstitutionStatusVO;
@@ -33,6 +34,7 @@ public class AdminMemberRegisterCommandService {
     private final AdminPermissionOverrideService adminPermissionOverrideService;
     private final AdminMemberRegisterSupportService adminMemberRegisterSupportService;
     private final AdminMemberRegisterCommandSupportService adminMemberRegisterCommandSupportService;
+    private final AdminRoleAssignmentDbChangeCaptureSupport adminRoleAssignmentDbChangeCaptureSupport;
 
     public ResponseEntity<Map<String, Object>> submit(
             AdminMemberRegisterSaveRequestDTO payload,
@@ -207,7 +209,19 @@ public class AdminMemberRegisterCommandService {
         try {
             entrprsManageService.insertEntrprsmber(member);
             entrprsManageService.ensureEnterpriseSecurityMapping(member.getUniqId());
+            UserAuthorityTargetVO beforeAssignment = authGroupManageService.selectUserAuthorityTarget(canonicalInsttId, normalizedMemberId);
             authGroupManageService.updateEnterpriseUserRoleAssignment(normalizedMemberId, normalizedAuthorCode);
+            adminRoleAssignmentDbChangeCaptureSupport.captureEnterpriseUserRoleAssignment(
+                    request,
+                    currentUserId,
+                    currentUserAuthorCode,
+                    canonicalInsttId,
+                    canonicalInsttId,
+                    normalizedMemberId,
+                    beforeAssignment,
+                    authGroupManageService.selectUserAuthorityTarget(canonicalInsttId, normalizedMemberId),
+                    "AMENU_MEMBER_REGISTER",
+                    "member-register");
             adminPermissionOverrideService.savePermissionOverrides(
                     adminMemberRegisterCommandSupportService.safeString(member.getUniqId()),
                     "USR02",

@@ -1,5 +1,7 @@
 # Builder Resource Row 1 Blocker Example
 
+Status: EXAMPLE_ONLY
+
 Updated on `2026-04-09`.
 
 ## Read First

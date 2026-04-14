@@ -25,6 +25,8 @@ type GwpForm = {
   ar4Value: string;
   ar5Value: string;
   ar6Value: string;
+  source: string;
+  manualInputValue: string;
   note: string;
   sortOrder: string;
 };
@@ -114,6 +116,8 @@ function buildEmptyForm(): GwpForm {
     ar4Value: "",
     ar5Value: "",
     ar6Value: "",
+    source: "",
+    manualInputValue: "",
     note: "",
     sortOrder: "0"
   };
@@ -131,6 +135,8 @@ function buildFormFromRow(row: Record<string, string> | null | undefined): GwpFo
     ar4Value: stringOf(row, "ar4Value"),
     ar5Value: stringOf(row, "ar5Value"),
     ar6Value: stringOf(row, "ar6Value"),
+    source: stringOf(row, "source"),
+    manualInputValue: stringOf(row, "manualInputValue"),
     note: stringOf(row, "note"),
     sortOrder: stringOf(row, "sortOrder") || "0"
   };
@@ -655,6 +661,8 @@ export function EmissionGwpValuesMigrationPage() {
       "ar4Value",
       "ar5Value",
       "ar6Value",
+      "source",
+      "manualInputValue",
       "note",
       "compareStatus",
       "compareMismatchLabels",
@@ -700,6 +708,8 @@ export function EmissionGwpValuesMigrationPage() {
       "ar4Value",
       "ar5Value",
       "ar6Value",
+      "source",
+      "manualInputValue",
       "note",
       "pdfCompareStatus",
       "pdfCompareStatusLabel",
@@ -752,6 +762,8 @@ export function EmissionGwpValuesMigrationPage() {
       "ar4Value",
       "ar5Value",
       "ar6Value",
+      "source",
+      "manualInputValue",
       "note",
       "pdfCompareSource",
       "pdfCompareSourceLabel",
@@ -878,6 +890,8 @@ export function EmissionGwpValuesMigrationPage() {
         ar4Value: form.ar4Value.trim(),
         ar5Value: form.ar5Value.trim(),
         ar6Value: form.ar6Value.trim(),
+        source: form.source.trim(),
+        manualInputValue: form.manualInputValue.trim(),
         note: form.note.trim(),
         sortOrder: Number(form.sortOrder || "0") || 0
       });
@@ -1415,6 +1429,7 @@ export function EmissionGwpValuesMigrationPage() {
                     <th className="min-w-[320px] px-4 py-4 text-left align-middle" rowSpan={2}>{en ? "Common chemical name or industrial designation" : "일반명 또는 산업 표기"}</th>
                     <th className="min-w-[160px] px-4 py-4 text-left align-middle" rowSpan={2}>{en ? "Chemical formula" : "화학식"}</th>
                     <th className="px-4 py-3 text-center align-middle" colSpan={3}>{en ? "GWP values for 100-year time horizon" : "100년 기준 GWP 값"}</th>
+                    <th className="min-w-[140px] px-4 py-4 text-left align-middle" rowSpan={2}>{en ? "Source / Manual" : "출처 / 임의 입력값"}</th>
                     <th className="min-w-[88px] px-4 py-4 text-center align-middle" rowSpan={2}>{en ? "Select" : "선택"}</th>
                   </tr>
                   <tr className="border-b border-[var(--kr-gov-border-light)] bg-white text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
@@ -1426,7 +1441,7 @@ export function EmissionGwpValuesMigrationPage() {
                 <tbody className="divide-y divide-gray-100">
                   {visibleRows.length === 0 ? (
                     <tr>
-                      <td className="px-6 py-8 text-center text-sm text-[var(--kr-gov-text-secondary)]" colSpan={6}>
+                      <td className="px-6 py-8 text-center text-sm text-[var(--kr-gov-text-secondary)]" colSpan={7}>
                         {waitingForAllPdfEvidenceFilters
                           ? (en ? "Loading all-row PDF evidence before applying PDF filters." : "PDF 필터 적용을 위해 전체 행 PDF 근거를 불러오는 중입니다.")
                           : showReferenceCompare && showOnlyMismatches && showOnlyPdfGaps
@@ -1441,7 +1456,7 @@ export function EmissionGwpValuesMigrationPage() {
                   ) : groupedRows.map((group) => (
                     <Fragment key={group.sectionCode}>
                       <tr className="bg-[linear-gradient(90deg,#eef4ff_0%,#f8fbff_100%)]">
-                        <td className="px-4 py-3 text-left text-sm font-black text-[var(--kr-gov-blue)]" colSpan={6}>
+                        <td className="px-4 py-3 text-left text-sm font-black text-[var(--kr-gov-blue)]" colSpan={7}>
                           {group.sectionLabel}
                         </td>
                       </tr>
@@ -1488,6 +1503,10 @@ export function EmissionGwpValuesMigrationPage() {
                           <td className={`px-4 py-4 text-center font-black text-[var(--kr-gov-blue)] ${hasFieldDiff(row, "Ar6Value") ? "text-rose-700 underline decoration-2 decoration-rose-500 underline-offset-4" : ""}`} title={cellEvidenceTitle(row, "Ar6Value", "AR6")}>
                             <div>{stringOf(row, "ar6Value") || "-"}</div>
                             {hasFieldDiff(row, "Ar6Value") ? <div className="mt-1 text-[11px] font-bold text-rose-600">{en ? "ref" : "정본"}: {referenceValue(row, "Ar6Value") || "-"}</div> : null}
+                          </td>
+                          <td className="px-4 py-4 text-left text-xs text-[var(--kr-gov-text-secondary)]">
+                            <div>{stringOf(row, "source") || "-"}</div>
+                            <div className="mt-1 font-mono text-slate-500">{stringOf(row, "manualInputValue") || "-"}</div>
                           </td>
                           <td className="px-4 py-4 text-center">
                             <MemberButton onClick={() => handleSelectRow(stringOf(row, "rowId"))} size="xs" type="button" variant={stringOf(row, "rowId") === stringOf(selectedRow, "rowId") ? "primary" : "secondary"}>
@@ -1546,6 +1565,16 @@ export function EmissionGwpValuesMigrationPage() {
                     <AdminInput className={compareInputClassName(selectedRow, "Ar6Value")} value={form.ar6Value} onChange={(event) => updateForm("ar6Value", event.target.value)} />
                   </label>
                 </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <label className="text-sm font-bold">
+                    <span className="mb-1 block">{en ? "Source" : "출처"}</span>
+                    <AdminInput value={form.source} onChange={(event) => updateForm("source", event.target.value)} />
+                  </label>
+                  <label className="text-sm font-bold">
+                    <span className="mb-1 block">{en ? "Manual Input Value" : "임의 입력값"}</span>
+                    <AdminInput value={form.manualInputValue} onChange={(event) => updateForm("manualInputValue", event.target.value)} />
+                  </label>
+                </div>
                 <label className="text-sm font-bold">
                   <span className="mb-1 block">{en ? "Note" : "비고"}</span>
                   <AdminTextarea className={compareInputClassName(selectedRow, "Note")} rows={4} value={form.note} onChange={(event) => updateForm("note", event.target.value)} />
@@ -1559,6 +1588,14 @@ export function EmissionGwpValuesMigrationPage() {
                     <div className="flex items-start justify-between gap-4">
                       <dt className="font-bold">{en ? "PDF Source" : "PDF 출처"}</dt>
                       <dd>{stringOf(page as Record<string, unknown>, "documentName")} / {en ? "page" : "페이지"} {stringOf(selectedRow, "sourcePageNo") || "-"}</dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <dt className="font-bold">{en ? "Catalog Source" : "카탈로그 출처"}</dt>
+                      <dd>{stringOf(selectedRow, "source") || "-"}</dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <dt className="font-bold">{en ? "Manual Input Value" : "임의 입력값"}</dt>
+                      <dd>{stringOf(selectedRow, "manualInputValue") || "-"}</dd>
                     </div>
                     {showReferenceCompare ? (
                       <div className="flex items-start justify-between gap-4">

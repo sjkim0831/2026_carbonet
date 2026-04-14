@@ -15,6 +15,8 @@ public interface AuthGroupManageService {
 
     List<AuthorInfoVO> selectAuthorList() throws Exception;
 
+    AuthorInfoVO selectAuthor(String authorCode) throws Exception;
+
     List<FeatureCatalogItemVO> selectFeatureCatalog() throws Exception;
 
     List<FeatureAssignmentStatVO> selectFeatureAssignmentStats() throws Exception;
@@ -63,7 +65,11 @@ public interface AuthGroupManageService {
 
     List<DepartmentRoleMappingVO> selectDepartmentRoleMappings() throws Exception;
 
+    DepartmentRoleMappingVO selectDepartmentRoleMapping(String insttId, String deptNm) throws Exception;
+
     List<UserAuthorityTargetVO> selectUserAuthorityTargets(String insttId, String searchKeyword) throws Exception;
+
+    UserAuthorityTargetVO selectUserAuthorityTarget(String insttId, String userId) throws Exception;
 
     void updateAdminRoleAssignment(String emplyrId, String authorCode) throws Exception;
 

@@ -26,6 +26,12 @@ public class AdminBackupConfigSaveRequestDTO {
     private String dbUser;
     private String dbDumpCommand;
     private String dbSchemaScope;
+    private String dbPromotionDataPolicy;
+    private String dbDiffExecutionPreset;
+    private String dbApplyLocalDiffYn;
+    private String dbForceDestructiveDiffYn;
+    private String dbFailOnUntrackedDestructiveDiffYn;
+    private String dbRequirePatchHistoryYn;
     private String versionMemo;
 
     public String getBackupRootPath() { return backupRootPath; }
@@ -72,6 +78,18 @@ public class AdminBackupConfigSaveRequestDTO {
     public void setDbDumpCommand(String dbDumpCommand) { this.dbDumpCommand = dbDumpCommand; }
     public String getDbSchemaScope() { return dbSchemaScope; }
     public void setDbSchemaScope(String dbSchemaScope) { this.dbSchemaScope = dbSchemaScope; }
+    public String getDbPromotionDataPolicy() { return dbPromotionDataPolicy; }
+    public void setDbPromotionDataPolicy(String dbPromotionDataPolicy) { this.dbPromotionDataPolicy = dbPromotionDataPolicy; }
+    public String getDbDiffExecutionPreset() { return dbDiffExecutionPreset; }
+    public void setDbDiffExecutionPreset(String dbDiffExecutionPreset) { this.dbDiffExecutionPreset = dbDiffExecutionPreset; }
+    public String getDbApplyLocalDiffYn() { return dbApplyLocalDiffYn; }
+    public void setDbApplyLocalDiffYn(String dbApplyLocalDiffYn) { this.dbApplyLocalDiffYn = dbApplyLocalDiffYn; }
+    public String getDbForceDestructiveDiffYn() { return dbForceDestructiveDiffYn; }
+    public void setDbForceDestructiveDiffYn(String dbForceDestructiveDiffYn) { this.dbForceDestructiveDiffYn = dbForceDestructiveDiffYn; }
+    public String getDbFailOnUntrackedDestructiveDiffYn() { return dbFailOnUntrackedDestructiveDiffYn; }
+    public void setDbFailOnUntrackedDestructiveDiffYn(String dbFailOnUntrackedDestructiveDiffYn) { this.dbFailOnUntrackedDestructiveDiffYn = dbFailOnUntrackedDestructiveDiffYn; }
+    public String getDbRequirePatchHistoryYn() { return dbRequirePatchHistoryYn; }
+    public void setDbRequirePatchHistoryYn(String dbRequirePatchHistoryYn) { this.dbRequirePatchHistoryYn = dbRequirePatchHistoryYn; }
     public String getVersionMemo() { return versionMemo; }
     public void setVersionMemo(String versionMemo) { this.versionMemo = versionMemo; }
 }

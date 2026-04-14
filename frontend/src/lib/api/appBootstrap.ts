@@ -164,6 +164,8 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
       return fetchBackupConfigPage("/admin/system/backup_config");
     case "backup-execution":
       return fetchBackupConfigPage("/admin/system/backup");
+    case "db-sync-deploy":
+      return Promise.resolve(null);
     case "new-page":
       return platformApi.fetchNewPagePage();
     case "restore-execution":

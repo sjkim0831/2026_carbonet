@@ -53,6 +53,26 @@
         ORDER BY F.MENU_CODE, F.FEATURE_CODE
     </select>
 
+    <select id="selectMenuFeature" parameterType="egovframework.com.feature.admin.dto.request.AdminMenuFeatureCommandDTO" resultType="egovframework.com.feature.admin.model.vo.MenuFeatureVO">
+        SELECT
+            M.MENU_CODE,
+            D.CODE_NM AS MENU_NM,
+            D.CODE_DC AS MENU_NM_EN,
+            M.MENU_URL,
+            F.FEATURE_CODE,
+            F.FEATURE_NM,
+            F.FEATURE_NM_EN,
+            F.FEATURE_DC,
+            F.USE_AT
+        FROM COMTNMENUFUNCTIONINFO F
+        INNER JOIN COMTNMENUINFO M
+            ON M.MENU_CODE = F.MENU_CODE
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        WHERE F.FEATURE_CODE = #{featureCode}
+        LIMIT 1
+    </select>
+
     <select id="countFeatureCode" parameterType="egovframework.com.feature.admin.dto.request.AdminMenuFeatureCommandDTO" resultType="int">
         SELECT COUNT(*)
         FROM COMTNMENUFUNCTIONINFO

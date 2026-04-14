@@ -39,6 +39,7 @@ public class ProjectVersionOpsAutomationService {
     private static final Path JOB_LOG_DIRECTORY = REPOSITORY_ROOT.resolve("data/version-control/ops-jobs");
     private static final String REMOTE_HOST = "136.117.100.221";
     private static final String EXECUTION_TYPE = "REMOTE_SYNC_DEPLOY_221";
+    private static final String DEFAULT_REMOTE_DEPLOY_MODE = "pull";
 
     private final ProjectVersionManagementMapper projectVersionManagementMapper;
     private final ConcurrentMap<String, RemoteAutomationJob> jobs = new ConcurrentHashMap<String, RemoteAutomationJob>();
@@ -58,6 +59,8 @@ public class ProjectVersionOpsAutomationService {
                 "remoteHost", REMOTE_HOST,
                 "launcherPath", WINDOWS_LAUNCHER.toString(),
                 "scriptPath", DEPLOY_SCRIPT.toString(),
+                "defaultRemoteDeployMode", DEFAULT_REMOTE_DEPLOY_MODE,
+                "remoteDeployModeOptionSet", buildRemoteDeployModeOptionSet(),
                 "launcherPresentYn", Files.exists(WINDOWS_LAUNCHER) ? "Y" : "N",
                 "scriptPresentYn", Files.exists(DEPLOY_SCRIPT) ? "Y" : "N",
                 "deployAutomationConfiguredYn", Files.exists(DEPLOY_ENV_FILE) ? "Y" : "N",
@@ -74,6 +77,7 @@ public class ProjectVersionOpsAutomationService {
                                                         String releaseVersion,
                                                         String releaseTitle,
                                                         String releaseContent,
+                                                        String remoteDeployMode,
                                                         boolean isEn) {
         String normalizedProjectId = safe(projectId);
         if (normalizedProjectId.isEmpty()) {
@@ -87,6 +91,7 @@ public class ProjectVersionOpsAutomationService {
         if (normalizedReleaseContent.isEmpty()) {
             throw new IllegalArgumentException(isEn ? "Release content is required." : "배포 내용을 입력해야 합니다.");
         }
+        String normalizedRemoteDeployMode = normalizeRemoteDeployMode(remoteDeployMode);
         if (!Files.exists(DEPLOY_SCRIPT)) {
             throw new IllegalArgumentException((isEn ? "Deploy script not found: " : "배포 스크립트를 찾을 수 없습니다: ") + DEPLOY_SCRIPT);
         }
@@ -96,7 +101,7 @@ public class ProjectVersionOpsAutomationService {
                     ? "Another remote sync/deploy job is already running."
                     : "다른 원격 동기화/배포 작업이 이미 실행 중입니다.");
         }
-        RemoteAutomationJob job = createJob(normalizedProjectId, actorId, normalizedReleaseVersion, releaseTitle, normalizedReleaseContent, isEn);
+        RemoteAutomationJob job = createJob(normalizedProjectId, actorId, normalizedReleaseVersion, releaseTitle, normalizedReleaseContent, normalizedRemoteDeployMode, isEn);
         insertDeploymentHistory(job);
         jobs.put(job.jobId, job);
         executor.submit(() -> executeJob(job.jobId, isEn));
@@ -105,9 +110,17 @@ public class ProjectVersionOpsAutomationService {
         payload.put("remoteJobStarted", true);
         payload.put("remoteJobId", job.jobId);
         payload.put("message", isEn
-                ? "Remote DB sync, Git push, and 221 fresh deploy have been queued."
-                : "원격 DB 동기화, Git push, 221 fresh deploy 작업을 시작했습니다.");
+                ? "Remote DB sync, Git push, and 221 deploy have been queued."
+                : "원격 DB 동기화, Git push, 221 배포 작업을 시작했습니다.");
         return payload;
+    }
+
+    private List<Map<String, Object>> buildRemoteDeployModeOptionSet() {
+        List<Map<String, Object>> values = new ArrayList<Map<String, Object>>();
+        values.add(orderedMap("value", "pull", "label", "Pull + 재기동", "labelEn", "Pull + Restart"));
+        values.add(orderedMap("value", "fresh-clone", "label", "Fresh Clone + 재기동", "labelEn", "Fresh Clone + Restart"));
+        values.add(orderedMap("value", "jar-mosh", "label", "Jar 전송 + 재기동", "labelEn", "Jar Transfer + Restart"));
+        return values;
     }
 
     private List<Map<String, Object>> safeRecentDeploymentHistory(String projectId) {
@@ -134,7 +147,7 @@ public class ProjectVersionOpsAutomationService {
     private List<String> buildLauncherExclusiveSet(boolean isEn) {
         List<String> values = new ArrayList<String>();
         values.add(isEn ? "Apply version-governance SQL files to the remote DB over SSH" : "SSH 경유 원격 DB에 버전 거버넌스 SQL 반영");
-        values.add(isEn ? "Push the current branch and redeploy from a fresh clone on 221" : "현재 브랜치 push 후 221에서 fresh clone 기준 재배포");
+        values.add(isEn ? "Choose pull, fresh-clone, or jar-transfer mode before 221 restart" : "221 재기동 전에 pull, fresh-clone, jar 전송 모드를 선택");
         values.add(isEn ? "Run remote build/restart plus freshness verification in one batch" : "원격 build/restart와 freshness 검증을 한 번에 실행");
         return values;
     }
@@ -142,7 +155,7 @@ public class ProjectVersionOpsAutomationService {
     private List<String> buildRecommendedFlowSet(boolean isEn) {
         List<String> values = new ArrayList<String>();
         values.add(isEn ? "Use DB/Git backup actions here before remote deploy when you need a restore point." : "복구 지점이 필요하면 먼저 이 화면의 DB/Git 백업 작업을 실행합니다.");
-        values.add(isEn ? "Use the 221 sync/deploy action only after version artifacts or SQL changes are ready." : "버전 아티팩트나 SQL 변경이 준비된 뒤 221 동기화/배포를 실행합니다.");
+        values.add(isEn ? "Default to pull mode when you need latest code/scripts plus restart. Switch only when a clean clone or jar-only transfer is required." : "최신 코드/스크립트 반영과 재기동만 필요하면 pull 모드를 기본으로 사용하고, 깨끗한 clone이나 jar-only 전송이 필요할 때만 전환합니다.");
         values.add(isEn ? "Use the restore page for SQL/physical/PITR rollback drills." : "SQL/물리/PITR 롤백은 복구 실행 화면을 사용합니다.");
         return values;
     }
@@ -152,17 +165,19 @@ public class ProjectVersionOpsAutomationService {
                                           String releaseVersion,
                                           String releaseTitle,
                                           String releaseContent,
+                                          String remoteDeployMode,
                                           boolean isEn) {
         RemoteAutomationJob job = new RemoteAutomationJob();
         job.jobId = "VD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(Locale.ROOT);
         job.projectId = projectId;
         job.deploymentHistoryId = "pdh-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         job.executionType = EXECUTION_TYPE;
-        job.profileName = isEn ? "221 Remote Sync And Fresh Deploy" : "221 원격 동기화 및 Fresh Deploy";
+        job.profileName = isEn ? "221 Remote Sync And Deploy" : "221 원격 동기화 및 배포";
         job.actorId = safe(actorId).isEmpty() ? "system" : safe(actorId);
         job.releaseVersion = releaseVersion;
         job.releaseTitle = safe(releaseTitle);
         job.releaseContent = releaseContent;
+        job.remoteDeployMode = normalizeRemoteDeployMode(remoteDeployMode);
         job.serverTarget = REMOTE_HOST;
         job.deployTraceId = "deploy-" + job.jobId.toLowerCase(Locale.ROOT);
         job.gitCommitSha = resolveCurrentGitCommitSha();
@@ -211,7 +226,9 @@ public class ProjectVersionOpsAutomationService {
                     "cd " + shellQuote(REPOSITORY_ROOT.toString()) + " && bash " + shellQuote(executionScript.toString()));
             builder.directory(REPOSITORY_ROOT.toFile());
             builder.environment().put("PROJECT_ROOT", REPOSITORY_ROOT.toString());
+            builder.environment().put("REMOTE_DEPLOY_MODE", defaultIfBlank(job.remoteDeployMode, DEFAULT_REMOTE_DEPLOY_MODE));
             appendJobLog(job, (isEn ? "Launching deploy script copy: " : "배포 스크립트 복사본 실행: ") + executionScript);
+            appendJobLog(job, (isEn ? "Remote deploy mode: " : "원격 배포 모드: ") + defaultIfBlank(job.remoteDeployMode, DEFAULT_REMOTE_DEPLOY_MODE));
             process = builder.start();
             ByteArrayOutputStream stdout = new ByteArrayOutputStream();
             ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -228,8 +245,8 @@ public class ProjectVersionOpsAutomationService {
             }
             job.status = "SUCCESS";
             job.resultMessage = isEn
-                    ? "Remote DB sync, Git push, and 221 fresh deploy completed."
-                    : "원격 DB 동기화, Git push, 221 fresh deploy가 완료되었습니다.";
+                    ? "Remote DB sync, Git push, and 221 deploy completed."
+                    : "원격 DB 동기화, Git push, 221 배포가 완료되었습니다.";
             safeUpdateDeploymentHistory(job, false, isEn);
             appendJobLog(job, job.resultMessage);
         } catch (Exception ex) {
@@ -364,6 +381,7 @@ public class ProjectVersionOpsAutomationService {
                 "projectId", job.projectId,
                 "executionType", job.executionType,
                 "profileName", job.profileName,
+                "remoteDeployMode", job.remoteDeployMode,
                 "actorId", job.actorId,
                 "status", job.status,
                 "startedAt", formatTime(job.startedAt),
@@ -444,6 +462,14 @@ public class ProjectVersionOpsAutomationService {
         }
     }
 
+    private String normalizeRemoteDeployMode(String value) {
+        String normalized = safe(value).toLowerCase(Locale.ROOT);
+        if ("fresh-clone".equals(normalized) || "jar-mosh".equals(normalized) || "pull".equals(normalized)) {
+            return normalized;
+        }
+        return DEFAULT_REMOTE_DEPLOY_MODE;
+    }
+
     private String safe(String value) {
         return value == null ? "" : value.trim();
     }
@@ -468,6 +494,7 @@ public class ProjectVersionOpsAutomationService {
         private String releaseContent;
         private String executionType;
         private String profileName;
+        private String remoteDeployMode;
         private String actorId;
         private String serverTarget;
         private String releaseUnitId;

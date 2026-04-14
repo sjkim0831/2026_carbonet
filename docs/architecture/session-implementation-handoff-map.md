@@ -9,6 +9,9 @@ freeze and what they must not reinterpret.
 
 Use together with:
 
+- `docs/ai/00-governance/ai-skill-doc-routing-matrix.md`
+- `docs/ai/00-governance/ai-orchestration-doc-retention-inventory.md`
+- `docs/architecture/high-parallel-account-orchestration-playbook.md`
 - `docs/ai/80-skills/resonance-10-session-assignment.md`
 - `docs/architecture/tmux-multi-account-delivery-playbook.md`
 - `docs/architecture/governed-identity-naming-convention.md`

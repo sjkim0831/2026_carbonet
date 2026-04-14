@@ -35,6 +35,13 @@ public class MenuFeatureManageServiceImpl extends EgovAbstractServiceImpl implem
     }
 
     @Override
+    public MenuFeatureVO selectMenuFeature(String featureCode) {
+        AdminMenuFeatureCommandDTO params = new AdminMenuFeatureCommandDTO();
+        params.setFeatureCode(featureCode);
+        return menuFeatureManageMapper.selectMenuFeature(params);
+    }
+
+    @Override
     public int countFeaturesByMenuCode(String menuCode) {
         AdminMenuFeatureCommandDTO params = new AdminMenuFeatureCommandDTO();
         params.setMenuCode(menuCode);

@@ -23,8 +23,6 @@
             REASON_SUMMARY,
             IP_ADDRESS,
             USER_AGENT,
-            REQUEST_URI,
-            HTTP_METHOD,
             CREATED_AT
         ) VALUES (
             #{auditId},
@@ -43,8 +41,6 @@
             #{reasonSummary},
             #{ipAddress},
             #{userAgent},
-            #{requestUri},
-            #{httpMethod},
             CURRENT_DATETIME
         )
     </insert>

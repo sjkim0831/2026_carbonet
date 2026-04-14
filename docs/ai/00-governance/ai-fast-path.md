@@ -2,14 +2,26 @@
 
 Use this file as the default starting point for AI-assisted work in this repository.
 
-## Read First
+Start here first:
+
+1. `docs/ai/00-governance/ai-skill-doc-routing-matrix.md`
+2. the selected primary skill file
+3. one or two task-specific docs only
+
+Then apply:
+
+- `docs/ai/00-governance/ai-reference-reduction-policy.md`
+
+## Conditional Reads
+
+Read these only when the route needs them:
 
 1. `README.md`
 2. `STRUCTURE.md`
 3. `PROJECT_PATHS.md`
 4. `docs/ai/10-architecture/repo-layout.md`
 5. `docs/ai/70-reference/screen-design-source-map.md`
-6. `docs/ai/00-governance/ai-session-partitioning.md` before planning or implementation so session ownership is decided early
+6. `docs/ai/00-governance/ai-session-partitioning.md` when planning or implementation crosses ownership boundaries
 7. `bash ops/scripts/codex-resume-status.sh` when reopening work after re-login or before joining an already-active task
 8. `bash ops/scripts/codex-admin-status.sh` when the task touches admin screens and you need the current full admin route status table
 9. `docs/ai/60-operations/session-orchestration/README.md` when the task needs durable plan, contract, or handoff artifacts
@@ -45,6 +57,14 @@ These locations are usually noise for AI unless the task is runtime- or build-sp
 - `frontend/node_modules/`
 - `var/logs/`
 - built assets under `src/main/resources/static/react-migration/assets`
+- `docs/ai/60-operations/session-orchestration/archive/`
+- `docs/ai/60-operations/session-orchestration/**/*example.md`
+
+## Default Guardrails
+
+- Do not treat this file as a reason to open broad doc sets by default.
+- Use the routing matrix to choose exactly one primary skill first.
+- Open `session-orchestration/active/` only for explicit active-lane continuation.
 
 ## Folder Intent
 

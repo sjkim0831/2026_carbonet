@@ -22,4 +22,5 @@ Suggested routing:
   - Treat `메뉴 -> 페이지 -> 기능 -> 권한그룹 -> 회원/부서 할당 -> 사용자 예외권한 -> 감사로그` as one connected permission chain.
   - For the current admin restoration track, keep `auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account` synchronized and restore original templates before polishing migrated UI abstractions.
   - Use it for `/admin/system/security-policy` when the task includes detection rules, suppress/baseline behavior, SQL preview/rollback, approval workflow, notification routing, or real runtime remediation in auth/rate-limit/audit code.
+- Use `admin-screen-unifier` with `docs/architecture/admin-system-screen-completion-audit.md` when asked to list administrator system screens, find unfinished screens, or decide whether an existing rendered admin page is only `PARTIAL` or `SCAFFOLD`.
 - Use `carbonet-join-react-migration` when the task is specifically about join, company register, status, or reapply flows in React migration.

@@ -836,6 +836,20 @@ function updateSessionIdInUrl(sessionId: number) {
   window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
+function readSurveyBootstrapFromUrl() {
+  if (typeof window === "undefined") {
+    return { fromSurveyAdmin: false, categoryId: 0, tier: 0 };
+  }
+  const searchParams = new URLSearchParams(window.location.search);
+  const rawCategoryId = Number(searchParams.get("categoryId") || "");
+  const rawTier = Number(searchParams.get("tier") || "");
+  return {
+    fromSurveyAdmin: (searchParams.get("fromSurveyAdmin") || "").toUpperCase() === "Y",
+    categoryId: Number.isFinite(rawCategoryId) ? rawCategoryId : 0,
+    tier: Number.isFinite(rawTier) ? rawTier : 0
+  };
+}
+
 export function EmissionManagementMigrationPage() {
   type ValidationIssue = {
     sectionId: string;
@@ -858,6 +872,7 @@ export function EmissionManagementMigrationPage() {
     "ROLE_ADMIN",
     "ROLE_OPERATION_ADMIN"
   ]);
+  const surveyBootstrap = readSurveyBootstrapFromUrl();
 
   const en = isEnglish();
   const frontendSession = useFrontendSession();
@@ -3476,6 +3491,15 @@ export function EmissionManagementMigrationPage() {
       setError(en ? "Admin execution permission is required." : "관리자 실행 권한이 필요합니다.");
       return;
     }
+    if (surveyBootstrap.fromSurveyAdmin && factors.length === 0) {
+      setError(en
+        ? "No stored emission factor is available for this survey scope. Contact the administrator."
+        : "이 설문 범위에 저장된 배출계수 값이 없습니다. 관리자에 문의하세요.");
+      setWarning("");
+      setValidationIssues([]);
+      setMessage("");
+      return;
+    }
     const lineAlignmentWarning = validateLineAlignment();
     if (lineAlignmentWarning) {
       setWarning(lineAlignmentWarning);
@@ -3595,6 +3619,18 @@ export function EmissionManagementMigrationPage() {
         const initialSessionId = readSessionIdFromUrl();
         if (initialSessionId > 0) {
           await restoreSession(initialSessionId);
+          return;
+        }
+        if (surveyBootstrap.categoryId > 0) {
+          await handleCategoryChange(surveyBootstrap.categoryId);
+          if (surveyBootstrap.tier > 0) {
+            setSelectedTier(surveyBootstrap.tier);
+            await loadDefinitions(surveyBootstrap.categoryId, surveyBootstrap.tier);
+            setWizardStep(2);
+            setMessage(en
+              ? "Loaded the survey-linked calculation scope and stored factor set."
+              : "설문 관리에서 전달된 계산 범위와 저장 배출계수를 불러왔습니다.");
+          }
         }
       } catch (loadError) {
         if (!cancelled) {

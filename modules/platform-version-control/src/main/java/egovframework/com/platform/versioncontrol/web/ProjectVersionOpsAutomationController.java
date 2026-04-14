@@ -43,6 +43,7 @@ public class ProjectVersionOpsAutomationController {
         String releaseVersion = stringValue(body == null ? null : body.get("releaseVersion"));
         String releaseTitle = stringValue(body == null ? null : body.get("releaseTitle"));
         String releaseContent = stringValue(body == null ? null : body.get("releaseContent"));
+        String remoteDeployMode = stringValue(body == null ? null : body.get("remoteDeployMode"));
         try {
             return ResponseEntity.ok(projectVersionOpsAutomationService.startRemoteSyncAndDeploy(
                     projectId,
@@ -50,6 +51,7 @@ public class ProjectVersionOpsAutomationController {
                     releaseVersion,
                     releaseTitle,
                     releaseContent,
+                    remoteDeployMode,
                     isEn));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(defaultIfBlank(ex.getMessage(),

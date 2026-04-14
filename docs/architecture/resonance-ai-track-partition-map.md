@@ -33,6 +33,12 @@ Do not reverse this order.
 
 Resonance parallel development should run through explicit session ownership, not informal concurrent editing.
 
+Use these live entry docs first:
+
+- `docs/ai/00-governance/ai-skill-doc-routing-matrix.md`
+- `docs/architecture/high-parallel-account-orchestration-playbook.md`
+- `docs/operations/account-relogin-continuity-playbook.md`
+
 Use this rule:
 
 - one AI account may own one or more sessions
@@ -73,6 +79,7 @@ If fewer accounts exist:
 If more accounts exist:
 
 - use the extra accounts for review, verification, or isolated project-specific work
+- keep some accounts reserved for token-expiry recovery and standby continuation
 - do not split a shared contract family without an explicit handoff and re-freeze step
 
 ### Track 1. Contract Coordinator

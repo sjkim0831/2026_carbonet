@@ -10,6 +10,8 @@ public interface MenuFeatureManageService {
 
     List<MenuFeatureVO> selectMenuFeatureList(String codeId, String menuCode, String searchKeyword) throws Exception;
 
+    MenuFeatureVO selectMenuFeature(String featureCode) throws Exception;
+
     int countFeaturesByMenuCode(String menuCode) throws Exception;
 
     int countFeatureCode(String featureCode) throws Exception;

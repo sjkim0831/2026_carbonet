@@ -37,11 +37,26 @@ export type ProjectVersionManagementPagePayload = {
   fleetGovernance: ProjectFleetUpgradeGovernancePayload;
 };
 
+export type DbChangeCaptureSummaryPayload = {
+  projectId?: string;
+  totalChangeCount?: number;
+  autoQueuedChangeCount?: number;
+  approvalRequiredChangeCount?: number;
+  blockedChangeCount?: number;
+  pendingQueueCount?: number;
+  pendingApprovalQueueCount?: number;
+};
+
+export type DbBusinessChangeLogRow = Record<string, unknown>;
+export type DbDeployablePatchQueueRow = Record<string, unknown>;
+export type DbDeployablePatchResultRow = Record<string, unknown>;
+
 export type ProjectVersionOpsJobPayload = {
   jobId?: string;
   projectId?: string;
   executionType?: string;
   profileName?: string;
+  remoteDeployMode?: string;
   actorId?: string;
   status?: string;
   startedAt?: string;
@@ -57,6 +72,8 @@ export type ProjectVersionOpsPayload = {
   remoteHost?: string;
   launcherPath?: string;
   scriptPath?: string;
+  defaultRemoteDeployMode?: string;
+  remoteDeployModeOptionSet?: Array<Record<string, unknown>>;
   launcherPresentYn?: string;
   scriptPresentYn?: string;
   deployAutomationConfiguredYn?: string;

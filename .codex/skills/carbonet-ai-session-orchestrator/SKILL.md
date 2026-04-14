@@ -73,6 +73,10 @@ When the operator wants work to survive account re-login or a new session:
 4. Capture current blockers, next step, and verification state in a handoff note before stopping.
 5. Do not open a new implementation lane until the resumed lane's allowed paths are clear.
 
+Treat token expiry, provider reset, and forced session loss the same way as re-login.
+
+Before a likely expiry on an active lane, leave an expiry-safe note in the latest handoff.
+
 ## Existing Session Completion Rule
 
 If the current active sessions already cover the needed ownership families, prefer finishing with those sessions instead of opening extra lanes.
@@ -97,6 +101,21 @@ Open a new session only when a required ownership family has no safe current own
 - Do not split common-platform compatibility work across multiple sessions if they touch the same facade, contract, or registry family.
 - If the task includes install/copy/delete behavior, keep ownership-model changes and delete-safety verification in the same session.
 - Do not recommend runtime source sharing between deployed child systems and the main platform. Session planning should assume versioned artifacts and reproducible builds.
+
+## High-Parallel Account Rule
+
+If the operator has many Codex accounts or collab-capable sessions available:
+
+- do not map one account to one requested bullet by default
+- do not create one active write lane per available account
+- keep the minimum safe ownership lanes first
+- use extra accounts only for disjoint ownership families, verification, documentation, runtime proof, or standby continuation
+
+For example, even if `14` accounts are available, many tasks should still stay at `4` to `6` active lanes.
+
+More accounts increase scheduling flexibility, not the safe number of concurrent writers for one shared codebase.
+
+Reserve some accounts for expiry recovery and standby continuation instead of consuming the full pool as active writers.
 
 ## Response Shape
 

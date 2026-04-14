@@ -184,5 +184,47 @@
     "publishedVersionId" : "published-emission_def_206affc3b084-43a98b29",
     "publishedSavedAt" : "2026-04-06 09:51",
     "lastPublishedBy" : "system"
+  },
+  "EMISSION_DEF_2C4E9935FFAC" : {
+    "draftId" : "EMISSION_DEF_2C4E9935FFAC",
+    "categoryCode" : "CEMENT",
+    "categoryName" : "시멘트 생산 확장",
+    "tierLabel" : "Tier 4",
+    "formula" : "SUM(activity,i × factor,i, i) - correction",
+    "formulaTree" : [ {
+      "kind" : "sum",
+      "iterator" : "i",
+      "items" : [ {
+        "kind" : "token",
+        "token" : "activity,i",
+        "iterator" : "i"
+      }, {
+        "kind" : "token",
+        "joiner" : "×",
+        "token" : "factor,i",
+        "iterator" : "i"
+      } ]
+    }, {
+      "kind" : "token",
+      "joiner" : "-",
+      "token" : "correction",
+      "iterator" : "i"
+    } ],
+    "inputMode" : "NUMBER",
+    "policies" : [ "input_required_yn", "default_capable_yn", "stored_factor_capable_yn" ],
+    "directRequiredCodes" : [ "MCI", "CCLI", "MCL", "MLI" ],
+    "fallbackCodes" : [ "EFCLC", "EFC", "EFCL" ],
+    "autoCalculatedCodes" : [ "CFCKD" ],
+    "supplementalCodes" : [ ],
+    "sections" : [ ],
+    "variableDefinitions" : [ ],
+    "runtimeMode" : "AUTO",
+    "note" : "저장 API 개방 전 validation 정책과 resolution 정책을 분리합니다.",
+    "lastSavedAt" : "2026-04-14 18:28",
+    "lastSavedBy" : "system",
+    "status" : "DRAFT",
+    "publishedVersionId" : "",
+    "publishedSavedAt" : "",
+    "lastPublishedBy" : ""
   }
 }

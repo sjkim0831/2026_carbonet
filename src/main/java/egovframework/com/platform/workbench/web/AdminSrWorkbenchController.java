@@ -26,27 +26,40 @@ import java.util.Locale;
 import java.util.Map;
 
 @Controller
-@RequestMapping({"/admin", "/en/admin"})
 @RequiredArgsConstructor
 public class AdminSrWorkbenchController {
 
     private final SrTicketWorkbenchPort srTicketWorkbenchService;
     private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
 
-    @RequestMapping(value = "/system/sr-workbench", method = RequestMethod.GET)
+    @RequestMapping(value = {"/admin/system/sr-workbench", "/en/admin/system/sr-workbench"}, method = RequestMethod.GET)
     public String srWorkbenchPage(HttpServletRequest request, Locale locale, Model model) {
         boolean en = isEnglishRequest(request, locale);
         return reactAppViewSupportProvider.getObject().render(model, "sr-workbench", en, true);
     }
 
-    @GetMapping({"/api/platform/workbench/page", "/api/admin/sr-workbench/page"})
+    @GetMapping({
+            "/api/platform/workbench/page",
+            "/en/api/platform/workbench/page",
+            "/admin/api/platform/workbench/page",
+            "/en/admin/api/platform/workbench/page",
+            "/admin/api/admin/sr-workbench/page",
+            "/en/admin/api/admin/sr-workbench/page"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getPage(
             @RequestParam(value = "pageId", required = false) String pageId) throws Exception {
         return ResponseEntity.ok(srTicketWorkbenchService.getPage(pageId));
     }
 
-    @PostMapping({"/api/platform/workbench/tickets", "/api/admin/sr-workbench/tickets"})
+    @PostMapping({
+            "/api/platform/workbench/tickets",
+            "/en/api/platform/workbench/tickets",
+            "/admin/api/platform/workbench/tickets",
+            "/en/admin/api/platform/workbench/tickets",
+            "/admin/api/admin/sr-workbench/tickets",
+            "/en/admin/api/admin/sr-workbench/tickets"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> createTicket(
             @RequestBody(required = false) SrTicketCreateRequest request,
@@ -54,7 +67,14 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.createTicket(request, resolveActorId(httpServletRequest)));
     }
 
-    @PostMapping({"/api/platform/workbench/quick-execute", "/api/admin/sr-workbench/quick-execute"})
+    @PostMapping({
+            "/api/platform/workbench/quick-execute",
+            "/en/api/platform/workbench/quick-execute",
+            "/admin/api/platform/workbench/quick-execute",
+            "/en/admin/api/platform/workbench/quick-execute",
+            "/admin/api/admin/sr-workbench/quick-execute",
+            "/en/admin/api/admin/sr-workbench/quick-execute"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> quickExecuteTicket(
             @RequestBody(required = false) SrTicketCreateRequest request,
@@ -62,7 +82,14 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.quickExecuteTicket(request, resolveActorId(httpServletRequest)));
     }
 
-    @PostMapping({"/api/platform/workbench/stack-items", "/api/admin/sr-workbench/stack-items"})
+    @PostMapping({
+            "/api/platform/workbench/stack-items",
+            "/en/api/platform/workbench/stack-items",
+            "/admin/api/platform/workbench/stack-items",
+            "/en/admin/api/platform/workbench/stack-items",
+            "/admin/api/admin/sr-workbench/stack-items",
+            "/en/admin/api/admin/sr-workbench/stack-items"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> addStackItem(
             @RequestBody(required = false) SrWorkbenchStackItemCreateRequest request,
@@ -70,7 +97,14 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.addStackItem(request, resolveActorId(httpServletRequest)));
     }
 
-    @PostMapping({"/api/platform/workbench/stack-items/{stackItemId}/delete", "/api/admin/sr-workbench/stack-items/{stackItemId}/delete"})
+    @PostMapping({
+            "/api/platform/workbench/stack-items/{stackItemId}/delete",
+            "/en/api/platform/workbench/stack-items/{stackItemId}/delete",
+            "/admin/api/platform/workbench/stack-items/{stackItemId}/delete",
+            "/en/admin/api/platform/workbench/stack-items/{stackItemId}/delete",
+            "/admin/api/admin/sr-workbench/stack-items/{stackItemId}/delete",
+            "/en/admin/api/admin/sr-workbench/stack-items/{stackItemId}/delete"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> removeStackItem(
             @PathVariable("stackItemId") String stackItemId,
@@ -78,14 +112,28 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.removeStackItem(stackItemId, resolveActorId(httpServletRequest)));
     }
 
-    @PostMapping({"/api/platform/workbench/stack-items/clear", "/api/admin/sr-workbench/stack-items/clear"})
+    @PostMapping({
+            "/api/platform/workbench/stack-items/clear",
+            "/en/api/platform/workbench/stack-items/clear",
+            "/admin/api/platform/workbench/stack-items/clear",
+            "/en/admin/api/platform/workbench/stack-items/clear",
+            "/admin/api/admin/sr-workbench/stack-items/clear",
+            "/en/admin/api/admin/sr-workbench/stack-items/clear"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> clearStack(
             HttpServletRequest httpServletRequest) throws Exception {
         return ResponseEntity.ok(srTicketWorkbenchService.clearStack(resolveActorId(httpServletRequest)));
     }
 
-    @PostMapping({"/api/platform/workbench/tickets/{ticketId}/approve", "/api/admin/sr-workbench/tickets/{ticketId}/approve"})
+    @PostMapping({
+            "/api/platform/workbench/tickets/{ticketId}/approve",
+            "/en/api/platform/workbench/tickets/{ticketId}/approve",
+            "/admin/api/platform/workbench/tickets/{ticketId}/approve",
+            "/en/admin/api/platform/workbench/tickets/{ticketId}/approve",
+            "/admin/api/admin/sr-workbench/tickets/{ticketId}/approve",
+            "/en/admin/api/admin/sr-workbench/tickets/{ticketId}/approve"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> approveTicket(
             @PathVariable("ticketId") String ticketId,
@@ -94,7 +142,14 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.updateApproval(ticketId, request, resolveActorId(httpServletRequest)));
     }
 
-    @PostMapping({"/api/platform/workbench/tickets/{ticketId}/prepare-execution", "/api/admin/sr-workbench/tickets/{ticketId}/prepare-execution"})
+    @PostMapping({
+            "/api/platform/workbench/tickets/{ticketId}/prepare-execution",
+            "/en/api/platform/workbench/tickets/{ticketId}/prepare-execution",
+            "/admin/api/platform/workbench/tickets/{ticketId}/prepare-execution",
+            "/en/admin/api/platform/workbench/tickets/{ticketId}/prepare-execution",
+            "/admin/api/admin/sr-workbench/tickets/{ticketId}/prepare-execution",
+            "/en/admin/api/admin/sr-workbench/tickets/{ticketId}/prepare-execution"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> prepareExecution(
             @PathVariable("ticketId") String ticketId,
@@ -102,7 +157,14 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.prepareExecution(ticketId, resolveActorId(httpServletRequest)));
     }
 
-    @PostMapping({"/api/platform/workbench/tickets/{ticketId}/plan", "/api/admin/sr-workbench/tickets/{ticketId}/plan"})
+    @PostMapping({
+            "/api/platform/workbench/tickets/{ticketId}/plan",
+            "/en/api/platform/workbench/tickets/{ticketId}/plan",
+            "/admin/api/platform/workbench/tickets/{ticketId}/plan",
+            "/en/admin/api/platform/workbench/tickets/{ticketId}/plan",
+            "/admin/api/admin/sr-workbench/tickets/{ticketId}/plan",
+            "/en/admin/api/admin/sr-workbench/tickets/{ticketId}/plan"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> planTicket(
             @PathVariable("ticketId") String ticketId,
@@ -110,7 +172,14 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.planTicket(ticketId, resolveActorId(httpServletRequest)));
     }
 
-    @PostMapping({"/api/platform/workbench/tickets/{ticketId}/execute", "/api/admin/sr-workbench/tickets/{ticketId}/execute"})
+    @PostMapping({
+            "/api/platform/workbench/tickets/{ticketId}/execute",
+            "/en/api/platform/workbench/tickets/{ticketId}/execute",
+            "/admin/api/platform/workbench/tickets/{ticketId}/execute",
+            "/en/admin/api/platform/workbench/tickets/{ticketId}/execute",
+            "/admin/api/admin/sr-workbench/tickets/{ticketId}/execute",
+            "/en/admin/api/admin/sr-workbench/tickets/{ticketId}/execute"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> executeTicket(
             @PathVariable("ticketId") String ticketId,
@@ -120,7 +189,14 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.executeTicket(ticketId, resolveActorId(httpServletRequest), approvalToken));
     }
 
-    @PostMapping({"/api/platform/workbench/tickets/{ticketId}/direct-execute", "/api/admin/sr-workbench/tickets/{ticketId}/direct-execute"})
+    @PostMapping({
+            "/api/platform/workbench/tickets/{ticketId}/direct-execute",
+            "/en/api/platform/workbench/tickets/{ticketId}/direct-execute",
+            "/admin/api/platform/workbench/tickets/{ticketId}/direct-execute",
+            "/en/admin/api/platform/workbench/tickets/{ticketId}/direct-execute",
+            "/admin/api/admin/sr-workbench/tickets/{ticketId}/direct-execute",
+            "/en/admin/api/admin/sr-workbench/tickets/{ticketId}/direct-execute"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> directExecuteTicket(
             @PathVariable("ticketId") String ticketId,
@@ -130,7 +206,14 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.directExecuteTicket(ticketId, resolveActorId(httpServletRequest), approvalToken));
     }
 
-    @PostMapping({"/api/platform/workbench/tickets/{ticketId}/skip-plan-execute", "/api/admin/sr-workbench/tickets/{ticketId}/skip-plan-execute"})
+    @PostMapping({
+            "/api/platform/workbench/tickets/{ticketId}/skip-plan-execute",
+            "/en/api/platform/workbench/tickets/{ticketId}/skip-plan-execute",
+            "/admin/api/platform/workbench/tickets/{ticketId}/skip-plan-execute",
+            "/en/admin/api/platform/workbench/tickets/{ticketId}/skip-plan-execute",
+            "/admin/api/admin/sr-workbench/tickets/{ticketId}/skip-plan-execute",
+            "/en/admin/api/admin/sr-workbench/tickets/{ticketId}/skip-plan-execute"
+    })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> skipPlanExecuteTicket(
             @PathVariable("ticketId") String ticketId,

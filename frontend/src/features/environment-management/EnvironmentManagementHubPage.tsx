@@ -17,6 +17,10 @@ import { postFormUrlEncoded } from "../../lib/api/core";
 import { resolveResonanceProjectId } from "../../lib/api/resonanceControlPlane";
 import { fetchAuditEvents } from "../../platform/observability/observability";
 import {
+  buildAssetInventoryPath,
+  buildAssetImpactPath,
+  buildAssetLifecyclePath,
+  buildAssetGapPath,
   buildFeatureManagementCreatePath,
   buildFeatureManagementPath,
   buildFullStackManagementPath,
@@ -24,7 +28,8 @@ import {
   buildInfraPath,
   buildMenuCreatePagePath,
   buildObservabilityPath,
-  buildPlatformStudioPath
+  buildPlatformStudioPath,
+  buildVerificationCenterPath
 } from "../../platform/routes/platformPaths";
 import { rebuildScreenBuilderStatusSummary } from "../../lib/api/platform";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -1413,6 +1418,15 @@ export function EnvironmentManagementHubPage() {
                 <MemberButton onClick={() => scrollToSection("environment-metadata")} size="sm" type="button" variant="secondary">
                   {en ? "Validator / Metadata" : "검증 / 메타데이터"}
                 </MemberButton>
+                <MemberLinkButton href={buildAssetInventoryPath()} size="sm" variant="secondary">
+                  {en ? "Asset Inventory" : "자산 인벤토리"}
+                </MemberLinkButton>
+                <MemberLinkButton href={buildAssetImpactPath("page")} size="sm" variant="secondary">
+                  {en ? "Asset Impact" : "자산 영향도"}
+                </MemberLinkButton>
+                <MemberLinkButton href={buildAssetLifecyclePath("create")} size="sm" variant="secondary">
+                  {en ? "Asset Lifecycle" : "자산 생명주기"}
+                </MemberLinkButton>
               </div>
             </div>
             <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-5">
@@ -1484,6 +1498,63 @@ export function EnvironmentManagementHubPage() {
           title={en ? "Install / Bind Workspace" : "설치 / 바인딩 작업공간"}
         />
       </div>
+
+      <section className="grid gap-4 xl:grid-cols-5" data-help-id="environment-management-asset-root">
+        <DiagnosticCard
+          title={en ? "Asset inventory root" : "자산 인벤토리 루트"}
+          status={en ? "New entry" : "신규 진입점"}
+          statusTone="healthy"
+          description={en
+            ? "Use the grouped inventory to classify current screens as service, runtime, security, integration, and recovery assets."
+            : "현재 화면을 서비스, 런타임, 보안, 연계, 복구 자산으로 묶어서 분류할 때 사용합니다."}
+          actions={<MemberLinkButton href={buildAssetInventoryPath()} size="sm" variant="secondary">{en ? "Open inventory" : "인벤토리 열기"}</MemberLinkButton>}
+        />
+        <DiagnosticCard
+          title={en ? "Asset detail shell" : "자산 상세 쉘"}
+          status={en ? "Type-based" : "유형 기반"}
+          statusTone="warning"
+          description={en
+            ? "Open the detail shell first, then attach real asset identifiers and owners in the next step."
+            : "상세 쉘을 먼저 열고, 다음 단계에서 실제 자산 식별자와 소유자를 연결합니다."}
+          actions={<MemberLinkButton href={buildLocalizedPath("/admin/system/asset-detail?assetType=service-registry", "/en/admin/system/asset-detail?assetType=service-registry")} size="sm" variant="secondary">{en ? "Open detail" : "상세 열기"}</MemberLinkButton>}
+        />
+        <DiagnosticCard
+          title={en ? "Asset impact review" : "자산 영향 검토"}
+          status={en ? "Unified shell" : "통합 쉘"}
+          statusTone="warning"
+          description={en
+            ? "Page delete impact, feature authority impact, runtime compare, and integration maintenance impact should be reviewed from one entry."
+            : "페이지 삭제 영향, 기능 권한 영향, 런타임 비교, 연계 점검 영향을 하나의 진입점에서 검토하도록 만듭니다."}
+          actions={<MemberLinkButton href={buildAssetImpactPath("page")} size="sm" variant="secondary">{en ? "Open impact" : "영향도 열기"}</MemberLinkButton>}
+        />
+        <DiagnosticCard
+          title={en ? "Asset lifecycle root" : "자산 생명주기 루트"}
+          status={en ? "Governed shell" : "거버넌스 쉘"}
+          statusTone="warning"
+          description={en
+            ? "Create, publish, deprecate, retire, and rollback checkpoints should remain explicit instead of staying hidden inside delete or deploy actions."
+            : "생성, 반영, 축소, 폐기, 롤백 점검은 삭제나 배포 동작 안에 숨기지 말고 분리해서 관리해야 합니다."}
+          actions={<MemberLinkButton href={buildAssetLifecyclePath("create")} size="sm" variant="secondary">{en ? "Open lifecycle" : "생명주기 열기"}</MemberLinkButton>}
+        />
+        <DiagnosticCard
+          title={en ? "Asset gap queue" : "자산 미흡 큐"}
+          status={en ? "Backlog shell" : "백로그 쉘"}
+          statusTone="warning"
+          description={en
+            ? "Missing owner, missing binding, missing policy, and orphan assets should converge into one operational queue."
+            : "소유자 누락, 바인딩 누락, 정책 누락, 고아 자산은 하나의 운영 큐로 모아야 합니다."}
+          actions={<MemberLinkButton href={buildAssetGapPath()} size="sm" variant="secondary">{en ? "Open gap queue" : "미흡 큐 열기"}</MemberLinkButton>}
+        />
+        <DiagnosticCard
+          title={en ? "Verification center" : "운영 검증 센터"}
+          status={en ? "Baseline shell" : "baseline 쉘"}
+          statusTone="warning"
+          description={en
+            ? "Record preserved page baselines, smoke scenarios, test accounts, and run evidence before they stay scattered in tickets or chat."
+            : "페이지 baseline, smoke 시나리오, 테스트 계정, 실행 증거를 티켓이나 대화에 흩어두지 않고 한 곳에 기록합니다."}
+          actions={<MemberLinkButton href={buildVerificationCenterPath()} size="sm" variant="secondary">{en ? "Open verification" : "검증 센터 열기"}</MemberLinkButton>}
+        />
+      </section>
 
       <section className="gov-card mb-6" data-help-id="environment-management-engines">
         <GridToolbar

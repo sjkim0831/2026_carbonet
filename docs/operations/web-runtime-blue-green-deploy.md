@@ -10,6 +10,12 @@
 - 앱/web 롤백과 DB 롤백을 분리해서 판단한다.
 - 실패한 배포도 원인과 중단 지점이 기록되게 한다.
 
+AI 에이전트 추가 규칙:
+
+- AI가 만든 DB 변경은 원격 DB에 직접 반영하지 말고 반드시 patch path로 반영한다.
+- 원격 DB apply가 있었다면 `DB_PATCH_HISTORY` 또는 동등한 patch result 증거 없이 원격 앱 재시작을 성공으로 간주하지 않는다.
+- 원격 앱 stop/start/restart 확인은 DB patch 기록 이후 단계다.
+
 ## 기본 포트 모델
 
 운영 서버는 최소 두 개의 앱 포트를 가진다.
@@ -166,6 +172,12 @@ curl -fsSI https://carbonet.duckdns.org/admin/system/version
 DB diff 자동 적용은 웹 전환보다 앞에 온다. 다만 DB patch 실패 또는 closure verification 실패가 있으면 candidate 앱을 띄우더라도 Nginx 전환은 금지한다.
 
 운영에서 먼저 생긴 DB 변경은 `remote -> local` diff로 개발 DB에 반영한다. 개발에서 생긴 DB 변경은 `local -> remote` diff로 운영 DB에 반영한다. 양방향 모두 `DB_PATCH_HISTORY`에 남겨야 한다.
+
+AI 작업도 예외가 아니다.
+
+- AI-created admin save change: `BUSINESS_CHANGE_LOG` -> queue -> apply -> `DB_PATCH_HISTORY`
+- AI-created SQL file: patch file -> deploy automation apply -> `DB_PATCH_HISTORY`
+- AI-created remote DB change with remote app restart: patch evidence -> remote restart verification
 
 ## 구현 우선순위
 

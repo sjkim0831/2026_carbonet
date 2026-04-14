@@ -478,4 +478,19 @@
   "legacyTotal" : 0.75,
   "definitionTotal" : 0.75,
   "delta" : 0.0
+}, {
+  "scope" : "LIME:1",
+  "categoryCode" : "LIME",
+  "tier" : 1,
+  "transitionedAt" : "2026-04-14 18:24:40",
+  "transitionedBy" : "anonymous",
+  "sessionId" : 523,
+  "resultId" : 370,
+  "runtimeMode" : "PRIMARY",
+  "promotionStatus" : "PRIMARY_READY",
+  "promotionMessage" : "Published formula is configured as the primary runtime path and still matches the legacy calculator.",
+  "definitionFormulaAdopted" : true,
+  "legacyTotal" : 0.75,
+  "definitionTotal" : 0.75,
+  "delta" : 0.0
 } ]

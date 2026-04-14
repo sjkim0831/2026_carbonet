@@ -14,6 +14,8 @@ public class AdminEmissionGwpValueSaveRequestDTO {
     private String ar4Value;
     private String ar5Value;
     private String ar6Value;
+    private String source;
+    private String manualInputValue;
     private String note;
     private Integer sortOrder;
 }

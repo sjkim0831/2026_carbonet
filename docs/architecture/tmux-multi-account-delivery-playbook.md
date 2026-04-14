@@ -6,6 +6,9 @@ Generated on 2026-03-21 for Resonance multi-account parallel delivery.
 
 Define a repeatable `tmux` and multi-account operating model so multiple AI-driven sessions can work in parallel without corrupting shared contracts or overlapping implementation families.
 
+This playbook may be used even when a large pool such as `34` total accounts is available.
+In that case, keep the same ownership model and use extra accounts as verify-only, read-only, standby, or observer lanes unless a truly disjoint writer lane is needed.
+
 ## Core Rule
 
 Parallel work should always be divided by:
@@ -17,6 +20,8 @@ Parallel work should always be divided by:
 - handoff target
 
 No parallel lane should start implementation before shared contracts are frozen.
+
+Do not equate available account count with safe concurrent write-lane count.
 
 ## Minimum Recommended Session Layout
 
@@ -199,6 +204,15 @@ Additional accounts are useful when:
 - a dedicated `runtime-collection` or `legacy-import` lane is needed
 - one lane is blocked on review but another lane can continue
 
+Additional accounts should usually become:
+
+- verify-only lanes
+- read-only research lanes
+- standby continuation lanes
+- observer or audit lanes
+
+Even if `17` Codex and `17` Gemini accounts are available, start from the minimum safe active lane count first.
+
 Extra session candidates:
 
 - `res-legacy-import`
@@ -218,6 +232,7 @@ If extra accounts or login sessions are needed, request them only when:
 
 This playbook should be used together with:
 
+- `docs/architecture/high-parallel-account-orchestration-playbook.md`
 - `docs/ai/80-skills/resonance-10-session-assignment.md`
 - it is the numbered-session source of truth for lane numbers, attachment wording, and repeat-loop interpretation
 - `docs/architecture/session-implementation-handoff-map.md`

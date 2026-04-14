@@ -3,10 +3,18 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
+  approveDbPatchQueue,
   analyzeProjectUpgradeImpact,
+  executeDbPatchQueue,
+  fetchDbChangeLogList,
   applyProjectUpgrade,
+  fetchDbPatchQueueList,
+  fetchDbPatchResultList,
+  fetchDbChangeCaptureSummary,
   fetchProjectVersionManagementPage,
   fetchProjectVersionOperations,
+  queueDbChangeLog,
+  rejectDbPatchQueue,
   runProjectVersionSyncAndDeploy,
   rollbackProjectVersion
 } from "../../lib/api/platform";
@@ -37,7 +45,7 @@ import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { GridToolbar, KeyValueGridPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
-import { AdminInput, AdminTable, MemberButton, MemberPermissionButton, MemberSectionToolbar } from "../member/common";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberPermissionButton, MemberSectionToolbar } from "../member/common";
 import { MemberStateCard } from "../member/sections";
 
 const DEFAULT_PROJECT_ID = "carbonet";
@@ -52,6 +60,7 @@ const VERSION_REQUIRED_FEATURE_SET = [
   VERSION_APPLY_FEATURE,
   VERSION_ROLLBACK_FEATURE
 ];
+const DEFAULT_REMOTE_DEPLOY_MODE = "pull";
 
 function hasVersionFeature(authorCode: string, featureCodes: string[], requiredFeature: string) {
   const normalizedAuthorCode = authorCode.trim().toUpperCase();
@@ -272,6 +281,59 @@ function backupYes(form: Record<string, string>, key: string) {
   return backupValueOf(form, key) === "Y";
 }
 
+function deriveDbPatchDefaultsFromBackupSettings(form: Record<string, string>) {
+  const preset = backupValueOf(form, "dbDiffExecutionPreset") || "PATCH_WITH_DIFF";
+  const base = preset === "PATCH_ONLY"
+    ? {
+      executionMode: "DB_ONLY_PREDEPLOY",
+      applyDbDiffToRemoteYn: "N",
+      applyDbDiffToLocalYn: "N",
+      skipDbSchemaDiffYn: "Y",
+      forceDestructiveDiffYn: "N",
+      failOnDbDiffRemainsYn: "N",
+      failOnUntrackedDestructiveDiffYn: "N",
+      remoteDeployMode: "pull"
+    }
+    : preset === "FULL_REMOTE_DEPLOY"
+      ? {
+        executionMode: "FULL_REMOTE_DEPLOY",
+        applyDbDiffToRemoteYn: "Y",
+        applyDbDiffToLocalYn: "N",
+        skipDbSchemaDiffYn: "N",
+        forceDestructiveDiffYn: "N",
+        failOnDbDiffRemainsYn: "Y",
+        failOnUntrackedDestructiveDiffYn: "N",
+        remoteDeployMode: "pull"
+      }
+      : {
+        executionMode: "DB_ONLY_PREDEPLOY",
+        applyDbDiffToRemoteYn: "Y",
+        applyDbDiffToLocalYn: "N",
+        skipDbSchemaDiffYn: "N",
+        forceDestructiveDiffYn: "N",
+        failOnDbDiffRemainsYn: "Y",
+        failOnUntrackedDestructiveDiffYn: "N",
+        remoteDeployMode: "pull"
+      };
+  const promotionPolicy = backupValueOf(form, "dbPromotionDataPolicy") || "CONTROLLED_REFERENCE_ONLY";
+  return {
+    executionMode: base.executionMode,
+    targetEnv: "REMOTE_MAIN",
+    applyDbDiffToRemoteYn: base.applyDbDiffToRemoteYn,
+    applyDbDiffToLocalYn: backupYes(form, "dbApplyLocalDiffYn") ? "Y" : base.applyDbDiffToLocalYn,
+    skipDbSchemaDiffYn: base.skipDbSchemaDiffYn,
+    forceDestructiveDiffYn: backupYes(form, "dbForceDestructiveDiffYn") ? "Y" : base.forceDestructiveDiffYn,
+    failOnDbDiffRemainsYn: base.failOnDbDiffRemainsYn,
+    failOnUntrackedDestructiveDiffYn: backupYes(form, "dbFailOnUntrackedDestructiveDiffYn") ? "Y" : base.failOnUntrackedDestructiveDiffYn,
+    allowPolicyOverrideYn: promotionPolicy === "CONTROLLED_REFERENCE_ONLY" ? "N" : "Y",
+    allowBusinessDataPatchYn: promotionPolicy === "CONTROLLED_REFERENCE_ONLY" ? "N" : "Y",
+    requireDbPatchHistoryYn: backupYes(form, "dbRequirePatchHistoryYn") ? "Y" : "N",
+    policyOverrideReason: "",
+    remoteDeployMode: "pull",
+    forceQueue: "N"
+  };
+}
+
 export function ProjectVersionManagementMigrationPage() {
   const en = isEnglish();
   const initialProjectId = readProjectIdFromLocation();
@@ -301,7 +363,8 @@ export function ProjectVersionManagementMigrationPage() {
   const [deployForm, setDeployForm] = useState({
     releaseVersion: "",
     releaseTitle: "",
-    releaseContent: ""
+    releaseContent: "",
+    remoteDeployMode: DEFAULT_REMOTE_DEPLOY_MODE
   });
 
   const backupSettingsState = useAsyncValue(
@@ -315,6 +378,22 @@ export function ProjectVersionManagementMigrationPage() {
   );
   const operationsState = useAsyncValue<ProjectVersionOpsPayload>(
     () => fetchProjectVersionOperations({ projectId }),
+    [projectId, refreshNonce]
+  );
+  const changeCaptureState = useAsyncValue<Record<string, unknown>>(
+    () => fetchDbChangeCaptureSummary({ projectId }),
+    [projectId, refreshNonce]
+  );
+  const changeLogListState = useAsyncValue<Record<string, unknown>[]>(
+    () => fetchDbChangeLogList({ projectId, limit: 12 }),
+    [projectId, refreshNonce]
+  );
+  const patchQueueState = useAsyncValue<Record<string, unknown>[]>(
+    () => fetchDbPatchQueueList({ projectId, limit: 12 }),
+    [projectId, refreshNonce]
+  );
+  const patchResultState = useAsyncValue<Record<string, unknown>[]>(
+    () => fetchDbPatchResultList({ projectId, limit: 12 }),
     [projectId, refreshNonce]
   );
   const pipelineStatusState = useAsyncValue(
@@ -366,7 +445,74 @@ export function ProjectVersionManagementMigrationPage() {
   const backupCoverageSet = toList(operationsPayload?.backupCoverageSet).map((item) => stringOf(item));
   const launcherExclusiveSet = toList(operationsPayload?.launcherExclusiveSet).map((item) => stringOf(item));
   const recommendedFlowSet = toList(operationsPayload?.recommendedFlowSet).map((item) => stringOf(item));
+  const changeCaptureSummary = toRecord(changeCaptureState.value);
+  const dbChangeLogs = Array.isArray(changeLogListState.value) ? changeLogListState.value : [];
+  const dbPatchQueueRows = Array.isArray(patchQueueState.value) ? patchQueueState.value : [];
+  const dbPatchResultRows = Array.isArray(patchResultState.value) ? patchResultState.value : [];
+  const [dbPatchSubmitting, setDbPatchSubmitting] = useState("");
+  const [dbPatchMessage, setDbPatchMessage] = useState("");
+  const [dbPatchOptions, setDbPatchOptions] = useState(() => deriveDbPatchDefaultsFromBackupSettings({}));
+  const [dbPatchDefaultsLoaded, setDbPatchDefaultsLoaded] = useState(false);
+  const dbPatchPresetOptions = useMemo(() => ([
+    {
+      id: "PATCH_ONLY",
+      label: en ? "Patch Only" : "패치만 반영",
+      variant: "primary" as const,
+      description: en ? "Skip schema diff and app deploy. Apply only the generated SQL patch to remote DB." : "스키마 diff와 앱 배포를 생략하고 생성된 SQL 패치만 운영 DB에 반영합니다.",
+      values: {
+        executionMode: "DB_ONLY_PREDEPLOY",
+        applyDbDiffToRemoteYn: "N",
+        applyDbDiffToLocalYn: "N",
+        skipDbSchemaDiffYn: "Y",
+        forceDestructiveDiffYn: "N",
+        failOnDbDiffRemainsYn: "N",
+        failOnUntrackedDestructiveDiffYn: "N",
+        remoteDeployMode: "pull"
+      }
+    },
+    {
+      id: "PATCH_WITH_DIFF",
+      label: en ? "Patch + Diff Guard" : "패치 + diff 검증",
+      variant: "secondary" as const,
+      description: en ? "Run remote diff guard before patch application, but still skip full app deploy." : "전체 앱 배포는 생략하되 원격 diff 검증 후 패치를 적용합니다.",
+      values: {
+        executionMode: "DB_ONLY_PREDEPLOY",
+        applyDbDiffToRemoteYn: "Y",
+        applyDbDiffToLocalYn: "N",
+        skipDbSchemaDiffYn: "N",
+        forceDestructiveDiffYn: "N",
+        failOnDbDiffRemainsYn: "Y",
+        failOnUntrackedDestructiveDiffYn: "N",
+        remoteDeployMode: "pull"
+      }
+    },
+    {
+      id: "FULL_REMOTE_DEPLOY",
+      label: en ? "Full Remote Deploy" : "원격 전체 배포",
+      variant: "secondary" as const,
+      description: en ? "Apply DB patch and continue through git push and remote application deploy." : "DB 패치 반영 후 git push와 원격 애플리케이션 배포까지 이어갑니다.",
+      values: {
+        executionMode: "FULL_REMOTE_DEPLOY",
+        applyDbDiffToRemoteYn: "Y",
+        applyDbDiffToLocalYn: "N",
+        skipDbSchemaDiffYn: "N",
+        forceDestructiveDiffYn: "N",
+        failOnDbDiffRemainsYn: "Y",
+        failOnUntrackedDestructiveDiffYn: "N",
+        remoteDeployMode: "pull"
+      }
+    }
+  ]), [en]);
   const recentDeploymentHistory = toList(operationsPayload?.recentDeploymentHistory);
+  const remoteDeployModeOptions = toList(operationsPayload?.remoteDeployModeOptionSet).map((item) => toRecord(item));
+  const defaultRemoteDeployMode = stringOf(operationsPayload?.defaultRemoteDeployMode) || DEFAULT_REMOTE_DEPLOY_MODE;
+
+  useEffect(() => {
+    setDeployForm((current) => ({
+      ...current,
+      remoteDeployMode: current.remoteDeployMode || defaultRemoteDeployMode
+    }));
+  }, [defaultRemoteDeployMode]);
   const hasOverviewVersionBaseline = Boolean(
     stringOf(overview?.activeRuntimeVersion)
     || stringOf(overview?.activeCommonCoreVersion)
@@ -498,6 +644,18 @@ export function ProjectVersionManagementMigrationPage() {
   }, [backupSettingsPayload?.backupConfigForm]);
 
   useEffect(() => {
+    const nextForm = (backupSettingsPayload?.backupConfigForm || {}) as Record<string, string>;
+    if (dbPatchDefaultsLoaded || Object.keys(nextForm).length === 0) {
+      return;
+    }
+    setDbPatchOptions((current) => ({
+      ...current,
+      ...deriveDbPatchDefaultsFromBackupSettings(nextForm)
+    }));
+    setDbPatchDefaultsLoaded(true);
+  }, [backupSettingsPayload?.backupConfigForm, dbPatchDefaultsLoaded]);
+
+  useEffect(() => {
     if (!backupJobActive && !remoteJobActive) {
       return;
     }
@@ -509,6 +667,101 @@ export function ProjectVersionManagementMigrationPage() {
     }, 2000);
     return () => window.clearInterval(timer);
   }, [backupJobActive, remoteJobActive, backupSettingsState, operationsState]);
+
+  async function reloadDbPatchState() {
+    await Promise.allSettled([
+      changeCaptureState.reload(),
+      changeLogListState.reload(),
+      patchQueueState.reload(),
+      patchResultState.reload()
+    ]);
+  }
+
+  async function handleQueueChangeLog(changeLogId: string) {
+    setDbPatchSubmitting(`queue:${changeLogId}`);
+    setDbPatchMessage("");
+    try {
+      const response = await queueDbChangeLog(changeLogId, {
+        forceQueue: dbPatchOptions.forceQueue === "Y",
+        policyOverrideReason: dbPatchOptions.policyOverrideReason,
+        targetEnv: dbPatchOptions.targetEnv
+      });
+      setDbPatchMessage(stringOf(response.message) || (en ? "Queued change log." : "변경 로그를 큐에 올렸습니다."));
+      await reloadDbPatchState();
+    } catch (error) {
+      setDbPatchMessage(error instanceof Error ? error.message : (en ? "Failed to queue change log." : "변경 로그 큐 등록에 실패했습니다."));
+    } finally {
+      setDbPatchSubmitting("");
+    }
+  }
+
+  async function handleApproveQueue(queueId: string) {
+    setDbPatchSubmitting(`approve:${queueId}`);
+    setDbPatchMessage("");
+    try {
+      const response = await approveDbPatchQueue(queueId);
+      setDbPatchMessage(stringOf(response.message) || (en ? "Queue approved." : "패치 큐를 승인했습니다."));
+      await reloadDbPatchState();
+    } catch (error) {
+      setDbPatchMessage(error instanceof Error ? error.message : (en ? "Failed to approve queue." : "패치 큐 승인에 실패했습니다."));
+    } finally {
+      setDbPatchSubmitting("");
+    }
+  }
+
+  async function handleRejectQueue(queueId: string) {
+    setDbPatchSubmitting(`reject:${queueId}`);
+    setDbPatchMessage("");
+    try {
+      const response = await rejectDbPatchQueue(queueId);
+      setDbPatchMessage(stringOf(response.message) || (en ? "Queue rejected." : "패치 큐를 반려했습니다."));
+      await reloadDbPatchState();
+    } catch (error) {
+      setDbPatchMessage(error instanceof Error ? error.message : (en ? "Failed to reject queue." : "패치 큐 반려에 실패했습니다."));
+    } finally {
+      setDbPatchSubmitting("");
+    }
+  }
+
+  async function handleExecuteQueue(queueId: string) {
+    setDbPatchSubmitting(`execute:${queueId}`);
+    setDbPatchMessage("");
+    try {
+      const response = await executeDbPatchQueue(queueId, {
+        executionMode: dbPatchOptions.executionMode,
+        targetEnv: dbPatchOptions.targetEnv,
+        applyDbDiffToRemoteYn: dbPatchOptions.applyDbDiffToRemoteYn === "Y",
+        applyDbDiffToLocalYn: dbPatchOptions.applyDbDiffToLocalYn === "Y",
+        skipDbSchemaDiffYn: dbPatchOptions.skipDbSchemaDiffYn === "Y",
+        forceDestructiveDiffYn: dbPatchOptions.forceDestructiveDiffYn === "Y",
+        failOnDbDiffRemainsYn: dbPatchOptions.failOnDbDiffRemainsYn === "Y",
+        failOnUntrackedDestructiveDiffYn: dbPatchOptions.failOnUntrackedDestructiveDiffYn === "Y",
+        allowBusinessDataPatchYn: dbPatchOptions.allowBusinessDataPatchYn === "Y",
+        requireDbPatchHistoryYn: dbPatchOptions.requireDbPatchHistoryYn === "Y",
+        allowPolicyOverrideYn: dbPatchOptions.allowPolicyOverrideYn === "Y",
+        policyOverrideReason: dbPatchOptions.policyOverrideReason,
+        remoteDeployMode: dbPatchOptions.remoteDeployMode
+      });
+      setDbPatchMessage(stringOf(response.message) || (en ? "Queue executed." : "패치 큐를 실행했습니다."));
+      await reloadDbPatchState();
+    } catch (error) {
+      setDbPatchMessage(error instanceof Error ? error.message : (en ? "Failed to execute queue." : "패치 큐 실행에 실패했습니다."));
+    } finally {
+      setDbPatchSubmitting("");
+    }
+  }
+
+  function updateDbPatchOption(key: string, value: string) {
+    setDbPatchOptions((current) => ({ ...current, [key]: value }));
+  }
+
+  function applyDbPatchPreset(values: Partial<typeof dbPatchOptions>) {
+    setDbPatchOptions((current) => ({
+      ...current,
+      ...values
+    }));
+    setDbPatchMessage("");
+  }
 
   const summaryCards = useMemo(() => ([
     {
@@ -859,7 +1112,8 @@ export function ProjectVersionManagementMigrationPage() {
         operator: DEFAULT_OPERATOR,
         releaseVersion: deployForm.releaseVersion,
         releaseTitle: deployForm.releaseTitle,
-        releaseContent: deployForm.releaseContent
+        releaseContent: deployForm.releaseContent,
+        remoteDeployMode: deployForm.remoteDeployMode
       });
       setOpsMessage(stringOf(response.message) || (en
         ? "Remote sync and deploy job started."
@@ -880,7 +1134,7 @@ export function ProjectVersionManagementMigrationPage() {
     setBackupSettingsForm((current) => ({ ...current, [key]: value }));
   }
 
-  function updateDeployForm(key: "releaseVersion" | "releaseTitle" | "releaseContent", value: string) {
+  function updateDeployForm(key: "releaseVersion" | "releaseTitle" | "releaseContent" | "remoteDeployMode", value: string) {
     setDeployForm((current) => ({ ...current, [key]: value }));
   }
 
@@ -1256,6 +1510,49 @@ export function ProjectVersionManagementMigrationPage() {
                       ? "No token is stored yet. Save a personal access token before running Git push or 221 deploy."
                       : "저장된 토큰이 아직 없습니다. Git push 또는 221 배포 전에 개인 액세스 토큰을 저장하세요.")}
                 </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Promotion Data Policy" : "반영 데이터 정책"}</span>
+                    <AdminSelect value={backupValueOf(backupSettingsForm, "dbPromotionDataPolicy") || "CONTROLLED_REFERENCE_ONLY"} onChange={(event) => updateBackupSetting("dbPromotionDataPolicy", event.target.value)}>
+                      <option value="CONTROLLED_REFERENCE_ONLY">{en ? "Controlled metadata only" : "관리 메타데이터만"}</option>
+                      <option value="BUSINESS_WITH_OVERRIDE">{en ? "Business data with override" : "업무 데이터는 우회 사유 필요"}</option>
+                      <option value="BUSINESS_ALLOWED">{en ? "Business data allowed" : "업무 데이터 허용"}</option>
+                    </AdminSelect>
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Diff Execution Preset" : "diff 실행 프리셋"}</span>
+                    <AdminSelect value={backupValueOf(backupSettingsForm, "dbDiffExecutionPreset") || "PATCH_WITH_DIFF"} onChange={(event) => updateBackupSetting("dbDiffExecutionPreset", event.target.value)}>
+                      <option value="PATCH_ONLY">{en ? "Patch only" : "패치만 반영"}</option>
+                      <option value="PATCH_WITH_DIFF">{en ? "Patch with diff guard" : "패치 + diff 검증"}</option>
+                      <option value="FULL_REMOTE_DEPLOY">{en ? "Full remote deploy" : "원격 전체 배포"}</option>
+                    </AdminSelect>
+                  </label>
+                  <label className="flex items-start gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                    <input checked={backupYes(backupSettingsForm, "dbApplyLocalDiffYn")} className="mt-1" onChange={(event) => updateBackupSetting("dbApplyLocalDiffYn", event.target.checked ? "Y" : "N")} type="checkbox" />
+                    <span className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Allow local diff apply when reverse-sync is intentional." : "역동기화가 필요한 경우에만 local diff 적용을 허용합니다."}</span>
+                  </label>
+                  <label className="flex items-start gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                    <input checked={backupYes(backupSettingsForm, "dbForceDestructiveDiffYn")} className="mt-1" onChange={(event) => updateBackupSetting("dbForceDestructiveDiffYn", event.target.checked ? "Y" : "N")} type="checkbox" />
+                    <span className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Force destructive diff only for reviewed exceptional cases." : "검토된 예외 상황에서만 파괴적 diff 강제를 허용합니다."}</span>
+                  </label>
+                  <label className="flex items-start gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                    <input checked={backupYes(backupSettingsForm, "dbFailOnUntrackedDestructiveDiffYn")} className="mt-1" onChange={(event) => updateBackupSetting("dbFailOnUntrackedDestructiveDiffYn", event.target.checked ? "Y" : "N")} type="checkbox" />
+                    <span className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Fail when untracked destructive diff is detected." : "미추적 파괴적 diff가 발견되면 실패 처리합니다."}</span>
+                  </label>
+                  <label className="flex items-start gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                    <input checked={backupYes(backupSettingsForm, "dbRequirePatchHistoryYn")} className="mt-1" onChange={(event) => updateBackupSetting("dbRequirePatchHistoryYn", event.target.checked ? "Y" : "N")} type="checkbox" />
+                    <span className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Require DB patch history evidence before treating remote apply as success." : "원격 반영 성공 처리 전에 DB patch 이력 증거를 필수로 요구합니다."}</span>
+                  </label>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <MemberButton
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setDbPatchOptions((current) => ({ ...current, ...deriveDbPatchDefaultsFromBackupSettings(backupSettingsForm) }))}
+                  >
+                    {en ? "Load Policy Defaults Into Queue Options" : "정책 기본값을 큐 옵션에 반영"}
+                  </MemberButton>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -1434,8 +1731,8 @@ export function ProjectVersionManagementMigrationPage() {
                     <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Missing Capability Closed" : "부족했던 기능 보강"}</p>
                     <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
                       {en
-                        ? "The backup/restore pages already handled DB and Git backup flows. The gap versus the Windows launcher was remote DB SQL sync plus 221 fresh clone/build/restart."
-                        : "백업/복구 화면은 DB/Git 백업 흐름을 이미 제공했고, Windows 실행기 대비 부족했던 부분은 원격 DB SQL 반영과 221 fresh clone/build/restart였습니다."}
+                        ? "The backup/restore pages already handled DB and Git backup flows. This screen now closes the remaining gap with remote DB SQL sync plus selectable 221 deploy modes."
+                        : "백업/복구 화면은 DB/Git 백업 흐름을 이미 제공했고, 이 화면에서 원격 DB SQL 반영과 선택형 221 배포 모드까지 실행할 수 있도록 남은 차이를 메웠습니다."}
                     </p>
                   </div>
                   <MemberPermissionButton
@@ -1452,6 +1749,34 @@ export function ProjectVersionManagementMigrationPage() {
                   </MemberPermissionButton>
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Deploy Mode" : "배포 모드"}</span>
+                    <AdminSelect
+                      value={deployForm.remoteDeployMode}
+                      onChange={(event) => updateDeployForm("remoteDeployMode", event.target.value)}
+                    >
+                      {remoteDeployModeOptions.length === 0 ? (
+                        <>
+                          <option value="pull">{en ? "Pull + Restart" : "Pull + 재기동"}</option>
+                          <option value="fresh-clone">{en ? "Fresh Clone + Restart" : "Fresh Clone + 재기동"}</option>
+                          <option value="jar-mosh">{en ? "Jar Transfer + Restart" : "Jar 전송 + 재기동"}</option>
+                        </>
+                      ) : remoteDeployModeOptions.map((item) => {
+                        const modeValue = stringOf(item.value);
+                        const modeLabel = en ? stringOf(item.labelEn) || stringOf(item.label) : stringOf(item.label) || stringOf(item.labelEn);
+                        return (
+                          <option key={modeValue} value={modeValue}>
+                            {modeLabel || modeValue}
+                          </option>
+                        );
+                      })}
+                    </AdminSelect>
+                    <span className="text-xs text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "Pull reuses the remote repo and refreshes scripts first. Fresh clone rebuilds from a clean checkout. Jar transfer uploads the local jar and restart scripts only."
+                        : "Pull은 원격 저장소를 재사용하면서 스크립트까지 최신화합니다. Fresh clone은 깨끗한 체크아웃으로 다시 배포합니다. Jar 전송은 로컬 jar와 재기동 스크립트만 올립니다."}
+                    </span>
+                  </label>
                   <label className="flex flex-col gap-2">
                     <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Release Version" : "배포 버전"}</span>
                     <AdminInput
@@ -1480,7 +1805,7 @@ export function ProjectVersionManagementMigrationPage() {
                 </label>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <div>
                   <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Launcher-Only Coverage Now Integrated" : "이번에 통합된 실행기 기능"}</p>
                   <ul className="space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
@@ -1496,6 +1821,309 @@ export function ProjectVersionManagementMigrationPage() {
                       <li key={item} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">{item}</li>
                     ))}
                   </ul>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Captured DB Changes" : "저장 추적 요약"}</p>
+                  <div className="space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">
+                      {en ? "Captured changes" : "누적 변경"}: <span className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(changeCaptureSummary.totalChangeCount || 0)}</span>
+                    </div>
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">
+                      {en ? "Auto queued" : "자동 큐 적재"}: <span className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(changeCaptureSummary.autoQueuedChangeCount || 0)}</span>
+                    </div>
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">
+                      {en ? "Approval required" : "승인 필요"}: <span className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(changeCaptureSummary.approvalRequiredChangeCount || 0)}</span>
+                    </div>
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">
+                      {en ? "Blocked" : "반영 제외"}: <span className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(changeCaptureSummary.blockedChangeCount || 0)}</span>
+                    </div>
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2">
+                      {en ? "Pending queue" : "대기 큐"}: <span className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(changeCaptureSummary.pendingQueueCount || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "DB Change Promotion Queue" : "DB 변경 승격 큐"}</p>
+                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en ? "Review captured changes, queue manual candidates, and execute approved DB patch rows." : "저장 추적 변경을 검토하고, 수동 대상은 큐에 올린 뒤 승인된 패치를 실행합니다."}
+                    </p>
+                  </div>
+                  <MemberButton type="button" variant="secondary" onClick={() => void reloadDbPatchState()}>
+                    {en ? "Refresh DB Queue" : "DB 큐 새로고침"}
+                  </MemberButton>
+                </div>
+                {dbPatchMessage ? (
+                  <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                    {dbPatchMessage}
+                  </div>
+                ) : null}
+                <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Execution Options" : "실행 옵션"}</p>
+                  <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Recommended presets" : "권장 프리셋"}</p>
+                        <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                          {en ? "For predeploy DB work, start with Patch Only. It disables diff checks and app deployment, and applies only the generated SQL patch." : "운영 DB 선반영은 먼저 패치만 반영 프리셋을 쓰면 됩니다. diff 검사와 앱 배포를 끄고 생성된 SQL 패치만 적용합니다."}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {dbPatchPresetOptions.map((preset) => (
+                          <MemberButton
+                            key={preset.id}
+                            type="button"
+                            variant={preset.variant}
+                            onClick={() => applyDbPatchPreset(preset.values)}
+                          >
+                            {preset.label}
+                          </MemberButton>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-1 gap-2 xl:grid-cols-3">
+                      {dbPatchPresetOptions.map((preset) => (
+                        <div key={`${preset.id}-description`} className="rounded-[var(--kr-gov-radius)] border border-white/70 bg-white px-3 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                          <span className="font-bold text-[var(--kr-gov-text-primary)]">{preset.label}</span>
+                          <p className="mt-1">{preset.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-4">
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Execution Mode" : "실행 모드"}</span>
+                      <AdminSelect value={dbPatchOptions.executionMode} onChange={(event) => updateDbPatchOption("executionMode", event.target.value)}>
+                        <option value="DB_ONLY_PREDEPLOY">{en ? "DB Only Predeploy" : "DB 선반영만"}</option>
+                        <option value="FULL_REMOTE_DEPLOY">{en ? "Full Remote Deploy" : "원격 전체 배포"}</option>
+                      </AdminSelect>
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Target Env" : "대상 환경"}</span>
+                      <AdminInput value={dbPatchOptions.targetEnv} onChange={(event) => updateDbPatchOption("targetEnv", event.target.value)} />
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Remote Deploy Mode" : "원격 배포 모드"}</span>
+                      <AdminSelect value={dbPatchOptions.remoteDeployMode} onChange={(event) => updateDbPatchOption("remoteDeployMode", event.target.value)}>
+                        <option value="pull">pull</option>
+                        <option value="fresh-clone">fresh-clone</option>
+                        <option value="jar-mosh">jar-mosh</option>
+                      </AdminSelect>
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Blocked Queue Override" : "정책 차단 큐 등록"}</span>
+                      <AdminSelect value={dbPatchOptions.forceQueue} onChange={(event) => updateDbPatchOption("forceQueue", event.target.value)}>
+                        <option value="N">{en ? "No" : "아니오"}</option>
+                        <option value="Y">{en ? "Yes" : "예"}</option>
+                      </AdminSelect>
+                    </label>
+                  </div>
+                  <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-5">
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">remote diff</span>
+                      <AdminSelect value={dbPatchOptions.applyDbDiffToRemoteYn} onChange={(event) => updateDbPatchOption("applyDbDiffToRemoteYn", event.target.value)}>
+                        <option value="Y">{en ? "Apply" : "적용"}</option>
+                        <option value="N">{en ? "Skip" : "건너뜀"}</option>
+                      </AdminSelect>
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">local diff</span>
+                      <AdminSelect value={dbPatchOptions.applyDbDiffToLocalYn} onChange={(event) => updateDbPatchOption("applyDbDiffToLocalYn", event.target.value)}>
+                        <option value="N">{en ? "Skip" : "건너뜀"}</option>
+                        <option value="Y">{en ? "Apply" : "적용"}</option>
+                      </AdminSelect>
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Skip Schema Diff" : "스키마 diff 생략"}</span>
+                      <AdminSelect value={dbPatchOptions.skipDbSchemaDiffYn} onChange={(event) => updateDbPatchOption("skipDbSchemaDiffYn", event.target.value)}>
+                        <option value="N">{en ? "No" : "아니오"}</option>
+                        <option value="Y">{en ? "Yes" : "예"}</option>
+                      </AdminSelect>
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Force Destructive Diff" : "파괴적 diff 강제"}</span>
+                      <AdminSelect value={dbPatchOptions.forceDestructiveDiffYn} onChange={(event) => updateDbPatchOption("forceDestructiveDiffYn", event.target.value)}>
+                        <option value="N">{en ? "No" : "아니오"}</option>
+                        <option value="Y">{en ? "Yes" : "예"}</option>
+                      </AdminSelect>
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Fail On Remaining Diff" : "잔여 diff 실패 처리"}</span>
+                      <AdminSelect value={dbPatchOptions.failOnDbDiffRemainsYn} onChange={(event) => updateDbPatchOption("failOnDbDiffRemainsYn", event.target.value)}>
+                        <option value="Y">{en ? "Yes" : "예"}</option>
+                        <option value="N">{en ? "No" : "아니오"}</option>
+                      </AdminSelect>
+                    </label>
+                  </div>
+                  <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-4">
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Fail On Untracked Destructive Diff" : "미추적 파괴적 diff 실패 처리"}</span>
+                      <AdminSelect value={dbPatchOptions.failOnUntrackedDestructiveDiffYn} onChange={(event) => updateDbPatchOption("failOnUntrackedDestructiveDiffYn", event.target.value)}>
+                        <option value="N">{en ? "No" : "아니오"}</option>
+                        <option value="Y">{en ? "Yes" : "예"}</option>
+                      </AdminSelect>
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Allow Business Data Patch" : "업무 데이터 패치 허용"}</span>
+                      <AdminSelect value={dbPatchOptions.allowBusinessDataPatchYn} onChange={(event) => updateDbPatchOption("allowBusinessDataPatchYn", event.target.value)}>
+                        <option value="N">{en ? "No" : "아니오"}</option>
+                        <option value="Y">{en ? "Yes" : "예"}</option>
+                      </AdminSelect>
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Require Patch History" : "패치 이력 필수"}</span>
+                      <AdminSelect value={dbPatchOptions.requireDbPatchHistoryYn} onChange={(event) => updateDbPatchOption("requireDbPatchHistoryYn", event.target.value)}>
+                        <option value="Y">{en ? "Yes" : "예"}</option>
+                        <option value="N">{en ? "No" : "아니오"}</option>
+                      </AdminSelect>
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Execute With Policy Override" : "정책 우회 실행"}</span>
+                      <AdminSelect value={dbPatchOptions.allowPolicyOverrideYn} onChange={(event) => updateDbPatchOption("allowPolicyOverrideYn", event.target.value)}>
+                        <option value="N">{en ? "No" : "아니오"}</option>
+                        <option value="Y">{en ? "Yes" : "예"}</option>
+                      </AdminSelect>
+                    </label>
+                  </div>
+                  <label className="mt-4 flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Policy Override Reason / Operator Note" : "정책 우회 사유 / 운영 메모"}</span>
+                    <textarea
+                      className="min-h-[90px] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-3 text-sm text-[var(--kr-gov-text-primary)] outline-none"
+                      value={dbPatchOptions.policyOverrideReason}
+                      onChange={(event) => updateDbPatchOption("policyOverrideReason", event.target.value)}
+                      placeholder={en ? "Record why policy bypass or special diff handling is required." : "정책 우회 또는 특수 diff 처리 사유를 기록하세요."}
+                    />
+                  </label>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Recent Captured Changes" : "최근 저장 추적 변경"}</p>
+                    <div className="mt-3 space-y-3">
+                      {dbChangeLogs.length === 0 ? (
+                        <p className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                          {en ? "No captured DB changes yet." : "저장 추적된 DB 변경이 없습니다."}
+                        </p>
+                      ) : dbChangeLogs.slice(0, 5).map((item, index) => {
+                        const row = toRecord(item);
+                        const changeLogId = stringOf(row.changeLogId);
+                        const canQueue = stringOf(row.queueRequestedYn) !== "Y" && stringOf(row.promotionPolicyCode) === "MANUAL_APPROVAL";
+                        return (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3" key={`${changeLogId}-${index}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(row.targetTableName) || "-"}</p>
+                              <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(stringOf(row.approvalStatus || row.queueDecisionCode || row.promotionPolicyCode))}`}>
+                                {stringOf(row.changeType) || "-"}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{stringOf(row.changeSummary) || "-"}</p>
+                            <p className="mt-2 text-xs text-[var(--kr-gov-text-secondary)]">
+                              {stringOf(row.promotionPolicyCode) || "-"} / {stringOf(row.capturedAt) || "-"}
+                            </p>
+                            {canQueue ? (
+                              <div className="mt-3">
+                                <MemberButton
+                                  type="button"
+                                  variant="secondary"
+                                  disabled={!canApplyUpgrade || dbPatchSubmitting === `queue:${changeLogId}`}
+                                  onClick={() => void handleQueueChangeLog(changeLogId)}
+                                >
+                                  {dbPatchSubmitting === `queue:${changeLogId}`
+                                    ? (en ? "Queueing..." : "큐 등록 중...")
+                                    : (en ? "Queue For Approval" : "승인 큐 등록")}
+                                </MemberButton>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Deployable Patch Queue" : "배포 가능 패치 큐"}</p>
+                    <div className="mt-3 space-y-3">
+                      {dbPatchQueueRows.length === 0 ? (
+                        <p className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                          {en ? "No deployable patch queue rows yet." : "배포 가능 패치 큐가 없습니다."}
+                        </p>
+                      ) : dbPatchQueueRows.slice(0, 5).map((item, index) => {
+                        const row = toRecord(item);
+                        const queueId = stringOf(row.queueId);
+                        const approvalStatus = stringOf(row.approvalStatus);
+                        const applyStatus = stringOf(row.applyStatus);
+                        return (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3" key={`${queueId}-${index}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(row.targetTableName) || "-"}</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(approvalStatus)}`}>{approvalStatus || "-"}</span>
+                                <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(applyStatus)}`}>{applyStatus || "-"}</span>
+                              </div>
+                            </div>
+                            <p className="mt-2 break-all text-xs text-[var(--kr-gov-text-secondary)]">{queueId || "-"}</p>
+                            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                              {stringOf(row.targetEnv) || "-"} / {stringOf(row.riskLevel) || "-"}
+                            </p>
+                            <p className="mt-2 text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row.renderedSqlPreview) || "-"}</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <MemberButton
+                                type="button"
+                                variant="secondary"
+                                disabled={!canApplyUpgrade || approvalStatus === "APPROVED" || applyStatus === "EXECUTED" || dbPatchSubmitting === `approve:${queueId}`}
+                                onClick={() => void handleApproveQueue(queueId)}
+                              >
+                                {dbPatchSubmitting === `approve:${queueId}` ? (en ? "Approving..." : "승인 중...") : (en ? "Approve" : "승인")}
+                              </MemberButton>
+                              <MemberButton
+                                type="button"
+                                variant="secondary"
+                                disabled={!canApplyUpgrade || approvalStatus === "REJECTED" || applyStatus === "EXECUTED" || dbPatchSubmitting === `reject:${queueId}`}
+                                onClick={() => void handleRejectQueue(queueId)}
+                              >
+                                {dbPatchSubmitting === `reject:${queueId}` ? (en ? "Rejecting..." : "반려 중...") : (en ? "Reject" : "반려")}
+                              </MemberButton>
+                              <MemberButton
+                                type="button"
+                                variant="primary"
+                                disabled={!canApplyUpgrade || approvalStatus !== "APPROVED" || applyStatus === "EXECUTED" || dbPatchSubmitting === `execute:${queueId}`}
+                                onClick={() => void handleExecuteQueue(queueId)}
+                              >
+                                {dbPatchSubmitting === `execute:${queueId}` ? (en ? "Executing..." : "실행 중...") : (en ? "Execute" : "실행")}
+                              </MemberButton>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Recent Patch Results" : "최근 패치 실행 이력"}</p>
+                    <div className="mt-3 space-y-3">
+                      {dbPatchResultRows.length === 0 ? (
+                        <p className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                          {en ? "No patch execution results yet." : "패치 실행 이력이 없습니다."}
+                        </p>
+                      ) : dbPatchResultRows.slice(0, 5).map((item, index) => {
+                        const row = toRecord(item);
+                        return (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3" key={`${stringOf(row.resultId)}-${index}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(row.queueId) || "-"}</p>
+                              <span className={`rounded-full px-3 py-1 text-xs font-bold ${jobStatusTone(stringOf(row.executionStatus))}`}>
+                                {stringOf(row.executionStatus) || "-"}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{stringOf(row.executionMessage) || "-"}</p>
+                            <p className="mt-2 text-xs text-[var(--kr-gov-text-secondary)]">
+                              {stringOf(row.targetEnv) || "-"} / {stringOf(row.startedAt) || "-"}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1554,10 +2182,14 @@ export function ProjectVersionManagementMigrationPage() {
                     </MemberButton>
                   </div>
                 </div>
-                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
                   <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
                     <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Started" : "시작"}</p>
                     <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(currentRemoteJob.startedAt) || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Deploy Mode" : "배포 모드"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--kr-gov-text-primary)]">{stringOf(currentRemoteJob.remoteDeployMode) || "-"}</p>
                   </div>
                   <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3">
                     <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duration" : "소요 시간"}</p>

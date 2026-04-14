@@ -7,8 +7,8 @@ const repoRoot = path.resolve(frontendRoot, "..");
 
 const routeDefinitionsPath = path.join(srcRoot, "app", "routes", "definitions.ts");
 const pageRegistryPath = path.join(srcRoot, "app", "routes", "pageRegistry.tsx");
-const manifestPath = path.join(srcRoot, "app", "screen-registry", "pageManifests.ts");
-const helpContentPath = path.join(srcRoot, "app", "screen-registry", "helpContent.ts");
+const manifestPath = path.join(srcRoot, "platform", "screen-registry", "pageManifests.ts");
+const helpContentPath = path.join(srcRoot, "platform", "screen-registry", "helpContent.ts");
 const helpJsonPath = path.join(repoRoot, "src", "main", "resources", "help", "page-help.json");
 const screenCommandPath = path.join(
   repoRoot,
@@ -111,6 +111,9 @@ function parseHelpContent(source) {
 }
 
 function parseHelpJson(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return new Map();
+  }
   const parsed = JSON.parse(read(filePath));
   const entries = new Map();
   for (const [pageId, entry] of Object.entries(parsed)) {

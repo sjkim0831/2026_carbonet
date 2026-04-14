@@ -3,6 +3,8 @@ package egovframework.com.feature.admin.web;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.service.AdminIpWhitelistSupportService;
 import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
+import egovframework.com.feature.admin.service.DbSyncDeployManagementService;
+import egovframework.com.feature.admin.service.DbPromotionPolicyManagementService;
 import egovframework.com.feature.admin.service.WbsManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +40,8 @@ public class AdminSystemCodeController {
     private final AdminIpWhitelistSupportService adminIpWhitelistSupportService;
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
     private final WbsManagementService wbsManagementService;
+    private final DbPromotionPolicyManagementService dbPromotionPolicyManagementService;
+    private final DbSyncDeployManagementService dbSyncDeployManagementService;
     private final AdminMenuManagementPageService adminMenuManagementPageService;
     private final AdminMenuManagementCommandService adminMenuManagementCommandService;
     private final AdminPageManagementPageService adminPageManagementPageService;
@@ -258,9 +262,93 @@ public class AdminSystemCodeController {
         return redirectReactMigration(request, locale, "environment-management");
     }
 
+    @RequestMapping(value = "/asset-inventory", method = RequestMethod.GET)
+    public String assetInventory(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "asset-inventory");
+    }
+
+    @RequestMapping(value = "/verification-center", method = RequestMethod.GET)
+    public String verificationCenter(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "verification-center");
+    }
+
+    @RequestMapping(value = "/asset-detail", method = RequestMethod.GET)
+    public String assetDetail(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "asset-detail");
+    }
+
+    @RequestMapping(value = "/asset-impact", method = RequestMethod.GET)
+    public String assetImpact(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "asset-impact");
+    }
+
+    @RequestMapping(value = "/asset-lifecycle", method = RequestMethod.GET)
+    public String assetLifecycle(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "asset-lifecycle");
+    }
+
+    @RequestMapping(value = "/asset-gap", method = RequestMethod.GET)
+    public String assetGap(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "asset-gap");
+    }
+
     @RequestMapping(value = "/wbs-management", method = RequestMethod.GET)
     public String wbsManagement(HttpServletRequest request, Locale locale) {
         return redirectReactMigration(request, locale, "wbs-management");
+    }
+
+    @RequestMapping(value = "/db-promotion-policy", method = RequestMethod.GET)
+    public String dbPromotionPolicy(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "db-promotion-policy");
+    }
+
+    @RequestMapping(value = "/db-sync-deploy", method = RequestMethod.GET)
+    public String dbSyncDeploy(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "db-sync-deploy");
+    }
+
+    @GetMapping("/db-sync-deploy/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> dbSyncDeployPageApi(
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        return buildPageDataResponse(request, model -> model.addAllAttributes(dbSyncDeployManagementService.buildPageData(isEn)));
+    }
+
+    @PostMapping("/db-sync-deploy/analyze")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> analyzeDbSyncDeploy(
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        return ResponseEntity.ok(dbSyncDeployManagementService.analyze(isEn));
+    }
+
+    @PostMapping("/db-sync-deploy/validate-policy")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> validateDbSyncDeployPolicy(
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        return ResponseEntity.ok(dbSyncDeployManagementService.validatePolicy(isEn));
+    }
+
+    @PostMapping("/db-sync-deploy/execute")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> executeDbSyncDeploy(
+            @RequestBody(required = false) Map<String, Object> payload,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        try {
+            return ResponseEntity.ok(dbSyncDeployManagementService.execute(payload, resolveActorId(request), isEn));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            Map<String, Object> error = new LinkedHashMap<String, Object>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
     }
 
     @RequestMapping(value = "/new-page", method = RequestMethod.GET)
@@ -285,6 +373,32 @@ public class AdminSystemCodeController {
             Locale locale) {
         String normalizedMenuType = normalizeMenuType(menuType);
         return buildPageDataResponse(request, model -> model.addAllAttributes(wbsManagementService.buildPagePayload(normalizedMenuType)));
+    }
+
+    @GetMapping("/db-promotion-policy/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> dbPromotionPolicyPageApi(
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        return buildPageDataResponse(request, model -> model.addAllAttributes(dbPromotionPolicyManagementService.buildPageData(isEn)));
+    }
+
+    @PostMapping("/db-promotion-policy/save")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveDbPromotionPolicy(
+            @RequestBody(required = false) Map<String, Object> payload,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        try {
+            return ResponseEntity.ok(dbPromotionPolicyManagementService.save(payload, resolveActorId(request), isEn, request));
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> error = new LinkedHashMap<String, Object>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
     }
 
     @RequestMapping(value = {
@@ -780,6 +894,21 @@ public class AdminSystemCodeController {
 
     private String safeString(Object value) {
         return value == null ? "" : value.toString().trim();
+    }
+
+    private String resolveActorId(HttpServletRequest request) {
+        if (request == null || request.getSession(false) == null) {
+            return "system";
+        }
+        Object loginId = request.getSession(false).getAttribute("loginId");
+        if (loginId != null && !safeString(loginId).isEmpty()) {
+            return safeString(loginId);
+        }
+        Object uniqId = request.getSession(false).getAttribute("uniqId");
+        if (uniqId != null && !safeString(uniqId).isEmpty()) {
+            return safeString(uniqId);
+        }
+        return "system";
     }
 
 }

@@ -3224,10 +3224,11 @@
     "savedAt" : "2026-04-07 16:52:14",
     "rows" : [ ]
   },
-  "COMMON_DATASET::::INPUT_RAW_MATERIALS:CASE_3_1" : {
+  "COMMON_DATASET:탄산칼슘/탄산마그네슘::::INPUT_RAW_MATERIALS:CASE_3_1" : {
     "ownerActorId" : "COMMON_DATASET",
-    "datasetId" : "EMISSION_SURVEY_SHARED",
-    "datasetName" : "공통 배출 설문 데이터셋",
+    "datasetId" : "EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘",
+    "datasetName" : "공통 배출 설문 데이터셋 / 탄산칼슘/탄산마그네슘",
+    "productName" : "탄산칼슘/탄산마그네슘",
     "sectionCode" : "INPUT_RAW_MATERIALS",
     "caseCode" : "CASE_3_1",
     "majorCode" : "INPUT",
@@ -3238,11 +3239,11 @@
     "lciSmallCode" : "",
     "lciSmallLabel" : "",
     "sectionLabel" : "원료 물질 및 보조 물질",
-    "sourceFileName" : "데이터 수집 설문지 blank 양식_steel, electric, low-alloy (10).xlsx",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
     "sourcePath" : "/opt/projects/carbonet/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "targetPath" : "/opt/reference/수식 설계 요/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "titleRowLabel" : "원료 물질 및 보조 물질",
-    "guidance" : [ ],
+    "guidance" : [ "◎ 투입물의 데이터 범주는 원료, 에너지, 보조물질", "◎ 제품을 출하할 때 쓰이는 포장재로 사용되는 투입원료는 시스템 경계에서 제외 (KS I 7004 표준 명시사항)", "※", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
       "label" : "구분",
@@ -3293,118 +3294,16 @@
       "headerPath" : "[\"원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)\",\"비고\"]"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-10 00:29:46",
+    "savedAt" : "2026-04-14 15:55:55",
     "rows" : [ {
-      "rowId" : "INPUT_RAW_MATERIALS_7",
-      "values" : {
-        "group" : "input",
-        "materialName" : "aluminium, wrought alloy",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_8",
-      "values" : {
-        "group" : "input",
-        "materialName" : "anode, for metal electrolysis",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_9",
-      "values" : {
-        "group" : "input",
-        "materialName" : "argon, liquid",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_10",
-      "values" : {
-        "group" : "input",
-        "materialName" : "cast iron",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_11",
-      "values" : {
-        "group" : "input",
-        "materialName" : "diesel, burned in building machine",
-        "amount" : "",
-        "annualUnit" : "MJ",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_12",
-      "values" : {
-        "group" : "input",
-        "materialName" : "electric arc furnace",
-        "amount" : "",
-        "annualUnit" : "unit",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
       "rowId" : "INPUT_RAW_MATERIALS_13",
       "values" : {
-        "group" : "input",
-        "materialName" : "ethylene glycol",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
+        "group" : "원료 물질",
+        "materialName" : "월라스턴석/포스터라이트/사문석",
+        "amount" : "1",
+        "annualUnit" : "0.1000",
+        "usage" : "ton",
+        "origin" : "CO2와 반응하여 CaCO3 생성",
         "marineTransport" : "",
         "marineTonKm" : "",
         "roadTransport" : "",
@@ -3416,12 +3315,12 @@
     }, {
       "rowId" : "INPUT_RAW_MATERIALS_14",
       "values" : {
-        "group" : "input",
-        "materialName" : "ferrochromium, high-carbon, 68% Cr",
+        "group" : "원료 물질",
+        "materialName" : "제강 슬래그",
         "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
+        "annualUnit" : "0.5000",
+        "usage" : "ton",
+        "origin" : "Ca 공급원이자 광물탄산화 반응의 주체",
         "marineTransport" : "",
         "marineTonKm" : "",
         "roadTransport" : "",
@@ -3433,11 +3332,11 @@
     }, {
       "rowId" : "INPUT_RAW_MATERIALS_15",
       "values" : {
-        "group" : "input",
-        "materialName" : "ferromanganese, high-coal, 74.5% Mn",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
+        "group" : "원료 물질",
+        "materialName" : "이산화탄소",
+        "amount" : "1",
+        "annualUnit" : "0.7394",
+        "usage" : "ton or Liter",
         "origin" : "",
         "marineTransport" : "",
         "marineTonKm" : "",
@@ -3450,165 +3349,12 @@
     }, {
       "rowId" : "INPUT_RAW_MATERIALS_16",
       "values" : {
-        "group" : "input",
-        "materialName" : "ferrosilicon",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_17",
-      "values" : {
-        "group" : "input",
-        "materialName" : "hard coal",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_18",
-      "values" : {
-        "group" : "input",
-        "materialName" : "heat, district or industrial, natural gas",
-        "amount" : "",
-        "annualUnit" : "MJ",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_19",
-      "values" : {
-        "group" : "input",
-        "materialName" : "iron scrap, sorted, pressed",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_20",
-      "values" : {
-        "group" : "input",
-        "materialName" : "molybdenum trioxide",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_21",
-      "values" : {
-        "group" : "input",
-        "materialName" : "nickel, class 1",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_22",
-      "values" : {
-        "group" : "input",
-        "materialName" : "oxygen, liquid",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_23",
-      "values" : {
-        "group" : "input",
-        "materialName" : "propane, burned in building machine",
-        "amount" : "",
-        "annualUnit" : "MJ",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_24",
-      "values" : {
-        "group" : "input",
-        "materialName" : "quicklime, in pieces, loose",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "INPUT_RAW_MATERIALS_25",
-      "values" : {
-        "group" : "input",
-        "materialName" : "refractory, basic, packed",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "usage" : "intermediate",
-        "origin" : "",
+        "group" : "보조 물질",
+        "materialName" : "물",
+        "amount" : "1",
+        "annualUnit" : "0.01000",
+        "usage" : "ton or Liter",
+        "origin" : "슬러리 형성, Ca 용출 촉진, 반응 매질",
         "marineTransport" : "",
         "marineTonKm" : "",
         "roadTransport" : "",
@@ -3619,10 +3365,11 @@
       "templateRow" : true
     } ]
   },
-  "COMMON_DATASET::::INPUT_ENERGY:CASE_3_1" : {
+  "COMMON_DATASET:탄산칼슘/탄산마그네슘::::INPUT_ENERGY:CASE_3_1" : {
     "ownerActorId" : "COMMON_DATASET",
-    "datasetId" : "EMISSION_SURVEY_SHARED",
-    "datasetName" : "공통 배출 설문 데이터셋",
+    "datasetId" : "EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘",
+    "datasetName" : "공통 배출 설문 데이터셋 / 탄산칼슘/탄산마그네슘",
+    "productName" : "탄산칼슘/탄산마그네슘",
     "sectionCode" : "INPUT_ENERGY",
     "caseCode" : "CASE_3_1",
     "majorCode" : "INPUT",
@@ -3633,11 +3380,11 @@
     "lciSmallCode" : "",
     "lciSmallLabel" : "",
     "sectionLabel" : "에너지",
-    "sourceFileName" : "데이터 수집 설문지 blank 양식_steel, electric, low-alloy (10).xlsx",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
     "sourcePath" : "/opt/projects/carbonet/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "targetPath" : "/opt/reference/수식 설계 요/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "titleRowLabel" : "에너지",
-    "guidance" : [ ],
+    "guidance" : [ "◎ 투입물의 데이터 범주는 원료, 에너지, 보조물질", "◎ 제품을 출하할 때 쓰이는 포장재로 사용되는 투입원료는 시스템 경계에서 제외 (KS I 7004 표준 명시사항)", "※", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
       "label" : "구분",
@@ -3664,35 +3411,36 @@
       "headerPath" : "[\"비고\"]"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-10 00:29:46",
+    "savedAt" : "2026-04-14 15:55:55",
     "rows" : [ {
-      "rowId" : "INPUT_ENERGY_30",
+      "rowId" : "INPUT_ENERGY_23",
       "values" : {
-        "group" : "input",
-        "materialName" : "electricity, low voltage",
+        "group" : "에너지",
+        "materialName" : "전력",
         "amount" : "",
-        "annualUnit" : "kWh",
-        "usage" : "",
-        "remark" : ""
+        "annualUnit" : "0.3496",
+        "usage" : "kW",
+        "remark" : "원료 분쇄, CO2 압축, 펌핑"
       },
       "templateRow" : true
     }, {
-      "rowId" : "INPUT_ENERGY_31",
+      "rowId" : "INPUT_ENERGY_24",
       "values" : {
-        "group" : "input",
-        "materialName" : "electricity, medium voltage",
+        "group" : "에너지",
+        "materialName" : "열(메탄 연소 기반)",
         "amount" : "",
-        "annualUnit" : "kWh",
-        "usage" : "",
-        "remark" : ""
+        "annualUnit" : "0.0542",
+        "usage" : "MJ",
+        "remark" : "슬러리, CO2 가열"
       },
       "templateRow" : true
     } ]
   },
-  "COMMON_DATASET::::INPUT_STEAM:CASE_3_1" : {
+  "COMMON_DATASET:탄산칼슘/탄산마그네슘::::INPUT_STEAM:CASE_3_1" : {
     "ownerActorId" : "COMMON_DATASET",
-    "datasetId" : "EMISSION_SURVEY_SHARED",
-    "datasetName" : "공통 배출 설문 데이터셋",
+    "datasetId" : "EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘",
+    "datasetName" : "공통 배출 설문 데이터셋 / 탄산칼슘/탄산마그네슘",
+    "productName" : "탄산칼슘/탄산마그네슘",
     "sectionCode" : "INPUT_STEAM",
     "caseCode" : "CASE_3_1",
     "majorCode" : "INPUT",
@@ -3703,11 +3451,11 @@
     "lciSmallCode" : "",
     "lciSmallLabel" : "",
     "sectionLabel" : "에너지 스팀",
-    "sourceFileName" : "데이터 수집 설문지 blank 양식_steel, electric, low-alloy (10).xlsx",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
     "sourcePath" : "/opt/projects/carbonet/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "targetPath" : "/opt/reference/수식 설계 요/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "titleRowLabel" : "에너지 스팀",
-    "guidance" : [ ],
+    "guidance" : [ "◎ 투입물의 데이터 범주는 원료, 에너지, 보조물질", "◎ 제품을 출하할 때 쓰이는 포장재로 사용되는 투입원료는 시스템 경계에서 제외 (KS I 7004 표준 명시사항)", "※", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
       "label" : "구분",
@@ -3754,13 +3502,30 @@
       "headerPath" : "[\"외부스팀 여부\"]"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-10 00:29:46",
-    "rows" : [ ]
+    "savedAt" : "2026-04-14 15:55:55",
+    "rows" : [ {
+      "rowId" : "INPUT_STEAM_27",
+      "values" : {
+        "group" : "에너지",
+        "materialName" : "스팀",
+        "amount" : "400000",
+        "annualUnit" : "MJ/yr",
+        "usage" : "A공정 에너지 공급용도",
+        "steamType" : "포화증기",
+        "steamMass" : "30kg/yr",
+        "condensateMass" : "30kg/yr",
+        "condensateTemperature" : "60도",
+        "steamCirculation" : "O",
+        "externalSteam" : "X"
+      },
+      "templateRow" : true
+    } ]
   },
-  "COMMON_DATASET::::INPUT_MISC:CASE_3_1" : {
+  "COMMON_DATASET:탄산칼슘/탄산마그네슘::::INPUT_MISC:CASE_3_1" : {
     "ownerActorId" : "COMMON_DATASET",
-    "datasetId" : "EMISSION_SURVEY_SHARED",
-    "datasetName" : "공통 배출 설문 데이터셋",
+    "datasetId" : "EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘",
+    "datasetName" : "공통 배출 설문 데이터셋 / 탄산칼슘/탄산마그네슘",
+    "productName" : "탄산칼슘/탄산마그네슘",
     "sectionCode" : "INPUT_MISC",
     "caseCode" : "CASE_3_1",
     "majorCode" : "INPUT",
@@ -3771,11 +3536,11 @@
     "lciSmallCode" : "",
     "lciSmallLabel" : "",
     "sectionLabel" : "기타",
-    "sourceFileName" : "데이터 수집 설문지 blank 양식_steel, electric, low-alloy (10).xlsx",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
     "sourcePath" : "/opt/projects/carbonet/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "targetPath" : "/opt/reference/수식 설계 요/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "titleRowLabel" : "기타",
-    "guidance" : [ ],
+    "guidance" : [ "◎ 투입물의 데이터 범주는 원료, 에너지, 보조물질", "◎ 제품을 출하할 때 쓰이는 포장재로 사용되는 투입원료는 시스템 경계에서 제외 (KS I 7004 표준 명시사항)", "※", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
       "label" : "구분",
@@ -3802,24 +3567,14 @@
       "headerPath" : "[\"비고\"]"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-10 00:29:46",
-    "rows" : [ {
-      "rowId" : "INPUT_MISC_41",
-      "values" : {
-        "group" : "",
-        "materialName" : "공업용수",
-        "amount" : "",
-        "annualUnit" : "t",
-        "usage" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    } ]
+    "savedAt" : "2026-04-14 15:55:55",
+    "rows" : [ ]
   },
-  "COMMON_DATASET::::OUTPUT_PRODUCTS:CASE_3_1" : {
+  "COMMON_DATASET:탄산칼슘/탄산마그네슘::::OUTPUT_PRODUCTS:CASE_3_1" : {
     "ownerActorId" : "COMMON_DATASET",
-    "datasetId" : "EMISSION_SURVEY_SHARED",
-    "datasetName" : "공통 배출 설문 데이터셋",
+    "datasetId" : "EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘",
+    "datasetName" : "공통 배출 설문 데이터셋 / 탄산칼슘/탄산마그네슘",
+    "productName" : "탄산칼슘/탄산마그네슘",
     "sectionCode" : "OUTPUT_PRODUCTS",
     "caseCode" : "CASE_3_1",
     "majorCode" : "OUTPUT",
@@ -3830,11 +3585,11 @@
     "lciSmallCode" : "",
     "lciSmallLabel" : "",
     "sectionLabel" : "제품 및 부산물",
-    "sourceFileName" : "데이터 수집 설문지 blank 양식_steel, electric, low-alloy (10).xlsx",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
     "sourcePath" : "/opt/projects/carbonet/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "targetPath" : "/opt/reference/수식 설계 요/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "titleRowLabel" : "제품 및 부산물",
-    "guidance" : [ ],
+    "guidance" : [ "◎ 산출물의 데이터 범주는 제품 및 부산물, 폐기물(매립, 소각, 재활용), 환경배출물(대기배출물,수계배출물,토양배출물)을 포함", "◎ 원부자재 생산 공정의 경우 생산품 출하 이후의 과정(제품 수송, 사용, 폐기)은 시스템 경계에서 제외", "(단, 출하 이후 손실이 발생하는 경우에는 손실률 고려, 예: 전력)", "◎ 데이터 수집의 참고자료는 '5. 참고자료'에 기재", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
       "label" : "구분",
@@ -3865,24 +3620,24 @@
       "headerPath" : "[\"비고\"]"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-10 00:29:46",
+    "savedAt" : "2026-04-14 15:55:55",
     "rows" : [ {
-      "rowId" : "OUTPUT_PRODUCTS_5",
+      "rowId" : "OUTPUT_PRODUCTS_12",
       "values" : {
         "group" : "제품",
-        "materialName" : "steel, low-alloyed",
-        "amount" : "1",
-        "annualUnit" : "kg",
+        "materialName" : "탄산칼슘/탄산마그네슘",
+        "amount" : "",
+        "annualUnit" : "ton",
         "productionCost" : "",
         "costUnit" : "",
         "remark" : ""
       },
       "templateRow" : true
     }, {
-      "rowId" : "OUTPUT_PRODUCTS_6",
+      "rowId" : "OUTPUT_PRODUCTS_13",
       "values" : {
         "group" : "부산물",
-        "materialName" : "",
+        "materialName" : "이산화규소",
         "amount" : "",
         "annualUnit" : "",
         "productionCost" : "",
@@ -3892,10 +3647,11 @@
       "templateRow" : true
     } ]
   },
-  "COMMON_DATASET::::OUTPUT_AIR:CASE_3_1" : {
+  "COMMON_DATASET:탄산칼슘/탄산마그네슘::::OUTPUT_AIR:CASE_3_1" : {
     "ownerActorId" : "COMMON_DATASET",
-    "datasetId" : "EMISSION_SURVEY_SHARED",
-    "datasetName" : "공통 배출 설문 데이터셋",
+    "datasetId" : "EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘",
+    "datasetName" : "공통 배출 설문 데이터셋 / 탄산칼슘/탄산마그네슘",
+    "productName" : "탄산칼슘/탄산마그네슘",
     "sectionCode" : "OUTPUT_AIR",
     "caseCode" : "CASE_3_1",
     "majorCode" : "OUTPUT",
@@ -3906,11 +3662,11 @@
     "lciSmallCode" : "",
     "lciSmallLabel" : "",
     "sectionLabel" : "대기 배출물",
-    "sourceFileName" : "데이터 수집 설문지 blank 양식_steel, electric, low-alloy (10).xlsx",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
     "sourcePath" : "/opt/projects/carbonet/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "targetPath" : "/opt/reference/수식 설계 요/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "titleRowLabel" : "대기 배출물",
-    "guidance" : [ ],
+    "guidance" : [ "◎ 산출물의 데이터 범주는 제품 및 부산물, 폐기물(매립, 소각, 재활용), 환경배출물(대기배출물,수계배출물,토양배출물)을 포함", "◎ 원부자재 생산 공정의 경우 생산품 출하 이후의 과정(제품 수송, 사용, 폐기)은 시스템 경계에서 제외", "(단, 출하 이후 손실이 발생하는 경우에는 손실률 고려, 예: 전력)", "◎ 데이터 수집의 참고자료는 '5. 참고자료'에 기재", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
       "label" : "구분",
@@ -3937,255 +3693,25 @@
       "headerPath" : "[\"비고\"]"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-10 00:29:46",
+    "savedAt" : "2026-04-14 15:55:55",
     "rows" : [ {
-      "rowId" : "OUTPUT_AIR_11",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Argon",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_12",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Benzene",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_13",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Cadmium II",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_14",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Carbon dioxide, fossil",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_15",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Carbon monoxide, fossil",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_16",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Chromium III",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_17",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Copper ion",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
       "rowId" : "OUTPUT_AIR_18",
       "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Dioxins, measured as 2,3,7,8-tetrachlorodibenzo-p-dioxin",
+        "group" : "대기배출물",
+        "materialName" : "이산화탄소",
         "amount" : "",
-        "annualUnit" : "kg",
+        "annualUnit" : "",
         "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_19",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Hydrocarbons, aromatic",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_20",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Hydrochloric acid",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_21",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Hydrogen fluoride",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_22",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Lead II",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_23",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Mercury II",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_24",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Nickel II",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_25",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Nitrogen oxides",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_26",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "PAH, polycyclic aromatic hydrocarbons",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_27",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Particulate Matter, < 2.5 um",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_28",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Particulate Matter, > 10 um",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_29",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Particulate Matter, > 2.5 um and < 10um",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_30",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Sulfur dioxide",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_31",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Water",
-        "amount" : "",
-        "annualUnit" : "m3",
-        "collectionMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_AIR_32",
-      "values" : {
-        "group" : "airunspecified",
-        "materialName" : "Zinc II",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "collectionMethod" : "",
-        "remark" : ""
+        "remark" : "1.0000"
       },
       "templateRow" : true
     } ]
   },
-  "COMMON_DATASET::::OUTPUT_WATER:CASE_3_1" : {
+  "COMMON_DATASET:탄산칼슘/탄산마그네슘::::OUTPUT_WATER:CASE_3_1" : {
     "ownerActorId" : "COMMON_DATASET",
-    "datasetId" : "EMISSION_SURVEY_SHARED",
-    "datasetName" : "공통 배출 설문 데이터셋",
+    "datasetId" : "EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘",
+    "datasetName" : "공통 배출 설문 데이터셋 / 탄산칼슘/탄산마그네슘",
+    "productName" : "탄산칼슘/탄산마그네슘",
     "sectionCode" : "OUTPUT_WATER",
     "caseCode" : "CASE_3_1",
     "majorCode" : "OUTPUT",
@@ -4196,11 +3722,11 @@
     "lciSmallCode" : "",
     "lciSmallLabel" : "",
     "sectionLabel" : "수계 배출물",
-    "sourceFileName" : "데이터 수집 설문지 blank 양식_steel, electric, low-alloy (10).xlsx",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
     "sourcePath" : "/opt/projects/carbonet/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "targetPath" : "/opt/reference/수식 설계 요/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "titleRowLabel" : "수계 배출물",
-    "guidance" : [ ],
+    "guidance" : [ "◎ 산출물의 데이터 범주는 제품 및 부산물, 폐기물(매립, 소각, 재활용), 환경배출물(대기배출물,수계배출물,토양배출물)을 포함", "◎ 원부자재 생산 공정의 경우 생산품 출하 이후의 과정(제품 수송, 사용, 폐기)은 시스템 경계에서 제외", "(단, 출하 이후 손실이 발생하는 경우에는 손실률 고려, 예: 전력)", "◎ 데이터 수집의 참고자료는 '5. 참고자료'에 기재", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
       "label" : "구분",
@@ -4231,61 +3757,26 @@
       "headerPath" : "[\"비고\"]"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-10 00:29:46",
+    "savedAt" : "2026-04-14 15:55:55",
     "rows" : [ {
-      "rowId" : "OUTPUT_WATER_38",
+      "rowId" : "OUTPUT_WATER_26",
       "values" : {
-        "group" : "waterunspecified",
-        "materialName" : "Chloride",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "treatmentRoute" : "",
-        "treatmentMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_WATER_39",
-      "values" : {
-        "group" : "waterunspecified",
-        "materialName" : "Chromium VI",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "treatmentRoute" : "",
-        "treatmentMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_WATER_40",
-      "values" : {
-        "group" : "waterunspecified",
-        "materialName" : "Water",
+        "group" : "수계 배출물",
+        "materialName" : "폐수",
         "amount" : "",
         "annualUnit" : "m3",
         "treatmentRoute" : "",
-        "treatmentMethod" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_WATER_41",
-      "values" : {
-        "group" : "natural resourcein water",
-        "materialName" : "Water, cooling, unspecified natural origin",
-        "amount" : "",
-        "annualUnit" : "m3",
-        "treatmentRoute" : "",
-        "treatmentMethod" : "",
-        "remark" : ""
+        "treatmentMethod" : "0.3874",
+        "remark" : "???"
       },
       "templateRow" : true
     } ]
   },
-  "COMMON_DATASET::::OUTPUT_WASTE:CASE_3_1" : {
+  "COMMON_DATASET:탄산칼슘/탄산마그네슘::::OUTPUT_WASTE:CASE_3_1" : {
     "ownerActorId" : "COMMON_DATASET",
-    "datasetId" : "EMISSION_SURVEY_SHARED",
-    "datasetName" : "공통 배출 설문 데이터셋",
+    "datasetId" : "EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘",
+    "datasetName" : "공통 배출 설문 데이터셋 / 탄산칼슘/탄산마그네슘",
+    "productName" : "탄산칼슘/탄산마그네슘",
     "sectionCode" : "OUTPUT_WASTE",
     "caseCode" : "CASE_3_1",
     "majorCode" : "OUTPUT",
@@ -4296,11 +3787,11 @@
     "lciSmallCode" : "",
     "lciSmallLabel" : "",
     "sectionLabel" : "폐기물",
-    "sourceFileName" : "데이터 수집 설문지 blank 양식_steel, electric, low-alloy (10).xlsx",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
     "sourcePath" : "/opt/projects/carbonet/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "targetPath" : "/opt/reference/수식 설계 요/데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx",
     "titleRowLabel" : "폐기물",
-    "guidance" : [ ],
+    "guidance" : [ "◎ 산출물의 데이터 범주는 제품 및 부산물, 폐기물(매립, 소각, 재활용), 환경배출물(대기배출물,수계배출물,토양배출물)을 포함", "◎ 원부자재 생산 공정의 경우 생산품 출하 이후의 과정(제품 수송, 사용, 폐기)은 시스템 경계에서 제외", "(단, 출하 이후 손실이 발생하는 경우에는 손실률 고려, 예: 전력)", "◎ 데이터 수집의 참고자료는 '5. 참고자료'에 기재", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
       "label" : "구분",
@@ -4347,71 +3838,7 @@
       "headerPath" : "[\"재활용 및 최종폐기 과정 수송\",\"비고\"]"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-10 00:29:46",
-    "rows" : [ {
-      "rowId" : "OUTPUT_WASTE_48",
-      "values" : {
-        "group" : "input",
-        "materialName" : "electric arc furnace dust",
-        "amount" : "",
-        "annualUnit" : "s",
-        "wasteType" : "",
-        "treatmentMethod" : "",
-        "transportTonKm" : "",
-        "marineTransport" : "",
-        "roadTransport" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_WASTE_49",
-      "values" : {
-        "group" : "input",
-        "materialName" : "electric arc furnace slag",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "wasteType" : "",
-        "treatmentMethod" : "",
-        "transportTonKm" : "",
-        "marineTransport" : "",
-        "roadTransport" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_WASTE_50",
-      "values" : {
-        "group" : "input",
-        "materialName" : "inert waste, for final disposal",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "wasteType" : "",
-        "treatmentMethod" : "",
-        "transportTonKm" : "",
-        "marineTransport" : "",
-        "roadTransport" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    }, {
-      "rowId" : "OUTPUT_WASTE_51",
-      "values" : {
-        "group" : "input",
-        "materialName" : "spent solvent mixture",
-        "amount" : "",
-        "annualUnit" : "kg",
-        "wasteType" : "",
-        "treatmentMethod" : "",
-        "transportTonKm" : "",
-        "marineTransport" : "",
-        "roadTransport" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
-    } ]
+    "savedAt" : "2026-04-14 15:55:55",
+    "rows" : [ ]
   }
 }

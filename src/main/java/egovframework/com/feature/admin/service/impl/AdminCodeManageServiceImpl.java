@@ -27,8 +27,18 @@ public class AdminCodeManageServiceImpl extends EgovAbstractServiceImpl implemen
     }
 
     @Override
+    public ClassCodeVO selectClassCode(String clCode) {
+        return adminCodeManageMapper.selectClassCode(clCode);
+    }
+
+    @Override
     public List<CommonCodeVO> selectCodeList() {
         return adminCodeManageMapper.selectCodeList();
+    }
+
+    @Override
+    public CommonCodeVO selectCommonCode(String codeId) {
+        return adminCodeManageMapper.selectCommonCode(codeId);
     }
 
     @Override

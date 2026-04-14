@@ -33,9 +33,11 @@ If the task is mainly about Codex runner execution flow, pair with `carbonet-cod
 Read only what you need:
 
 - Read [`/opt/projects/carbonet/docs/operations/fast-bootstrap-runtime-freshness.md`](/opt/projects/carbonet/docs/operations/fast-bootstrap-runtime-freshness.md) first.
+- Read [`/opt/projects/carbonet/docs/operations/ai-change-baseline-and-regression-rule.md`](/opt/projects/carbonet/docs/operations/ai-change-baseline-and-regression-rule.md) when an existing route or workflow must keep working after the change.
 - Read [`/opt/projects/carbonet/docs/ai/60-operations/react-refresh-and-cache-control.md`](/opt/projects/carbonet/docs/ai/60-operations/react-refresh-and-cache-control.md) when frontend freshness or hard refresh matters.
 - Read [`/opt/projects/carbonet/docs/operations/stable-restart-guide.md`](/opt/projects/carbonet/docs/operations/stable-restart-guide.md) when startup stability, auto-restart, or service behavior matters.
 - Read [`/opt/projects/carbonet/ops/scripts/build-restart-18000.sh`](/opt/projects/carbonet/ops/scripts/build-restart-18000.sh), [`/opt/projects/carbonet/ops/scripts/restart-18000.sh`](/opt/projects/carbonet/ops/scripts/restart-18000.sh), and [`/opt/projects/carbonet/ops/scripts/start-18000.sh`](/opt/projects/carbonet/ops/scripts/start-18000.sh) before changing the local deploy sequence.
+- If the work includes remote DB apply, DB diff, queue execution, or remote app restart after DB reflection, also read [`/opt/projects/carbonet/docs/operations/ai-agent-db-patch-governance.md`](/opt/projects/carbonet/docs/operations/ai-agent-db-patch-governance.md).
 
 ## Fast Path Rules
 
@@ -54,6 +56,11 @@ Read only what you need:
    - `var/run/carbonet-18000.jar`
    - running Java process on `:18000`
 5. If any step in that chain was skipped, freshness is not guaranteed.
+6. If AI-created work changes DB state, freshness proof is not enough by itself.
+   Also prove:
+   - DB patch file or queue item exists
+   - `DB_PATCH_HISTORY` or `DEPLOYABLE_DB_PATCH_RESULT` evidence exists for actual apply
+   - remote restart verification happens only after DB patch recording is complete
 
 ## Workflow
 
@@ -79,7 +86,16 @@ Read only what you need:
    - health or route responds
    - newest jar copied into `var/run`
    - when the task is a page or route, request the exact changed URL after restart and confirm it returns the React shell or expected page response
-5. If the task changes startup, bootstrap, or refresh behavior, update the doc in the same turn.
+5. If the task changed an existing route or workflow, run a pre-change and post-change baseline on the same exact path whenever feasible:
+   - route response or redirect
+   - metadata endpoint when available
+   - one critical existing action or state signal
+6. When remote runtime is involved, verify the full server lifecycle when requested:
+   - stop
+   - start
+   - runtime restart
+   - post-restart port and route response
+7. If the task changes startup, bootstrap, refresh behavior, or DB apply flow, update the doc in the same turn.
 
 ## Delivery Rules
 
@@ -88,6 +104,8 @@ Read only what you need:
 - Do not claim success based only on `target/` output.
 - Do not claim freshness based only on source files.
 - When local `:18000` is involved, verify runtime jar and startup log behavior.
+- When remote DB or remote app restart is involved, do not claim success from script launch alone.
+  Verify remote stop/start/restart state, remote port listen state, and an internal route response from the remote host itself.
 - When the task adds or changes a concrete route such as `/edu/...` or `/admin/...`, verify that exact route over HTTP after `codex-verify-18000-freshness.sh`.
 - If changes can affect hard refresh behavior, mention whether shell freshness and asset freshness are both preserved.
 

@@ -7,6 +7,79 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 
+type PerformanceCloseoutRow = {
+  titleKo: string;
+  titleEn: string;
+  status: "Available" | "Blocked";
+  detailKo: string;
+  detailEn: string;
+};
+
+const PERFORMANCE_CLOSEOUT_ROWS: PerformanceCloseoutRow[] = [
+  {
+    titleKo: "최근 요청/JVM 진단",
+    titleEn: "Recent request / JVM diagnostics",
+    status: "Available",
+    detailKo: "현재 page-data는 JVM 용량과 최근 요청 실행 로그를 읽어 요약, hotspot, 지연/오류 요청을 보여줍니다.",
+    detailEn: "Current page-data reads JVM capacity and recent request execution logs for summaries, hotspots, and slow/error rows."
+  },
+  {
+    titleKo: "임계치 관리",
+    titleEn: "Threshold management",
+    status: "Blocked",
+    detailKo: "slow threshold, heap, error rate, p95 기준은 화면에서 저장할 수 없습니다. persisted 정책 또는 설정 소스가 필요합니다.",
+    detailEn: "Slow threshold, heap, error-rate, and p95 thresholds cannot be saved here yet. A persisted policy/config source is required."
+  },
+  {
+    titleKo: "알림/인시던트 연계",
+    titleEn: "Alert / incident linkage",
+    status: "Blocked",
+    detailKo: "성능 악화가 알림 규칙, 운영센터 인시던트, 담당자 배정으로 이어지는 실행 포트가 필요합니다.",
+    detailEn: "Performance degradation needs action ports into alert rules, Operations Center incidents, and assignee routing."
+  },
+  {
+    titleKo: "내보내기/보존기간",
+    titleEn: "Export / retention",
+    status: "Blocked",
+    detailKo: "CSV/감사용 export와 request log 보존기간 정책이 아직 화면 계약에 연결되지 않았습니다.",
+    detailEn: "CSV/audit export and request-log retention policy are not yet bound to this screen contract."
+  },
+  {
+    titleKo: "추세 비교",
+    titleEn: "Trend comparison",
+    status: "Blocked",
+    detailKo: "현재는 최근 샘플 중심입니다. 배포 전후, 시간대별, 기준선 대비 추세 비교 저장소가 필요합니다.",
+    detailEn: "The current view is sample-based. It needs storage for before/after deploy, time-window, and baseline trend comparisons."
+  }
+];
+
+const PERFORMANCE_ACTION_CONTRACT = [
+  {
+    labelKo: "임계치 저장",
+    labelEn: "Save Thresholds",
+    noteKo: "성능 임계치 정책 저장 API와 변경 감사가 필요합니다.",
+    noteEn: "Requires threshold policy save API and change audit."
+  },
+  {
+    labelKo: "알림 규칙 연결",
+    labelEn: "Link Alert Rule",
+    noteKo: "알림센터 rule id, 조건, 수신 범위, 테스트 발송 결과가 필요합니다.",
+    noteEn: "Requires notification rule id, condition, recipient scope, and test dispatch result."
+  },
+  {
+    labelKo: "성능 리포트 Export",
+    labelEn: "Export Report",
+    noteKo: "마스킹/보존기간/감사 이벤트가 포함된 export API가 필요합니다.",
+    noteEn: "Requires export API with masking, retention, and audit event handling."
+  },
+  {
+    labelKo: "인시던트 생성",
+    labelEn: "Open Incident",
+    noteKo: "운영센터 인시던트 lifecycle, 담당자, trace 연결이 필요합니다.",
+    noteEn: "Requires Operations Center incident lifecycle, assignee, and trace binding."
+  }
+];
+
 function stringOf(row: Record<string, unknown> | null | undefined, ...keys: string[]) {
   if (!row) {
     return "";
@@ -88,7 +161,7 @@ export function PerformanceMigrationPage() {
       <AdminWorkspacePageFrame>
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
 
-        <section className="gov-card overflow-hidden">
+        <section className="gov-card overflow-hidden" data-help-id="performance-status">
           <div className="flex flex-col gap-4 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Current Status" : "현재 상태"}</p>
@@ -109,8 +182,53 @@ export function PerformanceMigrationPage() {
           </div>
         </section>
 
+        <section className="gov-card overflow-hidden" data-help-id="performance-closeout-gate">
+          <div className="px-6 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Closeout Gate" : "완료 게이트"}</p>
+                <h2 className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "What is still missing for governed performance operations" : "성능 운영 화면 완성을 위해 남은 기능"}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "This page already reads recent request and JVM signals. It is still not a full performance governance console until thresholds, alert rules, export, retention, trend comparison, incident handoff, and audit are connected."
+                    : "이 화면은 이미 최근 요청과 JVM 신호를 읽습니다. 다만 임계치, 알림 규칙, export, 보존기간, 추세 비교, 인시던트 핸드오프, 감사가 연결되기 전까지는 완성된 성능 거버넌스 콘솔이 아닙니다."}
+                </p>
+              </div>
+              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700">
+                {en ? "PARTIAL / policy actions blocked" : "PARTIAL / 정책 조치 차단"}
+              </span>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-5">
+              {PERFORMANCE_CLOSEOUT_ROWS.map((row) => (
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4" key={row.titleEn}>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${row.status === "Available" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                    {row.status}
+                  </span>
+                  <h3 className="mt-3 text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? row.titleEn : row.titleKo}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{en ? row.detailEn : row.detailKo}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-[var(--kr-gov-border-light)] bg-slate-50 px-6 py-5" data-help-id="performance-action-contract">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-[var(--kr-gov-text-primary)]">{en ? "Blocked Governance Actions" : "차단된 거버넌스 조치"}</h3>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "These actions stay disabled until backend contracts, permissions, retention, and audit evidence exist." : "백엔드 계약, 권한, 보존기간, 감사 증적이 생기기 전까지 아래 조치는 비활성화합니다."}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {PERFORMANCE_ACTION_CONTRACT.map((action) => (
+                  <button className="gov-btn gov-btn-outline opacity-60" disabled key={action.labelEn} title={en ? action.noteEn : action.noteKo} type="button">
+                    {en ? action.labelEn : action.labelKo}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[linear-gradient(180deg,rgba(248,251,255,0.96),rgba(255,255,255,1))] p-5">
+          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[linear-gradient(180deg,rgba(248,251,255,0.96),rgba(255,255,255,1))] p-5" data-help-id="performance-runtime">
             <div className="flex items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Runtime" : "런타임"}</p>
@@ -131,7 +249,7 @@ export function PerformanceMigrationPage() {
             </div>
           </div>
 
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5">
+          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5" data-help-id="performance-request-summary">
             <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Request Window" : "요청 윈도우"}</p>
             <h2 className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "Latency Summary" : "지연 요약"}</h2>
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -156,7 +274,7 @@ export function PerformanceMigrationPage() {
             icon="speed"
             className="mb-0"
           >
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" data-help-id="performance-hotspot-routes">
               <table className="min-w-full text-left text-sm">
                 <thead className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
                   <tr>
@@ -204,7 +322,7 @@ export function PerformanceMigrationPage() {
               icon="analytics"
               className="mb-0"
             >
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-help-id="performance-response-distribution">
                 {responseStatusSummary.map((item, index) => (
                   <article key={`${stringOf(item, "title")}-${index}`} className={`rounded-[var(--kr-gov-radius)] border p-4 ${metricToneClass(stringOf(item, "tone"))}`}>
                     <SummaryMetricCard
@@ -224,7 +342,7 @@ export function PerformanceMigrationPage() {
               icon="link"
               className="mb-0"
             >
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" data-help-id="performance-quick-links">
                 {quickLinks.map((link, index) => (
                   <a
                     key={`${stringOf(link, "label")}-${index}`}
@@ -246,7 +364,7 @@ export function PerformanceMigrationPage() {
             icon="playlist_play"
             className="mb-0"
           >
-            <div className="space-y-3">
+            <div className="space-y-3" data-help-id="performance-slow-requests">
               {recentSlowRequests.map((row, index) => (
                 <article key={`${stringOf(row, "traceId", "executedAt")}-${index}`} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -290,7 +408,7 @@ export function PerformanceMigrationPage() {
             icon="rule"
             className="mb-0"
           >
-            <div className="space-y-3">
+            <div className="space-y-3" data-help-id="performance-guidance">
               {guidance.map((item, index) => (
                 <article key={`${stringOf(item, "title")}-${index}`} className={`rounded-[var(--kr-gov-radius)] border p-4 ${metricToneClass(stringOf(item, "tone"))}`}>
                   <h3 className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(item, "title")}</h3>

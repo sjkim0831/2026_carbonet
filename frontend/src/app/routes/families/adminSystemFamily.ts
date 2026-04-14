@@ -32,6 +32,7 @@ const ADMIN_SYSTEM_ROUTE_DEFINITIONS = [
   { id: "external-monitoring", label: "연계 모니터링", group: "admin", koPath: "/admin/external/monitoring", enPath: "/en/admin/external/monitoring" },
   { id: "external-maintenance", label: "점검 관리", group: "admin", koPath: "/admin/external/maintenance", enPath: "/en/admin/external/maintenance" },
   { id: "external-retry", label: "재시도 관리", group: "admin", koPath: "/admin/external/retry", enPath: "/en/admin/external/retry" },
+  { id: "db-sync-deploy", label: "DB 동기화 배포", group: "admin", koPath: "/admin/system/db-sync-deploy", enPath: "/en/admin/system/db-sync-deploy" },
   { id: "security-monitoring", label: "보안 모니터링", group: "admin", koPath: "/admin/system/security-monitoring", enPath: "/en/admin/system/security-monitoring" },
   { id: "blocklist", label: "차단 목록", group: "admin", koPath: "/admin/system/blocklist", enPath: "/en/admin/system/blocklist" },
   { id: "security-audit", label: "보안 감사", group: "admin", koPath: "/admin/system/security-audit", enPath: "/en/admin/system/security-audit" },
@@ -43,6 +44,7 @@ const ADMIN_SYSTEM_ROUTE_DEFINITIONS = [
   { id: "external-connection-edit", label: "외부연계 수정", group: "admin", koPath: "/admin/external/connection_edit", enPath: "/en/admin/external/connection_edit" },
   { id: "batch-management", label: "배치 관리", group: "admin", koPath: "/admin/system/batch", enPath: "/en/admin/system/batch" },
   { id: "scheduler-management", label: "스케줄러 관리", group: "admin", koPath: "/admin/system/scheduler", enPath: "/en/admin/system/scheduler" },
+  { id: "db-promotion-policy", label: "DB 반영 정책 카탈로그", group: "admin", koPath: "/admin/system/db-promotion-policy", enPath: "/en/admin/system/db-promotion-policy" },
   { id: "backup-config", label: "백업 설정", group: "admin", koPath: "/admin/system/backup_config", enPath: "/en/admin/system/backup_config" },
   { id: "backup-execution", label: "백업 실행", group: "admin", koPath: "/admin/system/backup", enPath: "/en/admin/system/backup" },
   { id: "restore-execution", label: "복구 실행", group: "admin", koPath: "/admin/system/restore", enPath: "/en/admin/system/restore" }
@@ -90,6 +92,8 @@ const ADMIN_SYSTEM_PAGE_UNITS = [
   { id: "external-connection-edit", exportName: "ExternalConnectionEditMigrationPage", loader: () => import("../../../features/external-connection-edit/ExternalConnectionEditMigrationPage") },
   { id: "batch-management", exportName: "BatchManagementMigrationPage", loader: () => import("../../../features/batch-management/BatchManagementMigrationPage") },
   { id: "scheduler-management", exportName: "SchedulerManagementMigrationPage", loader: () => import("../../../features/scheduler-management/SchedulerManagementMigrationPage") },
+  { id: "db-promotion-policy", exportName: "DbPromotionPolicyMigrationPage", loader: () => import("../../../features/db-promotion-policy/DbPromotionPolicyMigrationPage") },
+  { id: "db-sync-deploy", exportName: "DbSyncDeployMigrationPage", loader: () => import("../../../features/db-sync-deploy/DbSyncDeployMigrationPage") },
   { id: "backup-config", exportName: "BackupConfigMigrationPage", loader: () => import("../../../features/backup-config/BackupConfigMigrationPage") },
   { id: "backup-execution", exportName: "BackupConfigMigrationPage", loader: () => import("../../../features/backup-config/BackupConfigMigrationPage") },
   { id: "restore-execution", exportName: "BackupConfigMigrationPage", loader: () => import("../../../features/backup-config/BackupConfigMigrationPage") }

@@ -17,7 +17,9 @@ Read only what you need:
 - Read [`/opt/projects/carbonet/docs/architecture/common-module-taxonomy.md`](/opt/projects/carbonet/docs/architecture/common-module-taxonomy.md) when the user asks what kinds of common modules should exist, how `SI_COMMON` differs from `OPS_COMMON`, or how install units should select shared common capabilities.
 - Read [`/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md`](/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md) when the user asks how project DBs should split while keeping a common governance DB for scaffolding, installs, and migration control.
 - Read [`/opt/projects/carbonet/docs/architecture/install-unit-lifecycle-and-resource-governance.md`](/opt/projects/carbonet/docs/architecture/install-unit-lifecycle-and-resource-governance.md) when the user asks about menu-centered install packages, delete safety, garbage classification, copy behavior, resource ownership, or chain management.
+- Read [`/opt/projects/carbonet/docs/architecture/system-asset-management-screen-and-menu-plan.md`](/opt/projects/carbonet/docs/architecture/system-asset-management-screen-and-menu-plan.md) when the user asks which current admin screens already cover asset management, which screens are still weak, or how asset inventory/detail/impact/lifecycle menus should be organized.
 - Read [`/opt/projects/carbonet/docs/architecture/platform-console-information-architecture.md`](/opt/projects/carbonet/docs/architecture/platform-console-information-architecture.md) when the user asks how the main system should act as the top-level platform console, what the super-master manages, or how project/menu/resource governance should appear in one admin surface.
+- Read [`/opt/projects/carbonet/docs/architecture/project-governance-control-plane-and-priority-roadmap.md`](/opt/projects/carbonet/docs/architecture/project-governance-control-plane-and-priority-roadmap.md) when the user asks to centrally manage the project itself, including schedule, issue, document, mail, or call governance, and you need to decide what must be closed first versus what should follow later.
 - Read [`/opt/projects/carbonet/docs/architecture/db-migration-and-upgrade-operations.md`](/opt/projects/carbonet/docs/architecture/db-migration-and-upgrade-operations.md) when the user asks when real upgrades happen, how DB migrations and app deployment should align, or whether a second DB server cutover is appropriate.
 - Read [`/opt/projects/carbonet/docs/architecture/platform-control-plane-data-model.md`](/opt/projects/carbonet/docs/architecture/platform-control-plane-data-model.md) and [`/opt/projects/carbonet/docs/sql/platform_control_plane_schema.sql`](/opt/projects/carbonet/docs/sql/platform_control_plane_schema.sql) when the user asks for the common-DB table design behind project registry, install units, common modules, resources, and migration status.
 - Read [`/opt/projects/carbonet/docs/architecture/react-observability-blind-spots.md`](/opt/projects/carbonet/docs/architecture/react-observability-blind-spots.md) before extending telemetry into browser-owned, third-party, file, or session-storage driven flows.
@@ -34,6 +36,8 @@ Read only what you need:
 - UI manifest or component registry design
 - rollout estimate across this Carbonet codebase
 - admin query screen or API for audit and trace search
+- project-governance control plane planning
+- schedule, issue, document, mail, and call governance sequencing
 - menu-centered install unit governance
 - resource ownership and dependency modeling
 - orphan, drift, and uninstall-safety design
@@ -55,6 +59,8 @@ Read only what you need:
    - page manifest and component registry
 4. If the request is really about installable modules or platform governance, add a fifth track:
    - resource registry, package lifecycle, and ownership enforcement
+5. If the request expands into project schedule, issue, document, mail, or call management, add a sixth track:
+   - project-governance overlay and communication-governance sequencing
 5. When the request asks for resource chains, package lifecycle, or delete safety, model the problem in three explicit graphs:
    - ownership graph
    - execution graph
@@ -155,6 +161,7 @@ Use these default locations unless the codebase shows a stronger existing patter
 - `frontend/src/app/screen-registry/pageManifests.ts` is the authoritative frontend manifest registry source for DB sync.
 - `frontend/scripts/check-ui-governance.mjs` is the repository-wide verification gate for route, manifest, backend metadata, and `data-help-id` alignment.
 - `frontend/src/features/help-management/ScreenCommandCenterPanel.tsx` already renders the connected metadata and should be extended instead of bypassed.
+- `frontend/src/features/environment-management/VerificationCenterMigrationPage.tsx` is the current operator-first technical governance root and should be treated as the first stop before broader project-governance or communication-governance expansion.
 
 ## Handoff Rules For Another AI Session
 

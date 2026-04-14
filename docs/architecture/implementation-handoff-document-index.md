@@ -25,6 +25,13 @@ For the shortest operator-facing summary, see:
 
 - `docs/architecture/contract-lane-executive-summary.md`
 
+### 1-A. Current Routing And Continuity Baseline
+
+- `docs/ai/00-governance/ai-skill-doc-routing-matrix.md`
+- `docs/ai/00-governance/ai-orchestration-doc-retention-inventory.md`
+- `docs/architecture/high-parallel-account-orchestration-playbook.md`
+- `docs/operations/account-relogin-continuity-playbook.md`
+
 ### 2. Handoff Decision
 
 - `docs/architecture/contract-lane-handoff-note.md`
@@ -38,6 +45,10 @@ For the shortest operator-facing summary, see:
 - `docs/architecture/implementation-priority-and-first-day-plan.md`
 - `docs/ai/80-skills/resonance-10-session-assignment.md`
 - `docs/architecture/tmux-multi-account-delivery-playbook.md`
+
+Treat the routing matrix and high-parallel playbook as the first entry gate.
+Treat `resonance-10-session-assignment.md` and `tmux-multi-account-delivery-playbook.md`
+as conditional operator aids rather than the default first read.
 
 ### 4. Lane-Specific Start
 

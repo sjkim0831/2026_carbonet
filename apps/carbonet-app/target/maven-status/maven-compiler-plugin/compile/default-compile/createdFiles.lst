@@ -7,7 +7,6 @@ egovframework/com/platform/codex/service/PlatformMenuProvisionSupport.class
 egovframework/com/common/filter/AuthorizeFilter.class
 egovframework/com/feature/auth/external/service/impl/AuthTokenLoginServiceImpl.class
 egovframework/com/feature/admin/service/MenuFeatureManageService.class
-egovframework/com/feature/auth/service/AuthService.class
 egovframework/com/common/mapper/ObservabilityMapper.class
 egovframework/com/common/util/FeatureCodeBitmap$1.class
 egovframework/com/feature/home/service/impl/HomeMenuServiceImpl$CachedHomeMenuSnapshot.class
@@ -36,6 +35,7 @@ egovframework/com/feature/admin/web/AdminIpWhitelistCommandService.class
 egovframework/com/feature/admin/service/impl/VariableSectionDefinition.class
 egovframework/com/common/policy/GovernancePolicyModels$Visibility.class
 egovframework/com/common/util/WebUtil.class
+egovframework/com/platform/dbchange/service/impl/DbChangeQueueServiceImpl$2.class
 egovframework/com/common/interceptor/CompanyScopeInterceptor.class
 egovframework/com/feature/member/model/vo/StplatVO.class
 egovframework/com/feature/admin/model/vo/AdminRoleAssignmentVO.class
@@ -45,7 +45,6 @@ egovframework/com/feature/admin/service/impl/DefinitionFormulaPreviewService.cla
 egovframework/com/platform/trade/service/impl/PlatformPaymentBootstrapReadService.class
 egovframework/com/platform/trade/service/impl/PlatformTradeRefundListReadService.class
 egovframework/com/feature/admin/web/AdminSystemCodeController.class
-egovframework/com/feature/auth/domain/entity/LoginPolicy.class
 egovframework/com/platform/observability/service/PlatformObservabilityExternalConnectionFormPayloadService.class
 egovframework/com/feature/admin/web/AdminApprovalActionService$ActionResult.class
 egovframework/com/common/interceptor/ReactShellNoCacheInterceptor.class
@@ -63,18 +62,16 @@ egovframework/com/feature/auth/web/FrontendSessionApiController.class
 egovframework/com/feature/admin/service/impl/LimeEmissionCalculator.class
 egovframework/com/platform/observability/service/PlatformObservabilityExternalMaintenancePayloadService.class
 egovframework/com/feature/admin/model/vo/FeatureCatalogItemVO.class
-egovframework/com/feature/auth/domain/entity/Emplyrscrtyestbs.class
-egovframework/com/feature/auth/service/impl/AuthServiceImpl.class
 egovframework/com/feature/admin/service/impl/AdminEmissionSurveyWorkbookServiceImpl$3.class
 egovframework/com/framework/authority/service/FrameworkAuthorityPolicyService$DepartmentRoleDescriptor.class
 egovframework/com/common/trace/TraceContextHolder.class
 egovframework/com/feature/admin/web/AdminAuthorityCommandSupportService.class
 egovframework/com/feature/admin/service/FullStackGovernanceRegistrySupport.class
+egovframework/com/platform/dbchange/service/impl/DbChangeCaptureServiceImpl$1.class
 egovframework/com/feature/admin/service/AdminFileManagementService$2.class
 egovframework/com/feature/admin/dto/request/AdminAuthGroupFeatureSaveRequestDTO.class
 egovframework/com/feature/admin/dto/request/AdminDevSessionSimulationRequestDTO.class
 egovframework/com/feature/admin/web/AdminCompanyScopeService.class
-egovframework/com/feature/auth/domain/repository/EnterpriseMemberRepository.class
 egovframework/com/feature/admin/web/AdminMemberPasswordResetCommandService.class
 egovframework/com/feature/admin/web/AdminPermissionEditorService.class
 egovframework/com/feature/admin/model/vo/DepartmentRoleMappingVO.class
@@ -95,7 +92,6 @@ egovframework/com/feature/admin/service/impl/CarbonetAdminMenuTreeReadAdapter.cl
 egovframework/com/feature/admin/service/AuthorRoleProfileService$1.class
 egovframework/com/feature/home/web/ReactAppAssetResolver$CachedAssets.class
 egovframework/com/feature/member/dto/response/DuplicateCheckResponseDTO.class
-egovframework/com/feature/auth/dto/response/FrontendSessionResponseDTO.class
 egovframework/com/feature/admin/service/impl/ResolvedFactor.class
 egovframework/com/feature/admin/service/impl/FactorSource.class
 egovframework/com/feature/admin/mapper/AdminNotificationHistoryMapper.class
@@ -105,6 +101,7 @@ egovframework/com/feature/admin/service/impl/EmissionManagementValidationSupport
 egovframework/com/feature/admin/service/impl/CalculationExecutor.class
 egovframework/com/feature/admin/web/AdminAdminAccountAccessService.class
 egovframework/com/common/policy/GovernancePolicyModels$PageType.class
+egovframework/com/feature/admin/web/AdminRoleAssignmentDbChangeCaptureSupport.class
 egovframework/com/feature/admin/service/AdminEmissionGwpValueService$PdfReferenceCatalog.class
 egovframework/com/feature/admin/web/AdminAdminAccountCreateCommandService.class
 egovframework/com/feature/admin/service/impl/EmissionCalculationApplicationService.class
@@ -115,6 +112,7 @@ egovframework/com/feature/member/mapper/EntrprsManageMapper.class
 egovframework/com/feature/admin/service/impl/AdminCodeManageServiceImpl.class
 egovframework/com/common/policy/GovernancePolicyEngine.class
 egovframework/com/feature/admin/web/AdminWbsManagementApiController.class
+egovframework/com/platform/dbchange/web/DbChangeCaptureAdminApiController.class
 egovframework/com/feature/admin/service/BackupConfigManagementService$CommandResult.class
 egovframework/com/platform/observability/service/PlatformObservabilityExternalSyncPayloadService.class
 egovframework/com/feature/admin/web/AdminMemberPageModelAssembler.class
@@ -146,24 +144,24 @@ egovframework/com/feature/admin/web/AdminMenuManagementPageService.class
 egovframework/com/feature/admin/service/impl/AdminEmissionSurveyWorkbookServiceImpl$TemplateCache.class
 egovframework/com/feature/home/web/ReactRouteSupport.class
 egovframework/com/feature/admin/model/vo/SrTicketRecordVO.class
+egovframework/com/feature/admin/dto/request/EmissionSurveyDatasetReplaceRequest.class
 egovframework/com/feature/admin/web/AdminPermissionOverrideService.class
 egovframework/com/feature/admin/dto/request/AdminAuthChangeSaveRequestDTO.class
 egovframework/com/common/util/ResourceCloseHelper.class
 egovframework/com/feature/member/model/vo/EntrprsManageVO.class
 egovframework/com/feature/auth/external/web/ExternalAuthApiController.class
 egovframework/com/feature/admin/web/AdminCertificateApprovalService.class
-egovframework/com/feature/auth/dto/internal/LoginPolicyDTO.class
 egovframework/com/feature/auth/util/ClientIpUtil.class
 egovframework/com/platform/trade/service/impl/PlatformTradeBootstrapReadService.class
 egovframework/com/feature/admin/web/AdminApprovalCommandService.class
 egovframework/com/feature/admin/web/AdminCompanyAccountCommandService.class
 egovframework/com/feature/admin/service/impl/CalculationTrace.class
 egovframework/com/feature/admin/mapper/AuthGroupManageMapper.class
-egovframework/com/feature/auth/domain/entity/CommonEntity.class
 egovframework/com/feature/admin/web/SelfHealingController.class
 egovframework/com/feature/admin/service/impl/AuthGroupManageServiceImpl.class
 egovframework/com/feature/admin/service/impl/HomeMonitoringMenuBootstrap.class
 egovframework/com/feature/admin/model/vo/LoginHistoryVO.class
+egovframework/com/platform/codex/service/AdminAssetGapMenuBootstrapSupport.class
 egovframework/com/feature/admin/service/WbsManagementService$WavePlan.class
 egovframework/com/common/trace/TraceEventService.class
 egovframework/com/feature/admin/service/impl/EmissionRuntimeTransitionHistoryService$1.class
@@ -207,6 +205,7 @@ egovframework/com/feature/admin/service/AdminFileManagementService$1.class
 egovframework/com/feature/admin/web/AdminEmissionManagementApiController.class
 egovframework/com/feature/admin/web/AdminRequestContextSupport.class
 egovframework/com/platform/codex/service/AdminUnifiedLogSubmenuBootstrapSupport.class
+egovframework/com/platform/dbchange/mapper/DbChangeCaptureMapper.class
 egovframework/com/common/audit/PersistingAuditEventWriter.class
 egovframework/com/common/util/FileSecurityUtil.class
 egovframework/com/common/model/ComDefaultCodeVO.class
@@ -254,6 +253,7 @@ egovframework/com/common/menu/service/impl/SiteMapServiceImpl$CachedSiteMapSnaps
 egovframework/com/platform/observability/service/SrWorkbenchPagePortBridge.class
 egovframework/com/common/policy/GovernancePolicyModels$Cardinality.class
 egovframework/com/feature/admin/dto/request/AdminPermissionSaveRequestDTO.class
+egovframework/com/platform/dbchange/service/impl/DbChangeCaptureServiceImpl.class
 egovframework/com/platform/observability/service/PlatformObservabilityCompanyScopePortBridge.class
 egovframework/com/feature/admin/model/vo/ClassCodeVO.class
 egovframework/com/feature/admin/tools/TypeScopedRoleAssignmentTool.class
@@ -266,6 +266,7 @@ egovframework/com/feature/admin/service/impl/EmissionDefinitionMaterializationSe
 egovframework/com/platform/trade/service/TradeRefundListReadPort.class
 egovframework/com/feature/admin/service/AdminFileManagementService$3.class
 egovframework/com/common/policy/GovernancePolicyModels$DecisionRequest.class
+egovframework/com/platform/codex/service/AdminAssetDetailMenuBootstrapSupport.class
 egovframework/com/feature/admin/dto/request/AdminAuthGroupCreateRequestDTO.class
 egovframework/com/platform/observability/service/ExternalConnectionSavePortBridge.class
 egovframework/com/feature/home/web/ReactAppAssetResolver.class
@@ -276,7 +277,7 @@ egovframework/com/common/interceptor/TraceContextInterceptor.class
 egovframework/com/feature/admin/model/vo/FeatureCatalogSectionVO.class
 egovframework/com/feature/member/model/vo/DeptManageVO.class
 egovframework/com/feature/admin/model/vo/FeatureCatalogSummarySnapshot.class
-egovframework/com/feature/auth/dto/request/LoginRequestDTO.class
+egovframework/com/platform/dbchange/service/impl/DbChangeQueueServiceImpl.class
 egovframework/com/platform/codex/service/impl/CodexProvisioningServiceImpl.class
 egovframework/com/feature/admin/web/AdminAccessHistoryPageService$1.class
 egovframework/com/feature/admin/service/BackupConfigManagementService.class
@@ -291,7 +292,6 @@ egovframework/com/common/policy/GovernancePolicyModels$UserKind.class
 egovframework/com/feature/admin/mapper/AdminSummarySnapshotMapper.class
 egovframework/com/feature/admin/web/AdminAuthorityPagePayloadService.class
 egovframework/com/CarbonetApplication.class
-egovframework/com/feature/auth/domain/entity/EntrprsMber.class
 egovframework/com/config/web/WebMvcConfig.class
 egovframework/com/feature/admin/service/impl/CarbonetFullStackGovernanceRegistryReadAdapter.class
 egovframework/com/feature/auth/service/FrontendSessionService.class
@@ -323,14 +323,17 @@ egovframework/com/platform/read/MenuInfoReadPort.class
 egovframework/com/feature/admin/service/impl/EmissionVariableConditionSupport.class
 egovframework/com/config/common/CommonConfig.class
 egovframework/com/common/policy/GovernancePolicyModels$Interaction.class
+egovframework/com/platform/dbchange/model/DbChangeCaptureRequest.class
 egovframework/com/config/security/CarbonetAccessDeniedHandler.class
 egovframework/com/feature/admin/service/EmissionClassificationCatalogService$CatalogLoadResult.class
 egovframework/com/feature/admin/service/impl/AdminSummaryServiceImpl$DeliveryResult.class
 egovframework/com/feature/admin/model/vo/DetailCodeVO.class
 egovframework/com/platform/codex/service/AdminAccessHistoryMenuBootstrapSupport.class
+egovframework/com/platform/dbchange/service/DbChangeCaptureService.class
 egovframework/com/platform/codex/service/AdminEmissionGwpValuesMenuBootstrapSupport.class
 egovframework/com/framework/authority/service/FrameworkAuthorityPolicyService.class
 egovframework/com/platform/observability/service/CurrentUserContextReadPortBridge.class
+egovframework/com/feature/admin/service/DbSyncDeployManagementService$1.class
 egovframework/com/feature/admin/web/AdminApprovalPagePayloadService.class
 egovframework/com/feature/member/service/DepartmentService.class
 egovframework/com/platform/codex/service/AdminSecurityAuditMenuBootstrapSupport.class
@@ -339,7 +342,6 @@ egovframework/com/feature/admin/service/impl/EmissionCategoryTierDataProvider.cl
 egovframework/com/feature/admin/service/impl/EmissionCalculationResultTransformer.class
 egovframework/com/feature/admin/web/AdminFeatureManagementCommandService.class
 egovframework/com/feature/admin/web/AdminPaymentController.class
-egovframework/com/feature/auth/domain/entity/EmplyrInfo.class
 egovframework/com/feature/auth/external/dto/response/ExternalAuthStartResponse.class
 egovframework/com/feature/admin/service/AdminEmissionGwpValueService$OcrAvailability.class
 egovframework/com/feature/admin/web/AdminMenuShellService.class
@@ -360,7 +362,6 @@ egovframework/com/feature/admin/web/AdminAdminPermissionCommandService.class
 egovframework/com/feature/admin/service/impl/AdminLoginHistoryServiceImpl.class
 egovframework/com/feature/admin/service/impl/EmissionVariableDefinitionsExecution.class
 egovframework/com/feature/admin/service/impl/CementEmissionCalculator.class
-egovframework/com/feature/auth/dto/internal/LoginIncorrectDTO.class
 egovframework/com/feature/admin/dto/request/AdminAdminAccountCreateRequestDTO.class
 egovframework/com/feature/admin/service/BackupConfigManagementService$BackupConfigDocument.class
 egovframework/com/CarbonetApplication$1.class
@@ -387,11 +388,12 @@ egovframework/com/common/policy/GovernancePolicyModels$ActionType.class
 egovframework/com/feature/admin/mapper/AdminEmissionSurveyDraftMapper.class
 egovframework/com/common/web/SafeErrorController.class
 egovframework/com/feature/admin/dto/response/AdminMenuDomainDTO.class
+egovframework/com/feature/admin/service/DbSyncDeployManagementService.class
 egovframework/com/feature/admin/service/impl/AppliedFactor.class
 egovframework/com/feature/admin/web/AdminMemberPagePayloadService.class
 egovframework/com/feature/member/model/vo/UserManageVO.class
-egovframework/com/feature/auth/mapper/AuthLoginMapper.class
 egovframework/com/platform/codex/service/AdminContentMenuManagementBootstrapSupport.class
+egovframework/com/platform/codex/service/AdminAssetImpactMenuBootstrapSupport.class
 egovframework/com/framework/authority/service/FrameworkAuthorityPolicyService$AuthorityPolicyContext.class
 egovframework/com/feature/admin/service/AdminEmissionManagementElementRegistryService.class
 egovframework/com/feature/admin/web/AdminApprovalController.class
@@ -448,6 +450,7 @@ egovframework/com/feature/admin/dto/request/AdminEmissionLciClassificationSaveRe
 egovframework/com/feature/admin/web/AdminCodeManagementPageService.class
 egovframework/com/feature/admin/service/impl/CarbonetMenuInfoCommandAdapter.class
 egovframework/com/common/policy/GovernancePolicyModels$PageContext.class
+egovframework/com/platform/codex/service/AdminAssetLifecycleMenuBootstrapSupport.class
 egovframework/com/feature/admin/web/AdminExternalConnectionController.class
 egovframework/com/feature/admin/tools/TypeSpecificAuthorityRoleSeedTool.class
 egovframework/com/feature/admin/web/AdminFaqManagementController.class
@@ -519,11 +522,9 @@ egovframework/com/feature/admin/service/FullStackGovernanceRegistryService$1.cla
 egovframework/com/feature/admin/service/SrSelfHealingService.class
 egovframework/com/feature/admin/service/impl/SrTicketCodexRunnerServiceImpl$StreamCollector.class
 egovframework/com/feature/auth/external/dto/request/ExternalAuthStartRequest.class
-egovframework/com/feature/auth/util/JwtTokenProvider.class
 egovframework/com/feature/admin/service/BackupConfigManagementService$GitPreflightReport.class
 egovframework/com/feature/admin/service/AdminQnaCategoryService$1.class
 egovframework/com/feature/auth/external/service/ExternalAuthService.class
-egovframework/com/feature/auth/dto/response/LoginResponseDTO.class
 egovframework/com/feature/admin/service/impl/AdminSummaryServiceImpl$SourceScanSnapshot.class
 egovframework/com/feature/admin/web/AdminBoardController.class
 egovframework/com/feature/admin/web/AdminPostManagementController.class
@@ -538,6 +539,7 @@ egovframework/com/config/data/DataSourceConfig.class
 egovframework/com/feature/admin/web/AdminCodeManagementCommandService.class
 egovframework/com/feature/admin/service/impl/EmissionInputSavePolicySupport.class
 egovframework/com/feature/home/web/ReactAppPageController.class
+egovframework/com/platform/dbchange/service/DbChangeQueueService.class
 egovframework/com/feature/admin/mapper/AdminBannerManagementMetaMapper.class
 egovframework/com/config/security/StaticSecurityMetadataConfig.class
 egovframework/com/feature/admin/service/BackupConfigManagementService$1.class
@@ -545,6 +547,7 @@ egovframework/com/feature/admin/service/impl/AdminLogMenuBaselineCatalog$1.class
 egovframework/com/feature/admin/web/AdminMemberPasswordResetSupportService.class
 egovframework/com/feature/admin/service/impl/AdminEmissionSurveyWorkbookServiceImpl.class
 egovframework/com/feature/admin/service/impl/SrSelfHealingServiceImpl$ErrorPatternEntry.class
+egovframework/com/platform/codex/service/AdminAssetInventoryMenuBootstrapSupport.class
 egovframework/com/feature/admin/web/AdminApprovalAuditSupport.class
 egovframework/com/feature/admin/web/AdminQnaCategoryController.class
 egovframework/com/feature/admin/service/AdminSecurityBootstrapReadService.class
@@ -581,13 +584,13 @@ egovframework/com/common/policy/GovernancePolicyModels$ComponentContext.class
 egovframework/com/feature/admin/service/impl/AdminEmissionSurveyWorkbookServiceImpl$SectionConfig.class
 egovframework/com/feature/admin/dto/request/EmissionSurveyCaseSaveRequest.class
 egovframework/com/feature/admin/service/BackupConfigManagementService$GitStatusEntry.class
-egovframework/com/feature/auth/domain/entity/GnrlMber.class
 egovframework/com/feature/home/dto/request/FrontendErrorReportRequest.class
 egovframework/com/platform/codex/service/impl/CodexExecutionAdminServiceImpl.class
 egovframework/com/common/filter/HtmlTagFilter.class
 egovframework/com/feature/admin/web/AdminCompanyAccountService$SaveResult.class
 egovframework/com/platform/observability/service/PlatformObservabilityExternalConnectionListPayloadService.class
 egovframework/com/feature/admin/model/vo/AuthorFeatureRelateVO.class
+egovframework/com/feature/admin/service/DbPromotionPolicyManagementService.class
 egovframework/com/common/service/CmmnDetailCode.class
 egovframework/com/feature/admin/service/impl/AdminEmissionSurveyWorkbookServiceImpl$SectionMetaConfig.class
 egovframework/com/feature/admin/web/AdminPageManagementCommandService.class
@@ -601,7 +604,6 @@ egovframework/com/feature/admin/web/AdminHotPathPagePayloadService.class
 egovframework/com/feature/admin/dto/response/CodexExecutionHistoryResponse.class
 egovframework/com/common/menu/service/SiteMapService.class
 egovframework/com/platform/codex/service/AdminScreenManagementMenuBootstrapSupport.class
-egovframework/com/feature/auth/domain/repository/GeneralMemberRepository.class
 egovframework/com/feature/admin/dto/request/AdminBoardDistributionSaveRequestDTO.class
 egovframework/com/framework/authority/service/FrameworkAuthorityPolicyService$RecommendedRoleTemplate.class
 egovframework/com/feature/admin/service/impl/BlocklistPersistenceServiceImpl.class
@@ -671,6 +673,7 @@ egovframework/com/feature/admin/service/AdminQnaCategoryService.class
 egovframework/com/platform/observability/service/AdminSchedulerBootstrapReadPortBridge.class
 egovframework/com/feature/admin/service/impl/ReactAppMenuUrlNormalizationBootstrap.class
 egovframework/com/platform/codex/service/AdminEnvironmentManagementMenuBootstrapSupport.class
+egovframework/com/feature/admin/service/DbSyncDeployManagementService$CommandResult.class
 egovframework/com/feature/admin/dto/request/EmissionManagementElementSaveRequest.class
 egovframework/com/platform/trade/service/impl/PlatformTradeControlPlaneService.class
 egovframework/com/feature/admin/service/impl/SrTicketCodexRunnerServiceImpl$1.class
@@ -684,6 +687,7 @@ egovframework/com/platform/observability/service/PlatformObservabilityExternalLo
 egovframework/com/feature/admin/dto/response/AdminAccessHistoryRowResponse.class
 egovframework/com/config/data/JpaConfig.class
 egovframework/com/feature/admin/model/vo/CommonCodeVO.class
+egovframework/com/platform/dbchange/service/impl/DbChangeQueueServiceImpl$1.class
 egovframework/com/feature/admin/service/impl/CorrectionFactorStrategy.class
 egovframework/com/feature/admin/tools/MenuWbsExporter$WavePlan.class
 egovframework/com/feature/home/web/SiteMapPageController.class
@@ -702,7 +706,6 @@ egovframework/com/platform/codex/service/AdminEmissionLciClassificationMenuBoots
 egovframework/com/feature/admin/web/AdminMemberEvidenceSupport$EvidenceFileView.class
 egovframework/com/feature/admin/model/vo/UserFeatureOverrideVO.class
 egovframework/com/feature/admin/model/vo/CodexAdminActorContextVO.class
-egovframework/com/feature/auth/domain/repository/PasswordResetHistoryRepository.class
 egovframework/com/common/policy/GovernancePolicyModels.class
 egovframework/com/feature/admin/service/impl/AdminIntegratedDashboardMenuBootstrap.class
 egovframework/com/feature/admin/dto/request/AdminQnaCategorySaveRequestDTO.class
@@ -714,7 +717,6 @@ egovframework/com/feature/auth/external/model/ExternalAuthMethodDescriptor.class
 egovframework/com/feature/admin/service/impl/VariableUiDefinition.class
 egovframework/com/feature/admin/mapper/AdminEmissionGwpValueMapper.class
 egovframework/com/feature/admin/web/AdminHomeController.class
-egovframework/com/feature/auth/domain/entity/PasswordResetHistory.class
 egovframework/com/feature/admin/web/AdminMemberEditAuditSupport.class
 egovframework/com/platform/observability/service/AdminSiteMapPortBridge.class
 egovframework/com/feature/admin/service/impl/SrSelfHealingServiceImpl$AutoHealPolicy.class
@@ -722,11 +724,9 @@ egovframework/com/feature/admin/service/AdminBannerManagementService$BannerItem.
 egovframework/com/feature/admin/web/AdminMemberRegisterSupportService.class
 egovframework/com/feature/admin/dto/request/EmissionDefinitionDraftSaveRequest.class
 egovframework/com/feature/admin/web/AdminSessionSimulationService.class
-egovframework/com/feature/auth/domain/repository/LoginPolicyRepository.class
 egovframework/com/platform/read/FullStackGovernanceRegistryReadPort.class
 egovframework/com/platform/observability/service/AdminApprovalPagePayloadPortBridge.class
 egovframework/com/feature/admin/web/AdminMemberEvidenceSupport.class
 egovframework/com/feature/admin/service/IpWhitelistFirewallService.class
 egovframework/com/common/menu/service/impl/SiteMapServiceImpl$AuthorPermissionContext.class
 egovframework/com/feature/admin/service/MenuInfoCommandService.class
-egovframework/com/feature/auth/domain/repository/EmployeeMemberRepository.class

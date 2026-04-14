@@ -68,6 +68,12 @@ public class BackupConfigManagementPortBridge implements BackupConfigManagementP
         legacy.setDbUser(requestBody.getDbUser());
         legacy.setDbDumpCommand(requestBody.getDbDumpCommand());
         legacy.setDbSchemaScope(requestBody.getDbSchemaScope());
+        legacy.setDbPromotionDataPolicy(requestBody.getDbPromotionDataPolicy());
+        legacy.setDbDiffExecutionPreset(requestBody.getDbDiffExecutionPreset());
+        legacy.setDbApplyLocalDiffYn(requestBody.getDbApplyLocalDiffYn());
+        legacy.setDbForceDestructiveDiffYn(requestBody.getDbForceDestructiveDiffYn());
+        legacy.setDbFailOnUntrackedDestructiveDiffYn(requestBody.getDbFailOnUntrackedDestructiveDiffYn());
+        legacy.setDbRequirePatchHistoryYn(requestBody.getDbRequirePatchHistoryYn());
         legacy.setVersionMemo(requestBody.getVersionMemo());
         return legacy;
     }

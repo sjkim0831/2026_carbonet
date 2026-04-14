@@ -9,6 +9,9 @@ import egovframework.com.feature.admin.service.AdminCodeManageService;
 import egovframework.com.feature.admin.service.MenuFeatureManageService;
 import egovframework.com.feature.admin.service.MenuInfoCommandService;
 import egovframework.com.feature.auth.service.CurrentUserContextService;
+import egovframework.com.platform.dbchange.model.DbChangeCaptureRequest;
+import egovframework.com.platform.dbchange.service.DbChangeCaptureService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +40,8 @@ public class AdminMenuManagementCommandService {
     private final UiManifestRegistryPort uiManifestRegistryPort;
     private final AuditTrailService auditTrailService;
     private final CurrentUserContextService currentUserContextService;
+    private final DbChangeCaptureService dbChangeCaptureService;
+    private final ObjectMapper objectMapper;
 
     public ResponseEntity<Map<String, Object>> saveMenuManagementOrder(
             String menuType,
@@ -158,6 +163,13 @@ public class AdminMenuManagementCommandService {
                             + "\",\"pageCode\":\"" + safeJson(nextPageCode)
                             + "\",\"menuUrl\":\"" + safeJson(normalizedUrl)
                             + "\"}");
+            recordMenuPageDbChange(
+                    request,
+                    nextPageCode,
+                    draftPageId,
+                    "INSERT",
+                    null,
+                    loadExactPageManagementRow(codeId, nextPageCode));
             response.put("draftPageId", draftPageId);
             response.put("manifestRegistry", draftRegistry);
         } catch (Exception e) {
@@ -207,6 +219,7 @@ public class AdminMenuManagementCommandService {
             return ResponseEntity.badRequest().body(response);
         }
 
+        PageManagementVO beforeRow = loadExactPageManagementRow(codeId, normalizedMenuCode);
         try {
             adminCodeManageService.updatePageManagement(
                     normalizedMenuCode,
@@ -224,6 +237,14 @@ public class AdminMenuManagementCommandService {
                     normalizedMenuCode,
                     "{\"beforeUseAt\":\"" + safeJson(currentRow.getUseAt()) + "\"}",
                     "{\"afterUseAt\":\"" + safeJson(normalizedUseAt) + "\"}");
+            PageManagementVO afterRow = loadExactPageManagementRow(codeId, normalizedMenuCode);
+            recordMenuPageDbChange(
+                    request,
+                    normalizedMenuCode,
+                    buildManagedDraftPageId(afterRow == null ? safeString(currentRow.getMenuUrl()) : safeString(afterRow.getMenuUrl()), normalizedMenuCode),
+                    "UPDATE",
+                    beforeRow,
+                    afterRow);
         } catch (Exception e) {
             log.error("Failed to update full-stack menu visibility. menuCode={}, useAt={}", normalizedMenuCode, normalizedUseAt, e);
             response.put("success", false);
@@ -498,6 +519,81 @@ public class AdminMenuManagementCommandService {
             );
         } catch (Exception e) {
             log.warn("Failed to record menu-management audit. actionCode={}, entityId={}", actionCode, entityId, e);
+        }
+    }
+
+    private void recordMenuPageDbChange(HttpServletRequest request,
+                                        String menuCode,
+                                        String pageId,
+                                        String changeType,
+                                        PageManagementVO before,
+                                        PageManagementVO after) {
+        try {
+            DbChangeCaptureRequest captureRequest = new DbChangeCaptureRequest();
+            captureRequest.setProjectId("carbonet");
+            captureRequest.setMenuCode(menuCode);
+            captureRequest.setPageId(pageId);
+            captureRequest.setApiPath(request == null ? "" : safeString(request.getRequestURI()));
+            captureRequest.setHttpMethod(request == null ? "" : safeString(request.getMethod()));
+            captureRequest.setActorId(resolveActorId(request));
+            captureRequest.setActorRole(resolveActorRole(request));
+            captureRequest.setActorScopeId("");
+            captureRequest.setTargetTableName("COMTNMENUINFO");
+            captureRequest.setTargetPkJson("{\"menuCode\":\"" + safeJson(menuCode) + "\"}");
+            captureRequest.setEntityType("PAGE_MENU");
+            captureRequest.setEntityId(menuCode);
+            captureRequest.setChangeType(changeType);
+            captureRequest.setBeforeSummaryJson(writeJson(before));
+            captureRequest.setAfterSummaryJson(writeJson(after));
+            captureRequest.setChangeSummary(buildMenuPageChangeSummary(changeType, menuCode, before, after));
+            captureRequest.setPatchFormatCode("JSON_PATCH");
+            captureRequest.setPatchKindCode("INSERT".equals(changeType) ? "ROW_INSERT" : "ROW_UPSERT");
+            captureRequest.setTargetEnv("PROD");
+            captureRequest.setTargetKeysJson("{\"menuCode\":\"" + safeJson(menuCode) + "\"}");
+            captureRequest.setPatchPayloadJson(writeJson(after));
+            captureRequest.setRenderedSqlPreview("");
+            captureRequest.setRiskLevel("MEDIUM");
+            captureRequest.setLogicalObjectId("COMTNMENUINFO:" + menuCode);
+            captureRequest.setSourceEnv("LOCAL");
+            dbChangeCaptureService.captureChange(captureRequest);
+        } catch (Exception e) {
+            log.warn("Failed to capture menu page DB change. menuCode={}, changeType={}", menuCode, changeType, e);
+        }
+    }
+
+    private PageManagementVO loadExactPageManagementRow(String codeId, String code) {
+        try {
+            List<PageManagementVO> pageRows = adminCodeManageService.selectPageManagementList(codeId, code, null);
+            for (PageManagementVO row : pageRows) {
+                if (safeString(code).equalsIgnoreCase(safeString(row.getCode()))) {
+                    return row;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load exact page management row. codeId={}, code={}", codeId, code, e);
+        }
+        return null;
+    }
+
+    private String buildMenuPageChangeSummary(String changeType, String menuCode, PageManagementVO before, PageManagementVO after) {
+        String targetUrl = after == null ? safeString(before == null ? null : before.getMenuUrl()) : safeString(after.getMenuUrl());
+        if ("INSERT".equals(changeType)) {
+            return "Menu-managed page created: " + menuCode + " -> " + targetUrl;
+        }
+        String beforeUseAt = safeString(before == null ? null : before.getUseAt());
+        String afterUseAt = safeString(after == null ? null : after.getUseAt());
+        return "Menu-managed page updated: " + menuCode + " useAt " + beforeUseAt + " -> " + afterUseAt;
+    }
+
+    private String writeJson(Object value) {
+        if (value == null) {
+            return "";
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            log.warn("Failed to serialize menu page DB capture payload.", e);
+            return "";
         }
     }
 

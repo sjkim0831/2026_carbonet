@@ -285,6 +285,8 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
+      { componentId: "ExternalKeyCloseoutGate", instanceKey: "external-keys-closeout-gate", layoutZone: "content", propsSummary: ["maskedReference", "targetRoute", "expiresAt", "rotationStatus"] },
+      { componentId: "ExternalKeyActionContract", instanceKey: "external-keys-action-contract", layoutZone: "actions", propsSummary: ["issueKey", "rotateSelected", "revokeSelected", "auditExport"] },
       { componentId: "ExternalKeySummaryCards", instanceKey: "external-keys-summary", layoutZone: "content", propsSummary: ["externalKeySummary"] },
       { componentId: "ExternalKeyFilters", instanceKey: "external-keys-filters", layoutZone: "actions", propsSummary: ["keyword", "authMethod", "rotationStatus"] },
       { componentId: "ExternalKeyInventoryTable", instanceKey: "external-keys-inventory", layoutZone: "content", propsSummary: ["externalKeyRows", "filteredRows", "refreshedAt"] },
@@ -377,8 +379,10 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
-      { componentId: "ExternalWebhookFilters", instanceKey: "external-webhooks-filters", layoutZone: "actions", propsSummary: ["keyword", "syncMode", "status"] },
       { componentId: "ExternalWebhookSummaryCards", instanceKey: "external-webhooks-summary", layoutZone: "content", propsSummary: ["externalWebhookSummary"] },
+      { componentId: "ExternalWebhookCloseoutGate", instanceKey: "external-webhooks-closeout-gate", layoutZone: "content", propsSummary: ["endpointCrud", "secretRotation", "testDelivery", "replay", "failurePolicy"] },
+      { componentId: "ExternalWebhookActionContract", instanceKey: "external-webhooks-action-contract", layoutZone: "actions", propsSummary: ["addEndpoint", "rotateSecret", "testDelivery", "replayFailed"] },
+      { componentId: "ExternalWebhookFilters", instanceKey: "external-webhooks-filters", layoutZone: "actions", propsSummary: ["keyword", "syncMode", "status"] },
       { componentId: "ExternalWebhookRegistryTable", instanceKey: "external-webhooks-targets", layoutZone: "content", propsSummary: ["externalWebhookRows", "refreshedAt"] },
       { componentId: "ExternalWebhookPolicyTable", instanceKey: "external-webhooks-deliveries", layoutZone: "content", propsSummary: ["externalWebhookDeliveryRows"] },
       { componentId: "ExternalWebhookQuickLinks", instanceKey: "external-webhooks-links", layoutZone: "content", propsSummary: ["externalWebhookQuickLinks"] },
@@ -2218,6 +2222,96 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "SchedulerManagementExecutions", instanceKey: "scheduler-management-executions", layoutZone: "content", propsSummary: ["schedulerExecutionRows"] }
     ]
   },
+  "batch-management": {
+    pageId: "batch-management",
+    routePath: "/admin/system/batch",
+    menuCode: "A0060304",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "BatchCloseoutGate", instanceKey: "batch-management-closeout-gate", layoutZone: "content", propsSummary: ["batchJobRows", "batchQueueRows", "batchNodeRows", "batchExecutionRows"] },
+      { componentId: "BatchActionContract", instanceKey: "batch-management-action-contract", layoutZone: "actions", propsSummary: ["pauseJob", "resumeJob", "retryFailedRun", "drainQueue"] },
+      { componentId: "BatchManagementFilters", instanceKey: "batch-management-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "jobStatus", "nodeStatus"] },
+      { componentId: "BatchManagementSummary", instanceKey: "batch-management-summary", layoutZone: "content", propsSummary: ["filteredJobs", "filteredQueues", "filteredNodes", "filteredExecutions"] },
+      { componentId: "BatchManagementJobs", instanceKey: "batch-management-jobs", layoutZone: "content", propsSummary: ["batchJobRows"] },
+      { componentId: "BatchManagementQueues", instanceKey: "batch-management-queues", layoutZone: "content", propsSummary: ["batchQueueRows"] },
+      { componentId: "BatchManagementNodes", instanceKey: "batch-management-nodes", layoutZone: "content", propsSummary: ["batchNodeRows"] },
+      { componentId: "BatchManagementExecutions", instanceKey: "batch-management-executions", layoutZone: "content", propsSummary: ["batchExecutionRows"] }
+    ]
+  },
+  "infra": {
+    pageId: "infra",
+    routePath: "/admin/system/infra",
+    menuCode: "ADMIN_SYSTEM_INFRA",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "InfraCloseoutGate", instanceKey: "infra-closeout-gate", layoutZone: "content", propsSummary: ["topologyRegistry", "liveHealthSource", "capacityThresholds", "incidentHandoff"] },
+      { componentId: "InfraActionContract", instanceKey: "infra-action-contract", layoutZone: "actions", propsSummary: ["refreshHealth", "openIncident", "drainNode", "remediationHandoff"] },
+      { componentId: "InfraSummary", instanceKey: "infra-summary", layoutZone: "content", propsSummary: ["filteredRows", "warningCount", "avgCpu", "avgMemory"] },
+      { componentId: "InfraFilters", instanceKey: "infra-filters", layoutZone: "actions", propsSummary: ["roleFilter", "zoneFilter"] },
+      { componentId: "InfraNodeGrid", instanceKey: "infra-node-grid", layoutZone: "content", propsSummary: ["INFRA_ROWS"] },
+      { componentId: "InfraIncidents", instanceKey: "infra-incidents", layoutZone: "content", propsSummary: ["INCIDENT_ROWS"] },
+      { componentId: "InfraConnectedConsoles", instanceKey: "infra-connected-consoles", layoutZone: "content", propsSummary: ["operationsCenter", "observability", "scheduler"] }
+    ]
+  },
+  "performance": {
+    pageId: "performance",
+    routePath: "/admin/system/performance",
+    menuCode: "ADMIN_SYSTEM_PERFORMANCE",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PerformanceStatus", instanceKey: "performance-status", layoutZone: "header", propsSummary: ["overallStatus", "refreshedAt", "slowThresholdMs", "requestWindowSize"] },
+      { componentId: "PerformanceCloseoutGate", instanceKey: "performance-closeout-gate", layoutZone: "content", propsSummary: ["thresholdManagement", "alertRules", "exportRetention", "trendComparison", "incidentLinkage"] },
+      { componentId: "PerformanceActionContract", instanceKey: "performance-action-contract", layoutZone: "actions", propsSummary: ["saveThresholds", "linkAlertRule", "exportReport", "openIncident"] },
+      { componentId: "PerformanceRuntimeSummary", instanceKey: "performance-runtime", layoutZone: "content", propsSummary: ["runtimeSummary"] },
+      { componentId: "PerformanceRequestSummary", instanceKey: "performance-request-summary", layoutZone: "content", propsSummary: ["requestSummary"] },
+      { componentId: "PerformanceHotspotRoutes", instanceKey: "performance-hotspot-routes", layoutZone: "content", propsSummary: ["hotspotRoutes"] },
+      { componentId: "PerformanceResponseDistribution", instanceKey: "performance-response-distribution", layoutZone: "content", propsSummary: ["responseStatusSummary"] },
+      { componentId: "PerformanceSlowRequests", instanceKey: "performance-slow-requests", layoutZone: "content", propsSummary: ["recentSlowRequests"] },
+      { componentId: "PerformanceQuickLinks", instanceKey: "performance-quick-links", layoutZone: "content", propsSummary: ["quickLinks"] },
+      { componentId: "PerformanceGuidance", instanceKey: "performance-guidance", layoutZone: "content", propsSummary: ["guidance"] }
+    ]
+  },
+  "notification": {
+    pageId: "notification",
+    routePath: "/admin/system/notification",
+    menuCode: "ADMIN_SYSTEM_NOTIFICATION",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "NotificationSnapshot", instanceKey: "notification-snapshot", layoutZone: "header", propsSummary: ["notificationCenterQuickLinks"] },
+      { componentId: "NotificationSummary", instanceKey: "notification-summary", layoutZone: "content", propsSummary: ["notificationCenterSummary", "notificationCenterMeta"] },
+      { componentId: "NotificationCloseoutGate", instanceKey: "notification-closeout-gate", layoutZone: "content", propsSummary: ["ruleCrud", "recipientScope", "testDispatch", "retryAudit"] },
+      { componentId: "NotificationActionContract", instanceKey: "notification-action-contract", layoutZone: "actions", propsSummary: ["createRule", "previewRecipients", "testDispatch", "retryFailed"] },
+      { componentId: "NotificationRouting", instanceKey: "notification-routing", layoutZone: "content", propsSummary: ["securityInsightNotificationConfig", "saveNotificationRouting", "dispatchNotificationRouting"] },
+      { componentId: "NotificationHistory", instanceKey: "notification-history", layoutZone: "content", propsSummary: ["securityInsightDeliveryRows", "securityInsightActivityRows", "notificationCenterFilterOptions"] },
+      { componentId: "NotificationGuidance", instanceKey: "notification-guidance", layoutZone: "content", propsSummary: ["notificationCenterGuidance"] }
+    ]
+  },
+  "db-sync-deploy": {
+    pageId: "db-sync-deploy",
+    routePath: "/admin/system/db-sync-deploy",
+    menuCode: "A0060406",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "DbSyncDeployScopeSummary", instanceKey: "db-sync-deploy-scope", layoutZone: "actions", propsSummary: ["dbSyncDeploySummary", "dbSyncDeployScriptPath"] },
+      { componentId: "DbSyncDeployPolicyGuardrail", instanceKey: "db-sync-deploy-policy", layoutZone: "content", propsSummary: ["dbSyncDeployGuardrailRows", "analyze", "validatePolicy", "serverUpTest"] },
+      { componentId: "DbSyncDeployBreakglass", instanceKey: "db-sync-deploy-breakglass", layoutZone: "content", propsSummary: ["EXECUTION_SOURCE", "BREAKGLASS_REASON", "BREAKGLASS_APPROVER"] },
+      { componentId: "DbSyncDeployPermissionContract", instanceKey: "db-sync-deploy-permission-contract", layoutZone: "content", propsSummary: ["A0060406_VIEW", "A0060406_ANALYZE", "A0060406_VALIDATE", "A0060406_EXECUTE", "A0060406_BREAKGLASS"] },
+      { componentId: "DbSyncDeployScriptChain", instanceKey: "db-sync-deploy-script-chain", layoutZone: "content", propsSummary: ["dbSyncDeployScriptChainRows"] },
+      { componentId: "DbSyncDeployEvidence", instanceKey: "db-sync-deploy-evidence", layoutZone: "content", propsSummary: ["dbSyncDeployExecutionRows", "dbSyncDeployPolicyValidationRows"] },
+      { componentId: "DbSyncDeployPolicyValidation", instanceKey: "db-sync-deploy-policy-validation", layoutZone: "content", propsSummary: ["dbSyncDeployPolicyValidationRows"] },
+      { componentId: "DbSyncDeployHistory", instanceKey: "db-sync-deploy-history", layoutZone: "content", propsSummary: ["dbSyncDeployHistoryRows"] }
+    ]
+  },
   "board-list": {
     pageId: "board-list",
     routePath: "/admin/content/board_list",
@@ -2411,6 +2505,95 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "EnvironmentManagementSummary", instanceKey: "environment-management-summary", layoutZone: "actions", propsSummary: ["menuCode", "featureCode"] },
       { componentId: "EnvironmentManagementEngines", instanceKey: "environment-management-engines", layoutZone: "content", propsSummary: ["allowAllScope", "allowedMemberTypes", "scope-policy-engine", "audit-diagnostic-engine"] },
       { componentId: "EnvironmentManagementCards", instanceKey: "environment-management-cards", layoutZone: "content", propsSummary: ["system-code", "page-management", "function-management", "menu-management"] }
+    ]
+  },
+  "asset-inventory": {
+    pageId: "asset-inventory",
+    routePath: "/admin/system/asset-inventory",
+    menuCode: "A0060123",
+    domainCode: "platform",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AssetInventorySummary", instanceKey: "asset-inventory-summary", layoutZone: "actions", propsSummary: ["totalCurrent", "totalTarget", "partialCount", "plannedCount"] },
+      { componentId: "AssetInventoryOverview", instanceKey: "asset-inventory-overview", layoutZone: "content", propsSummary: ["readyCount", "partialCount", "plannedCount"] },
+      { componentId: "AssetInventoryLanes", instanceKey: "asset-inventory-lanes", layoutZone: "content", propsSummary: ["laneCount", "service-registry", "runtime-operations", "integration-assets"] },
+      { componentId: "AssetInventoryPriority", instanceKey: "asset-inventory-priority", layoutZone: "content", propsSummary: ["priorityCount"] }
+    ]
+  },
+  "asset-detail": {
+    pageId: "asset-detail",
+    routePath: "/admin/system/asset-detail",
+    menuCode: "A0060124",
+    domainCode: "platform",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AssetDetailSummary", instanceKey: "asset-detail-summary", layoutZone: "actions", propsSummary: ["assetType", "riskCount", "linkedConsoleCount"] },
+      { componentId: "AssetDetailOverview", instanceKey: "asset-detail-overview", layoutZone: "content", propsSummary: ["currentState", "assetType"] },
+      { componentId: "AssetDetailTabs", instanceKey: "asset-detail-tabs", layoutZone: "content", propsSummary: ["activeTab", "assetType"] },
+      { componentId: "AssetDetailSupport", instanceKey: "asset-detail-support", layoutZone: "content", propsSummary: ["riskCount", "linkedConsoleCount"] }
+    ]
+  },
+  "asset-impact": {
+    pageId: "asset-impact",
+    routePath: "/admin/system/asset-impact",
+    menuCode: "A0060125",
+    domainCode: "platform",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AssetImpactSummary", instanceKey: "asset-impact-summary", layoutZone: "actions", propsSummary: ["modeCount", "linkedConsoleCount", "checkCount", "activeMode"] },
+      { componentId: "AssetImpactModes", instanceKey: "asset-impact-modes", layoutZone: "content", propsSummary: ["activeMode"] },
+      { componentId: "AssetImpactOverview", instanceKey: "asset-impact-overview", layoutZone: "content", propsSummary: ["activeMode", "linkedConsoleCount"] },
+      { componentId: "AssetImpactDetails", instanceKey: "asset-impact-details", layoutZone: "content", propsSummary: ["activeMode", "checkCount"] },
+      { componentId: "AssetImpactLinks", instanceKey: "asset-impact-links", layoutZone: "content", propsSummary: ["linkedConsoleCount"] }
+    ]
+  },
+  "asset-lifecycle": {
+    pageId: "asset-lifecycle",
+    routePath: "/admin/system/asset-lifecycle",
+    menuCode: "A0060126",
+    domainCode: "platform",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AssetLifecycleSummary", instanceKey: "asset-lifecycle-summary", layoutZone: "actions", propsSummary: ["stageCount", "linkedConsoleCount", "checkCount", "activeStage"] },
+      { componentId: "AssetLifecycleStages", instanceKey: "asset-lifecycle-stages", layoutZone: "content", propsSummary: ["activeStage"] },
+      { componentId: "AssetLifecycleOverview", instanceKey: "asset-lifecycle-overview", layoutZone: "content", propsSummary: ["activeStage"] },
+      { componentId: "AssetLifecycleChecklist", instanceKey: "asset-lifecycle-checklist", layoutZone: "content", propsSummary: ["activeStage", "checkCount"] },
+      { componentId: "AssetLifecycleLinks", instanceKey: "asset-lifecycle-links", layoutZone: "content", propsSummary: ["linkedConsoleCount"] }
+    ]
+  },
+  "asset-gap": {
+    pageId: "asset-gap",
+    routePath: "/admin/system/asset-gap",
+    menuCode: "A0060127",
+    domainCode: "platform",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AssetGapSummary", instanceKey: "asset-gap-summary", layoutZone: "actions", propsSummary: ["queueTypeCount", "sourceConsoleCount"] },
+      { componentId: "AssetGapOverview", instanceKey: "asset-gap-overview", layoutZone: "content", propsSummary: ["status"] },
+      { componentId: "AssetGapQueues", instanceKey: "asset-gap-queues", layoutZone: "content", propsSummary: ["queueTypeCount"] },
+      { componentId: "AssetGapSupport", instanceKey: "asset-gap-support", layoutZone: "content", propsSummary: ["signalSourceCount"] }
+    ]
+  },
+  "verification-center": {
+    pageId: "verification-center",
+    routePath: "/admin/system/verification-center",
+    menuCode: "A0060128",
+    domainCode: "platform",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "VerificationCenterSummary", instanceKey: "verification-center-summary", layoutZone: "actions", propsSummary: ["baselinePackCount", "readyCount", "partialCount", "runPassCount"] },
+      { componentId: "VerificationCenterOverview", instanceKey: "verification-center-overview", layoutZone: "content", propsSummary: ["baselinePolicyState", "currentRisk"] },
+      { componentId: "VerificationCenterCatalog", instanceKey: "verification-center-catalog", layoutZone: "content", propsSummary: ["baselinePacks", "ownerScope", "linkedConsoleCount"] },
+      { componentId: "VerificationCenterRuns", instanceKey: "verification-center-runs", layoutZone: "content", propsSummary: ["runCadenceCount", "failureRouting", "testAccountPolicy"] },
+      { componentId: "VerificationCenterInventoryScope", instanceKey: "verification-center-inventory-scope", layoutZone: "content", propsSummary: ["pageCount", "apiCount", "functionCount", "testCaseCount"] },
+      { componentId: "VerificationCenterFullLists", instanceKey: "verification-center-full-lists", layoutZone: "content", propsSummary: ["pages", "apis", "functions", "tests"] },
+      { componentId: "VerificationCenterLogPolicy", instanceKey: "verification-center-log-policy", layoutZone: "content", propsSummary: ["nextBuildStepCount"] }
     ]
   },
   "screen-builder": {

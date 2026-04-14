@@ -305,6 +305,12 @@ public class BackupConfigManagementService {
             putIfNotBlank(env, "GIT_REMOTE_NAME", safe(settings == null ? null : settings.gitRemoteName));
             putIfNotBlank(env, "GIT_BRANCH", safe(settings == null ? null : settings.gitBranchPattern));
             putIfNotBlank(env, "REPO_URL", resolveConfiguredGitRemoteUrl(settings));
+            putIfNotBlank(env, "DB_PROMOTION_DATA_POLICY", safe(settings == null ? null : settings.dbPromotionDataPolicy));
+            putIfNotBlank(env, "DB_DIFF_EXECUTION_PRESET", safe(settings == null ? null : settings.dbDiffExecutionPreset));
+            putIfNotBlank(env, "DB_APPLY_LOCAL_DIFF_YN", yn(settings == null ? null : settings.dbApplyLocalDiffYn));
+            putIfNotBlank(env, "DB_FORCE_DESTRUCTIVE_DIFF_YN", yn(settings == null ? null : settings.dbForceDestructiveDiffYn));
+            putIfNotBlank(env, "DB_FAIL_ON_UNTRACKED_DESTRUCTIVE_DIFF_YN", yn(settings == null ? null : settings.dbFailOnUntrackedDestructiveDiffYn));
+            putIfNotBlank(env, "DB_REQUIRE_PATCH_HISTORY_YN", yn(settings == null ? null : settings.dbRequirePatchHistoryYn));
             writeShellEnvFile(deployAutomationEnvPath, env);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to sync deploy automation settings.", e);
@@ -402,6 +408,12 @@ public class BackupConfigManagementService {
         settings.dbUser = "dba";
         settings.dbDumpCommand = "/opt/util/cubrid/11.2/scripts/backup_sql.sh";
         settings.dbSchemaScope = "FULL";
+        settings.dbPromotionDataPolicy = "CONTROLLED_REFERENCE_ONLY";
+        settings.dbDiffExecutionPreset = "PATCH_WITH_DIFF";
+        settings.dbApplyLocalDiffYn = "N";
+        settings.dbForceDestructiveDiffYn = "N";
+        settings.dbFailOnUntrackedDestructiveDiffYn = "Y";
+        settings.dbRequirePatchHistoryYn = "Y";
         return settings;
     }
 
@@ -429,8 +441,16 @@ public class BackupConfigManagementService {
         if (safe(current.dbUser).isEmpty()) current.dbUser = defaults.dbUser;
         if (safe(current.dbDumpCommand).isEmpty()) current.dbDumpCommand = defaults.dbDumpCommand;
         if (safe(current.dbSchemaScope).isEmpty()) current.dbSchemaScope = defaults.dbSchemaScope;
+        if (safe(current.dbPromotionDataPolicy).isEmpty()) current.dbPromotionDataPolicy = defaults.dbPromotionDataPolicy;
+        if (safe(current.dbDiffExecutionPreset).isEmpty()) current.dbDiffExecutionPreset = defaults.dbDiffExecutionPreset;
+        if (safe(current.dbApplyLocalDiffYn).isEmpty()) current.dbApplyLocalDiffYn = defaults.dbApplyLocalDiffYn;
+        if (safe(current.dbForceDestructiveDiffYn).isEmpty()) current.dbForceDestructiveDiffYn = defaults.dbForceDestructiveDiffYn;
+        if (safe(current.dbFailOnUntrackedDestructiveDiffYn).isEmpty()) current.dbFailOnUntrackedDestructiveDiffYn = defaults.dbFailOnUntrackedDestructiveDiffYn;
+        if (safe(current.dbRequirePatchHistoryYn).isEmpty()) current.dbRequirePatchHistoryYn = defaults.dbRequirePatchHistoryYn;
         current.backupRootPath = sanitizeBackupRootPath(current.backupRootPath, current.gitRepositoryPath);
         current.gitBackupMode = sanitizeGitBackupMode(current.gitBackupMode);
+        current.dbPromotionDataPolicy = sanitizeDbPromotionDataPolicy(current.dbPromotionDataPolicy);
+        current.dbDiffExecutionPreset = sanitizeDbDiffExecutionPreset(current.dbDiffExecutionPreset);
         return current;
     }
 
@@ -458,6 +478,12 @@ public class BackupConfigManagementService {
         settings.dbUser = safe(request == null ? null : request.getDbUser());
         settings.dbDumpCommand = sanitizeDbDumpCommand(safe(request == null ? null : request.getDbDumpCommand()));
         settings.dbSchemaScope = safe(request == null ? null : request.getDbSchemaScope()).toUpperCase(Locale.ROOT);
+        settings.dbPromotionDataPolicy = safe(request == null ? null : request.getDbPromotionDataPolicy()).toUpperCase(Locale.ROOT);
+        settings.dbDiffExecutionPreset = safe(request == null ? null : request.getDbDiffExecutionPreset()).toUpperCase(Locale.ROOT);
+        settings.dbApplyLocalDiffYn = yn(request == null ? null : request.getDbApplyLocalDiffYn());
+        settings.dbForceDestructiveDiffYn = yn(request == null ? null : request.getDbForceDestructiveDiffYn());
+        settings.dbFailOnUntrackedDestructiveDiffYn = yn(request == null ? null : request.getDbFailOnUntrackedDestructiveDiffYn());
+        settings.dbRequirePatchHistoryYn = yn(request == null ? null : request.getDbRequirePatchHistoryYn());
         if (safe(settings.gitUsername).isEmpty()) {
             settings.gitUsername = safe(currentSettings == null ? null : currentSettings.gitUsername);
         }
@@ -466,6 +492,8 @@ public class BackupConfigManagementService {
         }
         settings.backupRootPath = sanitizeBackupRootPath(settings.backupRootPath, settings.gitRepositoryPath);
         settings.gitBackupMode = sanitizeGitBackupMode(settings.gitBackupMode);
+        settings.dbPromotionDataPolicy = sanitizeDbPromotionDataPolicy(settings.dbPromotionDataPolicy);
+        settings.dbDiffExecutionPreset = sanitizeDbDiffExecutionPreset(settings.dbDiffExecutionPreset);
         return settings;
     }
 
@@ -522,6 +550,12 @@ public class BackupConfigManagementService {
         form.put("dbUser", safe(settings.dbUser));
         form.put("dbDumpCommand", safe(settings.dbDumpCommand));
         form.put("dbSchemaScope", safe(settings.dbSchemaScope));
+        form.put("dbPromotionDataPolicy", safe(settings.dbPromotionDataPolicy));
+        form.put("dbDiffExecutionPreset", safe(settings.dbDiffExecutionPreset));
+        form.put("dbApplyLocalDiffYn", yn(settings.dbApplyLocalDiffYn));
+        form.put("dbForceDestructiveDiffYn", yn(settings.dbForceDestructiveDiffYn));
+        form.put("dbFailOnUntrackedDestructiveDiffYn", yn(settings.dbFailOnUntrackedDestructiveDiffYn));
+        form.put("dbRequirePatchHistoryYn", yn(settings.dbRequirePatchHistoryYn));
         form.put("versionMemo", "");
         return form;
     }
@@ -762,6 +796,12 @@ public class BackupConfigManagementService {
         row.put("dbUser", safe(settings == null ? null : settings.dbUser));
         row.put("dbDumpCommand", safe(settings == null ? null : settings.dbDumpCommand));
         row.put("dbSchemaScope", safe(settings == null ? null : settings.dbSchemaScope));
+        row.put("dbPromotionDataPolicy", safe(settings == null ? null : settings.dbPromotionDataPolicy));
+        row.put("dbDiffExecutionPreset", safe(settings == null ? null : settings.dbDiffExecutionPreset));
+        row.put("dbApplyLocalDiffYn", yn(settings == null ? null : settings.dbApplyLocalDiffYn));
+        row.put("dbForceDestructiveDiffYn", yn(settings == null ? null : settings.dbForceDestructiveDiffYn));
+        row.put("dbFailOnUntrackedDestructiveDiffYn", yn(settings == null ? null : settings.dbFailOnUntrackedDestructiveDiffYn));
+        row.put("dbRequirePatchHistoryYn", yn(settings == null ? null : settings.dbRequirePatchHistoryYn));
         row.put("dbSummary", buildDbVersionSummary(settings));
         return row;
     }
@@ -790,6 +830,12 @@ public class BackupConfigManagementService {
         settings.dbUser = safe(row.get("dbUser"));
         settings.dbDumpCommand = safe(row.get("dbDumpCommand"));
         settings.dbSchemaScope = safe(row.get("dbSchemaScope"));
+        settings.dbPromotionDataPolicy = safe(row.get("dbPromotionDataPolicy"));
+        settings.dbDiffExecutionPreset = safe(row.get("dbDiffExecutionPreset"));
+        settings.dbApplyLocalDiffYn = yn(row.get("dbApplyLocalDiffYn"));
+        settings.dbForceDestructiveDiffYn = yn(row.get("dbForceDestructiveDiffYn"));
+        settings.dbFailOnUntrackedDestructiveDiffYn = yn(row.get("dbFailOnUntrackedDestructiveDiffYn"));
+        settings.dbRequirePatchHistoryYn = yn(row.get("dbRequirePatchHistoryYn"));
         return mergeWithDefaults(settings);
     }
 
@@ -819,11 +865,29 @@ public class BackupConfigManagementService {
                 Arrays.asList(
                         safe(settings == null ? null : settings.dbName),
                         safe(settings == null ? null : settings.dbHost) + ":" + safe(settings == null ? null : settings.dbPort),
-                        safe(settings == null ? null : settings.dbSchemaScope))
+                        safe(settings == null ? null : settings.dbSchemaScope),
+                        safe(settings == null ? null : settings.dbPromotionDataPolicy),
+                        safe(settings == null ? null : settings.dbDiffExecutionPreset))
                         .stream()
                         .map(this::safe)
                         .filter(value -> !value.isEmpty() && !":".equals(value))
                         .collect(Collectors.toList()));
+    }
+
+    private String sanitizeDbPromotionDataPolicy(String value) {
+        String normalized = safe(value).toUpperCase(Locale.ROOT);
+        if ("BUSINESS_WITH_OVERRIDE".equals(normalized) || "BUSINESS_ALLOWED".equals(normalized)) {
+            return normalized;
+        }
+        return "CONTROLLED_REFERENCE_ONLY";
+    }
+
+    private String sanitizeDbDiffExecutionPreset(String value) {
+        String normalized = safe(value).toUpperCase(Locale.ROOT);
+        if ("PATCH_ONLY".equals(normalized) || "FULL_REMOTE_DEPLOY".equals(normalized)) {
+            return normalized;
+        }
+        return "PATCH_WITH_DIFF";
     }
 
     private Map<String, String> playbookRow(String title, String body) {
@@ -2324,6 +2388,12 @@ public class BackupConfigManagementService {
         public String dbUser;
         public String dbDumpCommand;
         public String dbSchemaScope;
+        public String dbPromotionDataPolicy;
+        public String dbDiffExecutionPreset;
+        public String dbApplyLocalDiffYn;
+        public String dbForceDestructiveDiffYn;
+        public String dbFailOnUntrackedDestructiveDiffYn;
+        public String dbRequirePatchHistoryYn;
     }
 
     private static final class RestorePrivilegeAccess {

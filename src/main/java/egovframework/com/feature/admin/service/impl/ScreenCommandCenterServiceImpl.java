@@ -93,6 +93,9 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         addStaticPageOption(pages, knownPageIds, "signin-find-password-result", "비밀번호 찾기 완료", "/signin/findPassword/result", "HMENU_SIGNIN_FINDPW_RESULT", "home");
         addStaticPageOption(pages, knownPageIds, "signin-forbidden", "접근 거부", "/signin/loginForbidden", "HMENU_SIGNIN_FORBIDDEN", "home");
         addStaticPageOption(pages, knownPageIds, "mypage", "마이페이지", "/mypage", "HMENU_MYPAGE", "home");
+        addStaticPageOption(pages, knownPageIds, "infra", "인프라", "/admin/system/infra", "ADMIN_SYSTEM_INFRA", "admin");
+        addStaticPageOption(pages, knownPageIds, "performance", "성능", "/admin/system/performance", "ADMIN_SYSTEM_PERFORMANCE", "admin");
+        addStaticPageOption(pages, knownPageIds, "notification", "알림센터", "/admin/system/notification", "ADMIN_SYSTEM_NOTIFICATION", "admin");
         addStaticPageOption(pages, knownPageIds, "platform-studio", "플랫폼 스튜디오", "/admin/system/platform-studio", "A0060109", "admin");
         addStaticPageOption(pages, knownPageIds, "screen-elements-management", "화면 요소 관리", "/admin/system/screen-elements-management", "A0060110", "admin");
         addStaticPageOption(pages, knownPageIds, "event-management-console", "이벤트 관리", "/admin/system/event-management-console", "A0060111", "admin");
@@ -106,6 +109,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         addStaticPageOption(pages, knownPageIds, "backup-execution", "백업 실행", "/admin/system/backup", "A0060402", "admin");
         addStaticPageOption(pages, knownPageIds, "restore-execution", "복구 실행", "/admin/system/restore", "A0060403", "admin");
         addStaticPageOption(pages, knownPageIds, "version-management", "버전 관리", "/admin/system/version", "A0060404", "admin");
+        addStaticPageOption(pages, knownPageIds, "db-promotion-policy", "DB 반영 정책 카탈로그", "/admin/system/db-promotion-policy", "A0060405", "admin");
+        addStaticPageOption(pages, knownPageIds, "db-sync-deploy", "DB 동기화 배포", "/admin/system/db-sync-deploy", "A0060406", "admin");
         addStaticPageOption(pages, knownPageIds, "external-connection-add", "외부연계 등록", "/admin/external/connection_add", "A0050102", "admin");
         addStaticPageOption(pages, knownPageIds, "external-keys", "외부 인증키 관리", "/admin/external/keys", "A0050103", "admin");
         addStaticPageOption(pages, knownPageIds, "external-usage", "API 사용량", "/admin/external/usage", "A0050108", "admin");
@@ -114,6 +119,12 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         addStaticPageOption(pages, knownPageIds, "external-sync", "동기화 실행", "/admin/external/sync", "A0050104", "admin");
         addStaticPageOption(pages, knownPageIds, "external-monitoring", "연계 모니터링", "/admin/external/monitoring", "A0050106", "admin");
         addStaticPageOption(pages, knownPageIds, "external-maintenance", "점검 관리", "/admin/external/maintenance", "A0050107", "admin");
+        addStaticPageOption(pages, knownPageIds, "asset-inventory", "자산 인벤토리", "/admin/system/asset-inventory", "A0060123", "admin");
+        addStaticPageOption(pages, knownPageIds, "verification-center", "운영 검증 센터", "/admin/system/verification-center", "A0060128", "admin");
+        addStaticPageOption(pages, knownPageIds, "asset-detail", "자산 상세", "/admin/system/asset-detail", "A0060124", "admin");
+        addStaticPageOption(pages, knownPageIds, "asset-impact", "자산 영향도", "/admin/system/asset-impact", "A0060125", "admin");
+        addStaticPageOption(pages, knownPageIds, "asset-lifecycle", "자산 생명주기", "/admin/system/asset-lifecycle", "A0060126", "admin");
+        addStaticPageOption(pages, knownPageIds, "asset-gap", "자산 미흡 큐", "/admin/system/asset-gap", "A0060127", "admin");
         addStaticPageOption(pages, knownPageIds, "wbs-management", "WBS 관리", "/admin/system/wbs-management", "A1900104", "admin");
         addStaticPageOption(pages, knownPageIds, "new-page", "새 페이지", "/admin/system/new-page", "A1900106", "admin");
         addManagedMenuPageOptions(pages, knownPageIds, "AMENU1");
@@ -229,6 +240,12 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildCodexRequestPage();
             case "full-stack-management":
                 return buildFullStackManagementPage();
+            case "infra":
+                return buildInfraManagementPage();
+            case "performance":
+                return buildPerformancePage();
+            case "notification":
+                return buildNotificationPage();
             case "platform-studio":
                 return buildPlatformStudioPage("platform-studio", "플랫폼 스튜디오", "/admin/system/platform-studio", "A0060109", "overview");
             case "screen-elements-management":
@@ -255,8 +272,24 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildBackupSubPage("restore-execution", "복구 실행", "/admin/system/restore", "A0060403", "restore");
             case "version-management":
                 return buildBackupSubPage("version-management", "버전 관리", "/admin/system/version", "A0060404", "version");
+            case "db-promotion-policy":
+                return buildDbPromotionPolicyPage();
+            case "db-sync-deploy":
+                return buildDbSyncDeployPage();
             case "environment-management":
                 return buildEnvironmentManagementPage();
+            case "asset-inventory":
+                return buildAssetInventoryPage();
+            case "verification-center":
+                return buildVerificationCenterPage();
+            case "asset-detail":
+                return buildAssetDetailPage();
+            case "asset-impact":
+                return buildAssetImpactPage();
+            case "asset-lifecycle":
+                return buildAssetLifecyclePage();
+            case "asset-gap":
+                return buildAssetGapPage();
             case "wbs-management":
                 return buildWbsManagementPage();
             case "new-page":
@@ -2302,11 +2335,224 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         return page;
     }
 
+    private Map<String, Object> buildInfraManagementPage() {
+        Map<String, Object> page = pageOption("infra", "인프라", "/admin/system/infra", "ADMIN_SYSTEM_INFRA", "admin");
+        page.put("summary", "웹, 배치, 관측 인프라의 정적 점검 화면과 실제 런타임 조치에 필요한 미완성 계약을 구분하는 관리자 콘솔입니다.");
+        page.put("source", "frontend/src/features/system-infra/InfraManagementMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("infra-closeout-gate", "인프라 완료 게이트", "[data-help-id=\"infra-closeout-gate\"]", "InfraCloseoutGate", "content",
+                        Collections.emptyList(), "토폴로지 레지스트리, 라이브 헬스, 임계치, 인시던트 핸드오프, 운영 콘솔 이동 가능 여부를 구분합니다."),
+                surface("infra-action-contract", "인프라 런타임 조치 계약", "[data-help-id=\"infra-action-contract\"] button[disabled]", "InfraActionContract", "actions",
+                        Collections.emptyList(), "헬스 새로고침, 인시던트 생성, 노드 drain, 조치 핸드오프는 백엔드 포트와 감사 연결 전까지 비활성화합니다."),
+                surface("infra-summary", "인프라 요약 카드", "[data-help-id=\"infra-summary\"]", "InfraSummaryCards", "header",
+                        Collections.emptyList(), "노드 수, 점검 필요 수, 평균 CPU와 메모리 사용률을 요약합니다."),
+                surface("infra-filters", "인프라 노드 필터", "[data-help-id=\"infra-filters\"]", "InfraFilters", "actions",
+                        Arrays.asList("infra-filter-change"), "역할과 존 기준으로 인프라 노드 샘플을 필터링합니다."),
+                surface("infra-node-grid", "인프라 노드 카드", "[data-help-id=\"infra-node-grid\"]", "InfraNodeGrid", "content",
+                        Collections.emptyList(), "노드 역할, 존, 헬스, CPU, 메모리, 디스크 상태를 카드로 보여줍니다."),
+                surface("infra-incidents", "인프라 인시던트 메모", "[data-help-id=\"infra-incidents\"]", "InfraIncidentNotes", "content",
+                        Collections.emptyList(), "현재 인프라 조치 메모와 심각도를 표시합니다."),
+                surface("infra-connected-consoles", "연결 운영 콘솔", "[data-help-id=\"infra-connected-consoles\"]", "InfraConnectedConsoles", "content",
+                        Collections.emptyList(), "운영센터, 통합 관측, 스케줄러 등 후속 분석 화면으로 이동합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("infra-filter-change", "인프라 필터 변경", "change", "setRoleFilter / setZoneFilter", "[data-help-id=\"infra-filters\"] select",
+                        Collections.singletonList("admin.infra.page"), "역할과 존 필터 변경 시 로컬 노드 목록과 요약을 다시 계산합니다."),
+                event("infra-action-contract-blocked", "인프라 조치 차단 상태 표시", "render", "InfraActionContract", "[data-help-id=\"infra-action-contract\"]",
+                        Collections.emptyList(), "라이브 토폴로지, 권한, 승인, 감사가 연결되기 전까지 런타임 변경 액션을 차단합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                routeApi("admin.infra.page", "인프라 화면 조회", "/admin/system/infra", "ADMIN_SYSTEM_INFRA"),
+                pendingApi("admin.infra.topology", "인프라 토폴로지 조회", "GET", "/admin/system/infra/topology", "노드 레지스트리, 존, 역할, source timestamp를 반환하는 조회 API가 필요합니다."),
+                pendingApi("admin.infra.health-refresh", "인프라 헬스 새로고침", "POST", "/admin/system/infra/health/refresh", "라이브 헬스 수집기, degraded/unknown 판정, 수집 실패 증적이 필요합니다."),
+                pendingApi("admin.infra.incident-open", "인프라 인시던트 생성", "POST", "/admin/system/infra/incidents", "인시던트 생성 API, 담당자/심각도/감사 저장소 연결이 필요합니다."),
+                pendingApi("admin.infra.node-drain", "인프라 노드 drain", "POST", "/admin/system/infra/nodes/{nodeId}/drain", "노드 drain 실행기, 영향도 사전 점검, 승인, 롤백 경로가 필요합니다."),
+                routeApi("route.admin.monitoring.center", "운영센터 이동", "/admin/monitoring/center", "ADMIN_MONITORING_CENTER"),
+                routeApi("route.admin.system.observability", "통합 관측 이동", "/admin/system/observability", "A0060303"),
+                routeApi("route.admin.system.scheduler", "스케줄러 이동", "/admin/system/scheduler", "AMENU_SCHEDULER_MANAGEMENT")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("infra-node-row-schema", "인프라 노드 행 스키마", "PENDING_TOPOLOGY_NODE",
+                        Arrays.asList("nodeId", "name", "role", "zone", "health", "cpu", "memory", "disk", "sourceTimestamp", "note"),
+                        Arrays.asList("SELECT"),
+                        "정적 샘플을 대체할 토폴로지 노드 조회 행입니다."),
+                schema("infra-incident-row-schema", "인프라 인시던트 행 스키마", "PENDING_INCIDENT",
+                        Arrays.asList("incidentId", "nodeId", "severity", "status", "owner", "openedAt", "actionSummary"),
+                        Arrays.asList("SELECT", "INSERT", "UPDATE"),
+                        "인시던트와 조치 핸드오프를 연결할 행입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("INFRA_NODE_ROLE", "인프라 노드 역할", Arrays.asList("WEB", "BATCH", "OBSERVABILITY"), "노드 역할 필터와 배지 기준입니다."),
+                codeGroup("INFRA_HEALTH_STATUS", "인프라 헬스 상태", Arrays.asList("HEALTHY", "WARNING", "DEGRADED", "UNKNOWN"), "라이브 헬스 배지와 조치 판단 기준입니다."),
+                codeGroup("INFRA_REMEDIATION_ACTION", "인프라 조치 유형", Arrays.asList("REFRESH_HEALTH", "OPEN_INCIDENT", "DRAIN_NODE", "HANDOFF"), "런타임 조치 권한과 감사 이벤트 구분값입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildPerformancePage() {
+        Map<String, Object> page = pageOption("performance", "성능", "/admin/system/performance", "ADMIN_SYSTEM_PERFORMANCE", "admin");
+        page.put("summary", "JVM 용량과 최근 요청 실행 로그를 기반으로 성능 상태를 점검하고, 아직 필요한 임계치/알림/export/보존/인시던트 계약을 구분하는 관리자 화면입니다.");
+        page.put("source", "frontend/src/features/performance/PerformanceMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("performance-status", "성능 현재 상태", "[data-help-id=\"performance-status\"]", "PerformanceStatus", "header",
+                        Collections.emptyList(), "overallStatus, refreshedAt, slowThresholdMs, requestWindowSize를 표시합니다."),
+                surface("performance-closeout-gate", "성능 완료 게이트", "[data-help-id=\"performance-closeout-gate\"]", "PerformanceCloseoutGate", "content",
+                        Collections.emptyList(), "현재 가능한 진단과 아직 필요한 임계치, 알림, export, 보존기간, 추세 비교, 인시던트 연계를 구분합니다."),
+                surface("performance-action-contract", "성능 거버넌스 조치 계약", "[data-help-id=\"performance-action-contract\"] button[disabled]", "PerformanceActionContract", "actions",
+                        Collections.emptyList(), "임계치 저장, 알림 규칙 연결, 리포트 export, 인시던트 생성은 백엔드 계약과 감사 전까지 비활성화합니다."),
+                surface("performance-runtime", "JVM 용량 카드", "[data-help-id=\"performance-runtime\"]", "PerformanceRuntimeSummary", "content",
+                        Collections.emptyList(), "힙 사용률, 가용 메모리, 프로세서, 관측 요청 수를 보여줍니다."),
+                surface("performance-request-summary", "요청 지연 요약", "[data-help-id=\"performance-request-summary\"]", "PerformanceRequestSummary", "content",
+                        Collections.emptyList(), "평균, p95, 지연 요청 비율, 오류 비율을 보여줍니다."),
+                surface("performance-hotspot-routes", "성능 hotspot 경로", "[data-help-id=\"performance-hotspot-routes\"]", "PerformanceHotspotRoutes", "content",
+                        Collections.emptyList(), "평균 또는 최대 지연이 높은 경로를 표로 보여줍니다."),
+                surface("performance-response-distribution", "응답 분포", "[data-help-id=\"performance-response-distribution\"]", "PerformanceResponseDistribution", "content",
+                        Collections.emptyList(), "상태 코드와 최대 지연 분포를 보여줍니다."),
+                surface("performance-slow-requests", "최근 지연/오류 요청", "[data-help-id=\"performance-slow-requests\"]", "PerformanceSlowRequests", "content",
+                        Collections.emptyList(), "traceId, actor, 상태 코드, 지연 시간을 포함한 최근 문제 요청을 보여줍니다."),
+                surface("performance-quick-links", "성능 분석 바로가기", "[data-help-id=\"performance-quick-links\"]", "PerformanceQuickLinks", "content",
+                        Collections.emptyList(), "통합 로그, 추적 조회, 에러 로그, 운영센터로 이동합니다."),
+                surface("performance-guidance", "성능 운영 가이드", "[data-help-id=\"performance-guidance\"]", "PerformanceGuidance", "content",
+                        Collections.emptyList(), "최근 샘플 기반 해석, p95 급증, 힙 상승 시 후속 조치를 안내합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("performance-route-drilldown", "성능 경로 추적 이동", "click", "openTargetRoute", "[data-help-id=\"performance-hotspot-routes\"] a, [data-help-id=\"performance-slow-requests\"] a",
+                        Collections.emptyList(), "hotspot 또는 최근 지연/오류 요청에서 연결된 추적/로그 화면으로 이동합니다."),
+                event("performance-action-contract-blocked", "성능 조치 차단 상태 표시", "render", "PerformanceActionContract", "[data-help-id=\"performance-action-contract\"]",
+                        Collections.emptyList(), "임계치 정책, 알림 규칙, export, 인시던트 lifecycle, 감사 저장소가 연결되기 전까지 운영 변경 액션을 차단합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.performance.page", "성능 화면 조회", "GET", "/admin/system/performance/page-data",
+                        "PlatformObservabilityPageDataController.performancePageApi", "PlatformObservabilityPagePayloadPort.buildPerformancePagePayload",
+                        "RequestExecutionLogQueryPort.searchRecent",
+                        Arrays.asList("REQUEST_EXECUTION_LOG", "JVM_RUNTIME"),
+                        Arrays.asList("performance-request-log-schema", "performance-runtime-snapshot-schema"),
+                        "JVM runtime 값과 최근 요청 실행 로그를 읽어 성능 payload를 구성합니다."),
+                pendingApi("admin.performance.threshold-save", "성능 임계치 저장", "POST", "/admin/system/performance/thresholds", "slow/p95/error/heap 임계치 저장 API와 변경 감사가 필요합니다."),
+                pendingApi("admin.performance.alert-link", "성능 알림 규칙 연결", "POST", "/admin/system/performance/alert-rules", "알림센터 rule id, 수신 범위, 테스트 발송 결과 연결이 필요합니다."),
+                pendingApi("admin.performance.export", "성능 리포트 export", "GET", "/admin/system/performance/export", "CSV/감사용 export API와 masking, 보존기간, 다운로드 감사가 필요합니다."),
+                pendingApi("admin.performance.incident-open", "성능 인시던트 생성", "POST", "/admin/system/performance/incidents", "운영센터 인시던트 lifecycle, 담당자, trace 연결이 필요합니다."),
+                pendingApi("admin.performance.trend-compare", "성능 추세 비교", "GET", "/admin/system/performance/trends", "배포 전후, 시간대별, 기준선 대비 추세 저장소가 필요합니다."),
+                routeApi("route.admin.system.observability", "추적 조회 이동", "/admin/system/observability", "A0060303"),
+                routeApi("route.admin.system.error-log", "에러 로그 이동", "/admin/system/error-log", "A0060302"),
+                routeApi("route.admin.monitoring.center", "운영센터 이동", "/admin/monitoring/center", "ADMIN_MONITORING_CENTER")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("performance-request-log-schema", "요청 실행 로그 스키마", "REQUEST_EXECUTION_LOG",
+                        Arrays.asList("traceId", "requestUri", "httpMethod", "responseStatus", "durationMs", "actorUserId", "executedAt", "errorMessage"),
+                        Arrays.asList("SELECT"),
+                        "최근 요청 샘플, hotspot, 지연/오류 요청을 계산하는 원천입니다."),
+                schema("performance-runtime-snapshot-schema", "런타임 스냅샷 스키마", "JVM_RUNTIME",
+                        Arrays.asList("maxMemory", "totalMemory", "freeMemory", "usedMemory", "availableProcessors", "sampledAt"),
+                        Arrays.asList("READ_RUNTIME"),
+                        "현재 JVM 용량 정보를 읽는 런타임 스냅샷입니다."),
+                schema("performance-policy-schema", "성능 정책 스키마", "PENDING_PERFORMANCE_POLICY",
+                        Arrays.asList("thresholdId", "slowThresholdMs", "p95ThresholdMs", "heapThresholdPercent", "errorRatePercent", "retentionDays", "updatedBy", "updatedAt"),
+                        Arrays.asList("SELECT", "INSERT", "UPDATE"),
+                        "향후 임계치, export 보존기간, 알림 연결을 저장할 정책 스키마입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("PERFORMANCE_STATUS", "성능 상태", Arrays.asList("HEALTHY", "WARNING", "CRITICAL", "UNKNOWN"), "성능 상태 배지와 알림 판단 기준입니다."),
+                codeGroup("PERFORMANCE_ACTION", "성능 조치 유형", Arrays.asList("SAVE_THRESHOLDS", "LINK_ALERT_RULE", "EXPORT_REPORT", "OPEN_INCIDENT", "COMPARE_TREND"), "성능 운영 액션 권한과 감사 이벤트 구분값입니다."),
+                codeGroup("PERFORMANCE_RETENTION", "성능 보존기간", Arrays.asList("7D", "30D", "90D", "CUSTOM"), "요청 로그와 성능 리포트 보존기간 정책 후보입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildNotificationPage() {
+        Map<String, Object> page = pageOption("notification", "알림센터", "/admin/system/notification", "ADMIN_SYSTEM_NOTIFICATION", "admin");
+        page.put("summary", "보안 정책 알림 라우팅, 즉시 발송, 전달/운영 이력을 관리하고 범용 알림 rule, 수신자 scope, 테스트 발송, 재시도 계약의 미완성 상태를 구분하는 관리자 화면입니다.");
+        page.put("source", "frontend/src/features/notification-center/NotificationCenterMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("notification-snapshot", "알림 운영 현황", "[data-help-id=\"notification-snapshot\"]", "NotificationSnapshot", "header",
+                        Collections.emptyList(), "보안 정책, 보안 모니터링, 통합 로그로 이어지는 운영 바로가기를 제공합니다."),
+                surface("notification-summary", "알림 요약 카드", "[data-help-id=\"notification-summary\"]", "NotificationSummary", "content",
+                        Collections.emptyList(), "활성 채널, 발송 실패, 라우팅 점검, Critical 탐지 수를 요약합니다."),
+                surface("notification-closeout-gate", "알림센터 완료 게이트", "[data-help-id=\"notification-closeout-gate\"]", "NotificationCloseoutGate", "content",
+                        Collections.emptyList(), "현재 가능한 보안 라우팅/이력과 아직 필요한 rule CRUD, 수신자 scope, 테스트 발송, 재시도 계약을 구분합니다."),
+                surface("notification-action-contract", "범용 알림 조치 계약", "[data-help-id=\"notification-action-contract\"] button[disabled]", "NotificationActionContract", "actions",
+                        Collections.emptyList(), "알림 규칙 생성, 수신자 scope 미리보기, 테스트 발송, 실패 재시도는 백엔드 계약과 감사 전까지 비활성화합니다."),
+                surface("notification-routing", "알림 라우팅 설정", "[data-help-id=\"notification-routing\"]", "NotificationRouting", "content",
+                        Arrays.asList("notification-routing-save", "notification-dispatch"), "Slack, Mail, Webhook, severity, digest 설정을 저장하고 보안 알림을 발송합니다."),
+                surface("notification-history", "알림 전달/활동 이력", "[data-help-id=\"notification-history\"]", "NotificationHistory", "content",
+                        Arrays.asList("notification-delivery-filter", "notification-activity-filter"), "발송 이력과 운영자 조치 이력을 필터와 페이지네이션으로 조회합니다."),
+                surface("notification-guidance", "알림 운영 가이드", "[data-help-id=\"notification-guidance\"]", "NotificationGuidance", "content",
+                        Collections.emptyList(), "Critical/High 알림 처리와 로그 확인 기준을 안내합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("notification-routing-save", "알림 라우팅 저장", "click", "saveNotificationRouting", "[data-help-id=\"notification-routing\"] .primary-button",
+                        Collections.singletonList("admin.notification.routing-save"), "보안 정책 알림 채널과 digest 설정을 저장합니다."),
+                event("notification-dispatch", "보안 알림 발송", "click", "dispatchNotificationRouting", "[data-help-id=\"notification-routing\"] .secondary-button",
+                        Collections.singletonList("admin.notification.dispatch"), "Critical/High 또는 Critical-only 보안 알림 발송을 실행하고 이력을 기록합니다."),
+                event("notification-delivery-filter", "발송 이력 필터", "click", "applyDeliveryFilters / resetDeliveryFilters / changeDeliveryPage", "[data-help-id=\"notification-history\"]",
+                        Collections.singletonList("admin.notification.page"), "채널, 상태, 검색어, 페이지 조건으로 발송 이력을 조회합니다."),
+                event("notification-activity-filter", "운영자 조치 필터", "click", "applyActivityFilters / resetActivityFilters / changeActivityPage", "[data-help-id=\"notification-history\"]",
+                        Collections.singletonList("admin.notification.page"), "조치 유형, 검색어, 페이지 조건으로 운영자 조치 이력을 조회합니다."),
+                event("notification-action-contract-blocked", "범용 알림 조치 차단 상태 표시", "render", "NotificationActionContract", "[data-help-id=\"notification-action-contract\"]",
+                        Collections.emptyList(), "범용 rule CRUD, 수신자 scope, 테스트 발송, 실패 재시도 API와 감사가 연결되기 전까지 조치를 차단합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.notification.page", "알림센터 화면 조회", "GET", "/admin/system/notification/page-data",
+                        "PlatformObservabilityPageDataController.notificationPageApi", "PlatformObservabilityPagePayloadPort.buildNotificationPagePayload",
+                        "NotificationHistoryQueryPort.selectDeliveryHistory / NotificationHistoryQueryPort.selectActivityHistory",
+                        Arrays.asList("ADMIN_NOTIFICATION_DELIVERY_HISTORY", "ADMIN_NOTIFICATION_ACTIVITY_HISTORY", "SECURITY_INSIGHT_NOTIFICATION_SNAPSHOT"),
+                        Arrays.asList("notification-config-schema", "notification-delivery-history-schema", "notification-activity-history-schema"),
+                        "보안 알림 라우팅, 발송 이력, 운영자 조치 이력 payload를 구성합니다."),
+                api("admin.notification.routing-save", "보안 알림 라우팅 저장", "POST", "/api/admin/system/security-policy/notification-config",
+                        "AdminSystemBuilderController.securityPolicyNotificationConfigApi", "AdminSummaryCommandService.saveSecurityInsightNotificationConfig",
+                        "AdminNotificationHistoryMapper.insertActivityHistory",
+                        Arrays.asList("SECURITY_INSIGHT_NOTIFICATION_SNAPSHOT", "ADMIN_NOTIFICATION_ACTIVITY_HISTORY"),
+                        Arrays.asList("notification-config-schema", "notification-activity-history-schema"),
+                        "보안 정책 알림 라우팅을 저장하고 운영자 조치 이력을 기록합니다."),
+                api("admin.notification.dispatch", "보안 알림 발송", "POST", "/api/admin/system/security-policy/dispatch",
+                        "AdminSystemBuilderController.securityPolicyDispatchApi", "AdminSummaryCommandService.dispatchSecurityInsightNotifications",
+                        "AdminNotificationHistoryMapper.insertDeliveryHistory / AdminNotificationHistoryMapper.insertActivityHistory",
+                        Arrays.asList("ADMIN_NOTIFICATION_DELIVERY_HISTORY", "ADMIN_NOTIFICATION_ACTIVITY_HISTORY"),
+                        Arrays.asList("notification-delivery-history-schema", "notification-activity-history-schema"),
+                        "보안 정책 알림을 발송 또는 기록하고 전달/활동 이력을 남깁니다."),
+                pendingApi("admin.notification.rule-create", "알림 규칙 생성", "POST", "/admin/system/notification/rules", "범용 rule 생성/수정 API, rule-level feature code, 변경 감사가 필요합니다."),
+                pendingApi("admin.notification.recipient-preview", "수신자 Scope 미리보기", "POST", "/admin/system/notification/recipients/preview", "역할, 부서, 담당자, 외부 시스템별 수신자 해석과 마스킹 응답이 필요합니다."),
+                pendingApi("admin.notification.test-dispatch", "테스트 알림 발송", "POST", "/admin/system/notification/test-dispatch", "운영 발송과 분리된 테스트 발송 API와 결과 이력이 필요합니다."),
+                pendingApi("admin.notification.retry-failed", "실패 알림 재시도", "POST", "/admin/system/notification/deliveries/{deliveryId}/retry", "실패 delivery id, 멱등키, 재시도 제한, 재시도 감사가 필요합니다.")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("notification-config-schema", "알림 라우팅 설정 스키마", "SECURITY_INSIGHT_NOTIFICATION_SNAPSHOT",
+                        Arrays.asList("slackEnabled", "mailEnabled", "webhookEnabled", "notifyCritical", "notifyHigh", "newOnlyMode", "digestEnabled", "digestHour", "digestMinute", "updatedBy", "updatedAt"),
+                        Arrays.asList("SELECT", "UPDATE"),
+                        "현재 보안 정책 알림 라우팅 설정입니다."),
+                schema("notification-delivery-history-schema", "알림 전달 이력 스키마", "ADMIN_NOTIFICATION_DELIVERY_HISTORY",
+                        Arrays.asList("deliveryId", "channel", "deliveryStatus", "title", "message", "target", "occurredAt"),
+                        Arrays.asList("SELECT", "INSERT"),
+                        "발송/전달 결과 이력입니다."),
+                schema("notification-activity-history-schema", "알림 운영자 조치 이력 스키마", "ADMIN_NOTIFICATION_ACTIVITY_HISTORY",
+                        Arrays.asList("actionCode", "actorId", "summary", "target", "recordedAt"),
+                        Arrays.asList("SELECT", "INSERT"),
+                        "라우팅 저장, 발송, 향후 재시도/테스트 발송 조치 이력입니다."),
+                schema("notification-rule-schema", "범용 알림 규칙 스키마", "PENDING_NOTIFICATION_RULE",
+                        Arrays.asList("ruleId", "ruleName", "eventType", "recipientScope", "channelPolicy", "enabled", "updatedBy", "updatedAt"),
+                        Arrays.asList("SELECT", "INSERT", "UPDATE"),
+                        "향후 범용 알림 rule CRUD를 위한 스키마입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("NOTIFICATION_CHANNEL", "알림 채널", Arrays.asList("SLACK", "MAIL", "WEBHOOK"), "알림 채널 설정과 이력 필터 기준입니다."),
+                codeGroup("NOTIFICATION_DELIVERY_STATUS", "알림 전달 상태", Arrays.asList("DELIVERED", "RECORDED", "FAILED", "BLOCKED", "DISABLED"), "전달 이력 상태와 재시도 판단 기준입니다."),
+                codeGroup("NOTIFICATION_ACTION", "알림 조치 유형", Arrays.asList("SAVE_ROUTING", "DISPATCH", "TEST_DISPATCH", "RETRY_FAILED", "RULE_UPDATE"), "운영자 조치 이력과 감사 이벤트 구분값입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
     private Map<String, Object> buildBatchManagementPage() {
         Map<String, Object> page = pageOption("batch-management", "배치 관리", "/admin/system/batch", "A0060304", "admin");
         page.put("summary", "배치 잡, 큐 적체, 워커 노드, 최근 실행 이력을 한 화면에서 운영 점검하는 관리자 화면입니다.");
         page.put("source", "frontend/src/features/batch-management/BatchManagementMigrationPage.tsx");
         page.put("surfaces", Arrays.asList(
+                surface("batch-management-closeout-gate", "배치 완료 게이트", "[data-help-id=\"batch-management-closeout-gate\"]", "BatchCloseoutGate", "content",
+                        Collections.emptyList(), "잡 스케줄, 큐 적체, 워커 상태, 변경 감사 준비 상태를 구분해 보여줍니다."),
+                surface("batch-management-action-contract", "배치 실행 계약", "[data-help-id=\"batch-management-action-contract\"] button[disabled]", "BatchActionContract", "actions",
+                        Collections.emptyList(), "일시중지, 재개, 재시도, 큐 drain 액션은 백엔드 계약 연결 전까지 비활성 상태로 노출합니다."),
                 surface("batch-management-filters", "배치 조회 조건", "[data-help-id=\"batch-management-filters\"]", "BatchManagementFilters", "actions",
                         Arrays.asList("batch-management-filter", "batch-management-reset"), "키워드, 잡 상태, 노드 상태로 배치 범위를 좁힙니다."),
                 surface("batch-management-summary", "배치 요약 카드", "[data-help-id=\"batch-management-summary\"]", "BatchManagementSummaryCards", "header",
@@ -2324,7 +2570,9 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 event("batch-management-filter", "배치 조건 변경", "change", "applyBatchFilter", "[data-help-id=\"batch-management-filters\"] input, [data-help-id=\"batch-management-filters\"] select",
                         Arrays.asList("admin.batch-management.page"), "조건 변경 시 배치 목록과 큐, 노드를 다시 계산합니다."),
                 event("batch-management-reset", "배치 조건 초기화", "click", "resetBatchFilter", "[data-help-id=\"batch-management-filters\"] button",
-                        Arrays.asList("admin.batch-management.page"), "조회 조건을 초기 상태로 되돌립니다.")
+                        Arrays.asList("admin.batch-management.page"), "조회 조건을 초기 상태로 되돌립니다."),
+                event("batch-management-action-contract-blocked", "배치 실행 계약 차단 상태 표시", "render", "BatchCloseoutPanel", "[data-help-id=\"batch-management-action-contract\"]",
+                        Collections.emptyList(), "백엔드 실행 API, 권한 기능 코드, 감사 이벤트가 연결되기 전까지 배치 변경 액션을 차단합니다.")
         ));
         page.put("apis", Arrays.asList(
                 api("admin.batch-management.page", "배치 관리 화면 조회", "GET", "/admin/system/batch/page-data",
@@ -2333,6 +2581,10 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("SNAPSHOT_CARD"),
                         Arrays.asList("batch-job-row-schema", "batch-queue-row-schema", "batch-node-row-schema", "batch-execution-row-schema"),
                         "스케줄러 원본 payload를 배치 운영 화면에 맞게 재구성합니다."),
+                pendingApi("admin.batch-management.pause", "배치 잡 일시중지", "POST", "/admin/system/batch/jobs/{jobId}/pause", "배치 일시중지 실행 API와 감사 기록이 필요합니다."),
+                pendingApi("admin.batch-management.resume", "배치 잡 재개", "POST", "/admin/system/batch/jobs/{jobId}/resume", "배치 재개 실행 API와 다음 실행 재계산 증적이 필요합니다."),
+                pendingApi("admin.batch-management.retry", "배치 실패 재시도", "POST", "/admin/system/batch/executions/{executionId}/retry", "실패 실행 재시도 API, 멱등 키, 결과 증적이 필요합니다."),
+                pendingApi("admin.batch-management.drain", "배치 큐 drain", "POST", "/admin/system/batch/queues/{queueId}/drain", "큐 drain 실행기, 워커 영향 점검, 롤백 정책이 필요합니다."),
                 routeApi("route.admin.system.scheduler", "스케줄러 관리 이동", "/admin/system/scheduler", "A0060120")
         ));
         page.put("schemas", Arrays.asList(
@@ -2397,6 +2649,10 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("summary", "외부연계 인증키의 교체 주기, 담당자, 만료 예정 상태를 비밀값 노출 없이 점검하는 관리자 운영 화면입니다.");
         page.put("source", "frontend/src/features/external-keys/ExternalKeysMigrationPage.tsx");
         page.put("surfaces", Arrays.asList(
+                surface("external-keys-closeout-gate", "외부 인증키 완료 게이트", ".gov-card [data-help-id=\"external-keys-action-contract\"]", "ExternalKeyCloseoutGate", "content",
+                        Collections.emptyList(), "마스킹, 파트너 범위, 만료 정책, 변경 감사 준비 상태를 구분해 보여줍니다."),
+                surface("external-keys-action-contract", "외부 인증키 실행 계약", ".gov-card button[disabled]", "ExternalKeyActionContract", "actions",
+                        Collections.emptyList(), "발급, 회전, 폐기, 감사 내보내기 액션은 백엔드 계약 연결 전까지 비활성 상태로 노출합니다."),
                 surface("external-keys-filters", "외부 인증키 조회 조건", ".gov-card .gov-input, .gov-card .gov-select", "ExternalKeyFilters", "actions",
                         Collections.emptyList(), "연계명, 인증 방식, 교체 상태 기준으로 관리 대상을 좁힙니다."),
                 surface("external-keys-inventory", "외부 인증키 인벤토리", ".gov-card table", "ExternalKeyInventoryTable", "content",
@@ -2406,7 +2662,9 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("events", Arrays.asList(
                 event("external-keys-filter-change", "외부 인증키 조회 조건 변경", "change", "setKeyword/setAuthMethod/setRotationStatus", "form",
-                        Collections.emptyList(), "조회 조건에 따라 인증키 인벤토리를 필터링합니다.")
+                        Collections.emptyList(), "조회 조건에 따라 인증키 인벤토리를 필터링합니다."),
+                event("external-keys-action-contract-blocked", "외부 인증키 실행 계약 차단 상태 표시", "render", "ExternalKeyCloseoutPanel", "section",
+                        Collections.emptyList(), "백엔드 실행 API와 감사 이벤트가 연결되기 전까지 인증키 변경 액션을 차단합니다.")
         ));
         page.put("apis", Arrays.asList(
                 routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050001"),
@@ -2466,21 +2724,38 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
 
     private Map<String, Object> buildExternalWebhooksPage() {
         Map<String, Object> page = pageOption("external-webhooks", "웹훅 설정", "/admin/external/webhooks", "A0050203", "admin");
-        page.put("summary", "외부연계 웹훅 대상의 엔드포인트 상태, 서명 검증, 재시도 정책을 함께 점검하는 관리자 운영 화면입니다.");
+        page.put("summary", "외부연계 웹훅 대상의 엔드포인트 상태, 서명 검증, 재시도 정책을 점검하고 아직 차단된 CRUD, secret 회전, 테스트 발송, replay, 실패 정책 저장 계약을 구분하는 관리자 운영 화면입니다.");
         page.put("source", "frontend/src/features/external-webhooks/ExternalWebhooksMigrationPage.tsx");
         page.put("surfaces", Arrays.asList(
-                surface("external-webhooks-filters", "웹훅 조회 조건", ".gov-card .gov-input, .gov-card .gov-select", "ExternalWebhookFilters", "actions",
+                surface("external-webhooks-summary", "웹훅 요약 카드", "[data-help-id=\"external-webhooks-summary\"]", "ExternalWebhookSummaryCards", "content",
+                        Collections.emptyList(), "활성 대상 수, 실패 건수, 서명 이상 등 웹훅 상태를 요약합니다."),
+                surface("external-webhooks-closeout-gate", "웹훅 완료 게이트", "[data-help-id=\"external-webhooks-closeout-gate\"]", "ExternalWebhookCloseoutGate", "content",
+                        Collections.emptyList(), "현재 가능한 조회/정책 확인과 아직 필요한 CRUD, secret 회전, 테스트 발송, replay, 실패 정책 저장 계약을 구분합니다."),
+                surface("external-webhooks-action-contract", "웹훅 변경 조치 계약", "[data-help-id=\"external-webhooks-action-contract\"] button[disabled]", "ExternalWebhookActionContract", "actions",
+                        Collections.emptyList(), "endpoint 추가, secret 회전, 테스트 발송, 실패 replay는 백엔드 실행·권한·감사 연결 전까지 비활성화합니다."),
+                surface("external-webhooks-filters", "웹훅 조회 조건", "[data-help-id=\"external-webhooks-filters\"]", "ExternalWebhookFilters", "actions",
                         Collections.emptyList(), "엔드포인트, 상태, 전달 방식 기준으로 웹훅 대상을 좁힙니다."),
-                surface("external-webhooks-registry", "웹훅 엔드포인트 현황", ".gov-card table", "ExternalWebhookRegistryTable", "content",
+                surface("external-webhooks-registry", "웹훅 엔드포인트 현황", "[data-help-id=\"external-webhooks-targets\"]", "ExternalWebhookRegistryTable", "content",
                         Collections.emptyList(), "엔드포인트, 서명 상태, 성공률, 실패 건수를 함께 보여줍니다."),
-                surface("external-webhooks-policy", "전달 정책", ".gov-card .w-full.border-collapse", "ExternalWebhookPolicyTable", "content",
+                surface("external-webhooks-policy", "전달 정책", "[data-help-id=\"external-webhooks-deliveries\"]", "ExternalWebhookPolicyTable", "content",
                         Collections.emptyList(), "이벤트 유형별 재시도 정책, 타임아웃, 실패 후 처리 기준을 운영 관점에서 확인합니다.")
         ));
         page.put("events", Arrays.asList(
                 event("external-webhooks-filter-change", "웹훅 조회 조건 변경", "change", "setKeyword/setStatus/setSyncMode", "form",
-                        Collections.emptyList(), "조회 조건에 따라 웹훅 엔드포인트 목록을 필터링합니다.")
+                        Collections.singletonList("admin.external-webhooks.page"), "조회 조건에 따라 웹훅 엔드포인트 목록을 필터링합니다."),
+                event("external-webhooks-action-contract-blocked", "웹훅 변경 조치 차단 상태 표시", "render", "ExternalWebhookActionContract", "[data-help-id=\"external-webhooks-action-contract\"]",
+                        Collections.emptyList(), "endpoint CRUD, secret 회전, 테스트 발송, replay, 실패 정책 저장 API와 감사가 연결되기 전까지 조치를 차단합니다.")
         ));
         page.put("apis", Arrays.asList(
+                api("admin.external-webhooks.page", "웹훅 설정 화면 조회", "GET", "/admin/external/webhooks/page-data",
+                        "PlatformObservabilityPageDataController.externalWebhooksPageApi", "PlatformObservabilityPagePayloadPort.buildExternalWebhooksPagePayload",
+                        "N/A", Collections.singletonList("SNAPSHOT_CARD"), Collections.singletonList("external-webhook-runtime-schema"),
+                        "웹훅 대상, 전달 정책, 요약, 바로가기, 운영 가이드를 조회합니다."),
+                pendingApi("admin.external-webhooks.endpoint-save", "웹훅 엔드포인트 저장", "POST", "/admin/external/webhooks/endpoints", "엔드포인트 생성/수정/비활성화 API, 중복 endpoint 검증, 파트너 scope 검증, 변경 감사가 필요합니다."),
+                pendingApi("admin.external-webhooks.secret-rotate", "웹훅 Secret 회전", "POST", "/admin/external/webhooks/{webhookId}/secret/rotate", "secret 값 마스킹, 이중 secret grace period, 폐기 예약, 회전 이력 저장 계약이 필요합니다."),
+                pendingApi("admin.external-webhooks.test-delivery", "웹훅 테스트 발송", "POST", "/admin/external/webhooks/{webhookId}/test-delivery", "운영 이벤트와 분리된 테스트 발송 API, 결과 이력, 수신 endpoint 응답 증적이 필요합니다."),
+                pendingApi("admin.external-webhooks.replay-failed", "웹훅 실패 Replay", "POST", "/admin/external/webhooks/deliveries/{deliveryId}/replay", "실패 delivery id, 멱등키, replay 제한, 결과 감사가 필요합니다."),
+                pendingApi("admin.external-webhooks.failure-policy-save", "웹훅 실패 정책 저장", "POST", "/admin/external/webhooks/{webhookId}/failure-policy", "timeout, retry, dead-letter, 알림 연동을 저장하고 변경 전후를 감사할 정책 모델이 필요합니다."),
                 routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050101"),
                 routeApi("route.admin.external.sync", "외부연계 동기화 이동", "/admin/external/sync", "A0050104"),
                 routeApi("route.admin.system.unified-log", "통합 로그 이동", "/admin/system/unified_log", "A0060301"),
@@ -2490,11 +2765,20 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 schema("external-webhook-runtime-schema", "외부연계 웹훅 런타임 스키마", "TABLE",
                         Arrays.asList("webhookId", "connectionId", "endpointUrl", "syncMode", "signatureStatus", "successRate", "failedCount", "lastEventAt", "status"),
                         Arrays.asList("SELECT"),
-                        "외부연계 웹훅 엔드포인트 상태와 전달 정책을 조회하는 런타임 필드 묶음입니다.")
+                        "외부연계 웹훅 엔드포인트 상태와 전달 정책을 조회하는 런타임 필드 묶음입니다."),
+                schema("external-webhook-policy-schema", "외부연계 웹훅 정책 스키마", "PENDING_EXTERNAL_WEBHOOK_POLICY",
+                        Arrays.asList("webhookId", "endpointUrl", "signingSecretRef", "secretVersion", "graceUntil", "timeoutSeconds", "retryPolicy", "deadLetterPolicy", "updatedBy", "updatedAt"),
+                        Arrays.asList("SELECT", "INSERT", "UPDATE"),
+                        "향후 endpoint CRUD, secret 회전, 실패 정책 저장을 위한 정책 모델입니다."),
+                schema("external-webhook-delivery-action-schema", "외부연계 웹훅 발송 조치 스키마", "PENDING_EXTERNAL_WEBHOOK_DELIVERY_ACTION",
+                        Arrays.asList("deliveryId", "webhookId", "actionType", "idempotencyKey", "requestPayloadRef", "responseStatus", "resultMessage", "executedBy", "executedAt"),
+                        Arrays.asList("SELECT", "INSERT"),
+                        "테스트 발송과 실패 replay 결과를 저장할 조치 이력 모델입니다.")
         ));
         page.put("commonCodeGroups", Arrays.asList(
                 codeGroup("EXTERNAL_SYNC_MODE", "외부연계 동기화 방식", Arrays.asList("WEBHOOK", "HYBRID"), "웹훅 설정 화면의 전달 방식 필터 값입니다."),
-                codeGroup("EXTERNAL_WEBHOOK_STATUS", "외부연계 웹훅 상태", Arrays.asList("ACTIVE", "DEGRADED", "REVIEW", "DISABLED"), "웹훅 설정 화면의 상태 배지 기준입니다.")
+                codeGroup("EXTERNAL_WEBHOOK_STATUS", "외부연계 웹훅 상태", Arrays.asList("ACTIVE", "DEGRADED", "REVIEW", "DISABLED"), "웹훅 설정 화면의 상태 배지 기준입니다."),
+                codeGroup("EXTERNAL_WEBHOOK_ACTION", "외부연계 웹훅 조치 유형", Arrays.asList("ENDPOINT_SAVE", "SECRET_ROTATE", "TEST_DELIVERY", "REPLAY_FAILED", "FAILURE_POLICY_SAVE"), "웹훅 변경 조치 권한과 감사 이벤트 구분값입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;
@@ -2772,6 +3056,170 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         return page;
     }
 
+    private Map<String, Object> buildAssetInventoryPage() {
+        Map<String, Object> page = pageOption("asset-inventory", "자산 인벤토리", "/admin/system/asset-inventory", "A0060123", "admin");
+        page.put("summary", "기존 운영 화면을 서비스, 런타임, 보안, 연계, 파일, 복구 자산으로 재분류해 보여주는 시스템 자산 인벤토리 화면입니다.");
+        page.put("source", "frontend/src/features/asset-inventory/AssetInventoryMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("asset-inventory-summary", "자산 인벤토리 요약", "[data-help-id=\"asset-inventory-summary\"]", "AssetInventorySummary", "actions",
+                        Collections.emptyList(), "현재 커버 자산 수, 목표 자산 수, 부분 완료 레인을 요약합니다."),
+                surface("asset-inventory-overview", "자산관리 기준선", "[data-help-id=\"asset-inventory-overview\"]", "AssetInventoryOverview", "content",
+                        Collections.emptyList(), "현재 운영 화면이 자산관리 기준으로 얼마나 정리되어 있는지 보여줍니다."),
+                surface("asset-inventory-lanes", "자산 레인 분류", "[data-help-id=\"asset-inventory-lanes\"]", "AssetInventoryLanes", "content",
+                        Collections.emptyList(), "서비스, 런타임, 보안, 연계, 파일, 계획 대상 레인을 분류해 보여줍니다."),
+                surface("asset-inventory-priority", "다음 구현 우선순위", "[data-help-id=\"asset-inventory-priority\"]", "AssetInventoryPriority", "content",
+                        Collections.emptyList(), "다음 구현할 우선순위 레인을 정리합니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060123", "A0060118", "A0060401", "A0060303", "A0050101"),
+                        "자산 인벤토리와 연결되는 시스템/연계 운영 메뉴 코드군입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildVerificationCenterPage() {
+        Map<String, Object> page = pageOption("verification-center", "운영 검증 센터", "/admin/system/verification-center", "A0060128", "admin");
+        page.put("summary", "기준선, 고위험 테스트 범위, 테스트 프로필, 만료 규칙, 검증 증거를 한 곳에서 관리하는 운영 검증 센터입니다.");
+        page.put("source", "frontend/src/features/environment-management/VerificationCenterMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("verification-center-summary", "운영 검증 센터 요약", "[data-help-id=\"verification-center-summary\"]", "VerificationCenterSummary", "actions",
+                        Collections.emptyList(), "기준선 수, 관리 페이지 수, 고위험 페이지 수, 테스트 프로필 수를 요약합니다."),
+                surface("verification-center-overview", "운영 검증 센터 개요", "[data-help-id=\"verification-center-overview\"]", "VerificationCenterOverview", "content",
+                        Collections.emptyList(), "이 화면이 필요한 이유와 baseline 거버넌스 목적을 설명합니다."),
+                surface("verification-center-catalog", "기준선 팩 카탈로그", "[data-help-id=\"verification-center-catalog\"]", "VerificationCenterCatalog", "content",
+                        Collections.emptyList(), "페이지 기준선, 테스트 계정/데이터 팩, 자동 점검 실행, 검증 로그 묶음을 보여줍니다."),
+                surface("verification-center-runs", "검증 실행 주기", "[data-help-id=\"verification-center-runs\"]", "VerificationCenterRuns", "content",
+                        Collections.emptyList(), "변경 전후, 주기 점검, 만료 관리 기준을 정리합니다."),
+                surface("verification-center-safety-policy", "고위험 테스트 안전 정책", "[data-help-id=\"verification-center-safety-policy\"]", "VerificationCenterSafetyPolicy", "content",
+                        Collections.emptyList(), "결제, 환불, 가상계좌, 외부인증, 인증서 흐름에서 실데이터를 차단하는 정책을 보여줍니다."),
+                surface("verification-center-risk-scope", "고위험 범위와 테스트 프로필", "[data-help-id=\"verification-center-risk-scope\"]", "VerificationCenterRiskScope", "content",
+                        Collections.emptyList(), "고위험 페이지 분류와 필수 테스트 프로필을 함께 보여줍니다."),
+                surface("verification-center-inventory-scope", "운영 인벤토리 범위", "[data-help-id=\"verification-center-inventory-scope\"]", "VerificationCenterInventoryScope", "content",
+                        Collections.emptyList(), "페이지, API, 함수, 테스트, 고위험 범위를 요약합니다."),
+                surface("verification-center-full-lists", "전체 인벤토리 목록", "[data-help-id=\"verification-center-full-lists\"]", "VerificationCenterFullLists", "content",
+                        Collections.emptyList(), "페이지, API, 함수, 고위험 페이지/API, 테스트 프로필, 저장 테스트 목록을 제공합니다."),
+                surface("verification-center-log-policy", "다음 구축 단계", "[data-help-id=\"verification-center-log-policy\"]", "VerificationCenterLogPolicy", "content",
+                        Collections.emptyList(), "기준선 레지스트리, 시나리오 실행기, 테스트 계정 보관함, 정기 점검 대시보드를 다음 단계로 제안합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("verification-center-refresh", "운영 검증 센터 새로고침", "click", "navigate", "[data-help-id=\"verification-center-overview\"] a",
+                        Collections.emptyList(), "현재 검증 범위와 연결 콘솔로 이동하거나 화면을 다시 확인합니다."),
+                event("verification-center-open-linked-console", "연결 콘솔 열기", "click", "navigate", "[data-help-id=\"verification-center-catalog\"] a",
+                        Collections.emptyList(), "환경 관리, 런타임 비교, 리페어 워크벤치, 추적 조회 등 연결된 운영 콘솔로 이동합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("platform.help-management.screen-command.page", "화면 command 메타데이터 조회", "GET", "/api/platform/help-management/screen-command/page",
+                        Arrays.asList("ScreenCommandCenterController.page"), Arrays.asList("ScreenCommandCenterServiceImpl.buildPage"), Arrays.asList("N/A"),
+                        Arrays.asList("UI_PAGE_MANIFEST", "COMTNMENUINFO", "COMTNMENUFUNCTIONINFO"), Collections.emptyList(),
+                        "운영 검증 센터의 화면 command 메타데이터를 조회합니다."),
+                api("platform.observability.page", "관측/감사 화면 조회", "GET", "/api/platform/observability/page",
+                        Arrays.asList("PlatformObservabilityController.page"), Arrays.asList("PlatformObservabilityAdminPagePortBridge"), Arrays.asList("N/A"),
+                        Arrays.asList("AUDIT_EVENT", "TRACE_EVENT"), Collections.emptyList(),
+                        "검증 실행 이후 trace, 감사, failure evidence를 연결 조회합니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060128", "A0060118", "A0060123", "A0060303"),
+                        "운영 검증 센터와 연결되는 시스템 운영 메뉴 코드군입니다."),
+                codeGroup("VERIFICATION_RUN_TYPE", "검증 실행 유형", Arrays.asList("PRE_CHANGE_BASELINE", "POST_CHANGE_REGRESSION", "POST_DEPLOY_SMOKE", "SCHEDULED_SWEEP", "MANUAL_INVESTIGATION"),
+                        "운영 검증 센터에서 구분해야 하는 기본 검증 실행 유형입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildAssetDetailPage() {
+        Map<String, Object> page = pageOption("asset-detail", "자산 상세", "/admin/system/asset-detail", "A0060124", "admin");
+        page.put("summary", "자산 유형별로 식별, 소유권, 의존관계, 런타임, 보안, 복구 기준을 정리하는 시스템 자산 상세 화면입니다.");
+        page.put("source", "frontend/src/features/asset-inventory/AssetDetailMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("asset-detail-summary", "자산 상세 요약", "[data-help-id=\"asset-detail-summary\"]", "AssetDetailSummary", "actions",
+                        Collections.emptyList(), "자산 유형, 현재 상태, 리스크 수, 연결 콘솔 수를 요약합니다."),
+                surface("asset-detail-overview", "자산 상세 기준", "[data-help-id=\"asset-detail-overview\"]", "AssetDetailOverview", "content",
+                        Collections.emptyList(), "해당 자산 유형의 운영 기준과 현재 상태를 설명합니다."),
+                surface("asset-detail-tabs", "자산 상세 탭", "[data-help-id=\"asset-detail-tabs\"]", "AssetDetailTabs", "content",
+                        Collections.emptyList(), "식별, 소유권, 의존관계, 런타임, 보안, 복구 기준 탭을 전환합니다."),
+                surface("asset-detail-support", "자산 상세 보강 항목", "[data-help-id=\"asset-detail-support\"]", "AssetDetailSupport", "content",
+                        Collections.emptyList(), "연결 콘솔과 미흡사항을 함께 보여줍니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060124", "A0060123", "A0060118", "A0050101", "A0060201"),
+                        "자산 상세와 연계되는 자산관리 메뉴 코드군입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildAssetImpactPage() {
+        Map<String, Object> page = pageOption("asset-impact", "자산 영향도", "/admin/system/asset-impact", "A0060125", "admin");
+        page.put("summary", "페이지, 기능, 런타임, 연계 변경이 미치는 영향을 하나의 진입점에서 검토하는 시스템 자산 영향도 화면입니다.");
+        page.put("source", "frontend/src/features/asset-inventory/AssetImpactMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("asset-impact-summary", "자산 영향도 요약", "[data-help-id=\"asset-impact-summary\"]", "AssetImpactSummary", "actions",
+                        Collections.emptyList(), "영향 모드, 연결 콘솔 수, 점검 항목 수를 요약합니다."),
+                surface("asset-impact-modes", "자산 영향도 모드", "[data-help-id=\"asset-impact-modes\"]", "AssetImpactModes", "content",
+                        Collections.emptyList(), "페이지, 기능, 런타임, 연계 영향 모드를 전환합니다."),
+                surface("asset-impact-overview", "자산 영향도 기준", "[data-help-id=\"asset-impact-overview\"]", "AssetImpactOverview", "content",
+                        Collections.emptyList(), "현재 선택한 영향도 모드의 기준과 목적을 설명합니다."),
+                surface("asset-impact-details", "자산 영향도 상세", "[data-help-id=\"asset-impact-details\"]", "AssetImpactDetails", "content",
+                        Collections.emptyList(), "현재 영향도 모드의 기준선과 체크리스트를 보여줍니다."),
+                surface("asset-impact-links", "자산 영향도 소스 맵", "[data-help-id=\"asset-impact-links\"]", "AssetImpactLinks", "content",
+                        Collections.emptyList(), "현재 영향도 증적의 원본 화면과 연결 콘솔을 보여줍니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060125", "A0060124", "A0060123", "A0060118", "A0050107"),
+                        "자산 영향도와 연결되는 자산관리 메뉴 코드군입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildAssetLifecyclePage() {
+        Map<String, Object> page = pageOption("asset-lifecycle", "자산 생명주기", "/admin/system/asset-lifecycle", "A0060126", "admin");
+        page.put("summary", "자산 생성, 반영, 축소, 폐기, 롤백 경로를 하나의 거버넌스 진입점에서 관리하는 시스템 자산 생명주기 화면입니다.");
+        page.put("source", "frontend/src/features/asset-inventory/AssetLifecycleMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("asset-lifecycle-summary", "자산 생명주기 요약", "[data-help-id=\"asset-lifecycle-summary\"]", "AssetLifecycleSummary", "actions",
+                        Collections.emptyList(), "생명주기 단계 수, 연결 콘솔 수, 점검 항목 수를 요약합니다."),
+                surface("asset-lifecycle-stages", "자산 생명주기 단계", "[data-help-id=\"asset-lifecycle-stages\"]", "AssetLifecycleStages", "content",
+                        Collections.emptyList(), "생성, 반영, 축소, 폐기 단계를 전환합니다."),
+                surface("asset-lifecycle-overview", "자산 생명주기 기준", "[data-help-id=\"asset-lifecycle-overview\"]", "AssetLifecycleOverview", "content",
+                        Collections.emptyList(), "현재 선택한 생명주기 단계의 목적과 기준을 설명합니다."),
+                surface("asset-lifecycle-checklist", "자산 생명주기 체크리스트", "[data-help-id=\"asset-lifecycle-checklist\"]", "AssetLifecycleChecklist", "content",
+                        Collections.emptyList(), "단계별 최소 점검 항목과 기준선을 보여줍니다."),
+                surface("asset-lifecycle-links", "자산 생명주기 연결 콘솔", "[data-help-id=\"asset-lifecycle-links\"]", "AssetLifecycleLinks", "content",
+                        Collections.emptyList(), "생명주기 증적의 원본 콘솔과 운영 메모를 보여줍니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060126", "A0060125", "A0060124", "A0060123", "A0060401"),
+                        "자산 생명주기와 연결되는 자산관리 메뉴 코드군입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildAssetGapPage() {
+        Map<String, Object> page = pageOption("asset-gap", "자산 미흡 큐", "/admin/system/asset-gap", "A0060127", "admin");
+        page.put("summary", "소유자 누락, 바인딩 누락, 정책 누락, 고아 자산을 하나의 운영 백로그로 모아주는 시스템 자산 미흡 큐 화면입니다.");
+        page.put("source", "frontend/src/features/asset-inventory/AssetGapMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("asset-gap-summary", "자산 미흡 큐 요약", "[data-help-id=\"asset-gap-summary\"]", "AssetGapSummary", "actions",
+                        Collections.emptyList(), "미흡 큐 유형 수와 원본 콘솔 수를 요약합니다."),
+                surface("asset-gap-overview", "자산 미흡 큐 기준", "[data-help-id=\"asset-gap-overview\"]", "AssetGapOverview", "content",
+                        Collections.emptyList(), "미흡 큐의 목적과 실조회 연결 필요 상태를 설명합니다."),
+                surface("asset-gap-queues", "자산 미흡 큐 목록", "[data-help-id=\"asset-gap-queues\"]", "AssetGapQueues", "content",
+                        Collections.emptyList(), "소유자, 바인딩, 정책, 고아 자산 미흡 큐를 보여줍니다."),
+                surface("asset-gap-support", "자산 미흡 신호 맵", "[data-help-id=\"asset-gap-support\"]", "AssetGapSupport", "content",
+                        Collections.emptyList(), "기존 거버넌스 화면에서 가져와야 하는 신호 소스를 정리합니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060127", "A0060126", "A0060118", "A0060401", "A0060201"),
+                        "자산 미흡 큐와 연결되는 자산관리 메뉴 코드군입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
     private Map<String, Object> buildBackupConfigPage() {
         Map<String, Object> page = pageOption("backup-config", "백업 설정", "/admin/system/backup_config", "A0060401", "admin");
         page.put("summary", "애플리케이션 JAR, 데이터베이스 덤프, 원격 아카이브까지 백업 정책과 최근 실행 상태를 점검하는 화면입니다.");
@@ -2814,6 +3262,102 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("mode", mode);
         page.put("commonCodeGroups", Arrays.asList(
                 codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList(menuCode), label + " 화면에 연결되는 관리자 메뉴 코드입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildDbPromotionPolicyPage() {
+        Map<String, Object> page = pageOption("db-promotion-policy", "DB 반영 정책 카탈로그", "/admin/system/db-promotion-policy", "A0060405", "admin");
+        page.put("summary", "운영 DB 반영 기준 아래에서 테이블별 정책, DML 예외, 최근 저장 추적 이력을 함께 관리하는 화면입니다.");
+        page.put("source", "frontend/src/features/db-promotion-policy/DbPromotionPolicyMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("db-promotion-policy-table-list", "테이블 정책 카탈로그", "[data-help-id=\"db-promotion-policy-table-list\"]", "DbPromotionPolicyTableList", "content",
+                        Collections.emptyList(), "정책 등록 테이블과 최근 변경 포착 테이블을 한 목록에서 확인합니다."),
+                surface("db-promotion-policy-editor", "정책 편집기", ".gov-card .gov-input", "DbPromotionPolicyEditor", "content",
+                        Collections.singletonList("db-promotion-policy-save"), "반영 정책, change type, 마스킹 프로파일, SQL render mode, 정책 사유를 저장합니다."),
+                surface("db-promotion-policy-comment", "운영 코멘트 자동 생성", "[data-help-id=\"db-promotion-policy-comment\"]", "DbPromotionPolicyCommentGenerator", "content",
+                        Collections.emptyList(), "티켓, PR, 큐 우회 메모에 붙일 운영 코멘트를 자동 생성합니다."),
+                surface("db-promotion-policy-recent-changes", "최근 저장 추적 변경", "[data-help-id=\"db-promotion-policy-recent-changes\"]", "DbPromotionPolicyRecentChanges", "content",
+                        Collections.emptyList(), "선택한 테이블 기준 BUSINESS_CHANGE_LOG 최근 이력을 확인합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("db-promotion-policy-select-table", "정책 테이블 선택", "click", "setSelectedTable", "[data-help-id=\"db-promotion-policy-table-list\"] tr",
+                        Collections.singletonList("admin.db-promotion-policy.page"), "선택한 테이블 기준으로 정책 편집기와 최근 변경 목록을 갱신합니다."),
+                event("db-promotion-policy-save", "DB 반영 정책 저장", "click", "saveDbPromotionPolicy", ".gov-btn-primary",
+                        Collections.singletonList("admin.db-promotion-policy.save"), "테이블 단위 반영 정책과 사유를 저장합니다."))
+        );
+        page.put("apis", Arrays.asList(
+                api("admin.db-promotion-policy.page", "DB 반영 정책 페이지 조회", "GET", "/admin/system/db-promotion-policy/page-data",
+                        "AdminSystemCodeController.dbPromotionPolicyPageApi", "DbPromotionPolicyManagementService.buildPageData",
+                        "Read", Arrays.asList("DB_CHANGE_PROMOTION_POLICY", "BUSINESS_CHANGE_LOG"), Arrays.asList("db-change-policy-schema"),
+                        "정책 등록 테이블과 최근 변경 포착 테이블을 함께 조회합니다."),
+                api("admin.db-promotion-policy.save", "DB 반영 정책 저장", "POST", "/admin/system/db-promotion-policy/save",
+                        "AdminSystemCodeController.saveDbPromotionPolicy", "DbPromotionPolicyManagementService.save",
+                        "Upsert", Arrays.asList("DB_CHANGE_PROMOTION_POLICY", "BUSINESS_CHANGE_LOG"), Arrays.asList("db-change-policy-schema"),
+                        "테이블 단위 반영 정책을 저장하고 DB 변경 이력을 남깁니다."))
+        );
+        page.put("schemas", Collections.singletonList(
+                schema("db-change-policy-schema", "DB 반영 정책 모델", "DB_CHANGE_PROMOTION_POLICY / BUSINESS_CHANGE_LOG",
+                        Arrays.asList("POLICY_ID", "TABLE_NAME", "POLICY_CODE", "CHANGE_TYPES_JSON", "MASKING_PROFILE_CODE", "SQL_RENDER_MODE", "ACTIVE_YN", "POLICY_REASON"),
+                        Arrays.asList("table-policy", "save-capture"), "테이블 정책과 저장 시점 추적 이력을 함께 설명하는 모델입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060405"), "DB 반영 정책 카탈로그 화면에 연결되는 관리자 메뉴 코드입니다."),
+                codeGroup("COMTNMENUFUNCTIONINFO", "기능 코드", Arrays.asList("A0060405_VIEW", "A0060405_UPDATE"), "페이지 조회와 정책 저장 기능 코드입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildDbSyncDeployPage() {
+        Map<String, Object> page = pageOption("db-sync-deploy", "DB 동기화 배포", "/admin/system/db-sync-deploy", "A0060406", "admin");
+        page.put("summary", "고위험 DB 동기화와 원격 fresh deploy를 중앙 운영 가드레일 아래에서 사전 점검하는 화면입니다.");
+        page.put("source", "frontend/src/features/db-sync-deploy/DbSyncDeployMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("db-sync-deploy-scope", "실행 범위 요약", "[data-help-id=\"db-sync-deploy-scope\"]", "DbSyncDeployScopeSummary", "actions",
+                        Collections.emptyList(), "대상 프로젝트, 환경, 릴리스, 원격 호스트, freshness 검증 경로를 요약합니다."),
+                surface("db-sync-deploy-policy", "정책 가드레일", "[data-help-id=\"db-sync-deploy-policy\"]", "DbSyncDeployPolicyGuardrail", "content",
+                        Collections.singletonList("db-sync-deploy-analyze"), "반영 정책 누락, destructive diff, DB patch history 기록 강제 조건을 보여줍니다."),
+                surface("db-sync-deploy-script-chain", "스크립트 체인", "[data-help-id=\"db-sync-deploy-script-chain\"]", "DbSyncDeployScriptChain", "content",
+                        Collections.emptyList(), "windows-db-sync-push-and-fresh-deploy-221.sh 의 단계와 필요한 증적을 단계별로 설명합니다."),
+                surface("db-sync-deploy-evidence", "DB 동기화 실행 증적", "[data-help-id=\"db-sync-deploy-evidence\"]", "DbSyncDeployEvidencePanel", "content",
+                        Collections.emptyList(), "서버 올리기 테스트와 정책 검증 결과를 실행 증적으로 보여줍니다."),
+                surface("db-sync-deploy-policy-validation", "DB 동기화 정책 검증", "[data-help-id=\"db-sync-deploy-policy-validation\"]", "DbSyncDeployPolicyValidation", "content",
+                        Collections.singletonList("db-sync-deploy-validate-policy"), "가드레일, 기본 SQL 세트, 실행 소스, 증적 원장 조건을 별도 검증합니다."),
+                surface("db-sync-deploy-history", "DB 동기화 실행 이력", "[data-help-id=\"db-sync-deploy-history\"]", "DbSyncDeployHistory", "content",
+                        Collections.emptyList(), "로컬 증적 원장에서 최근 중앙 실행 이력을 보여줍니다."),
+                surface("db-sync-deploy-breakglass", "긴급 우회 규칙", "[data-help-id=\"db-sync-deploy-breakglass\"]", "DbSyncDeployBreakglass", "content",
+                        Collections.singletonList("db-sync-deploy-breakglass"), "page/queue 실행과 breakglass 실행의 필수 입력 차이를 설명합니다."))
+        );
+        page.put("events", Arrays.asList(
+                event("db-sync-deploy-analyze", "DB 동기화 사전 점검", "click", "analyzeDbSyncDeploy", "[data-help-id=\"db-sync-deploy-policy\"] .gov-btn-primary",
+                        Collections.emptyList(), "정책 행, diff 위험도, backup/freshness/rollback 증적 요구사항을 먼저 점검합니다."),
+                event("db-sync-deploy-validate-policy", "DB 동기화 정책 검증", "click", "validateDbSyncDeployPolicy", "[data-help-id=\"db-sync-deploy-policy\"] .gov-btn-secondary",
+                        Collections.emptyList(), "가드레일, 기본 SQL 세트, 실행 소스, 증적 원장 조건을 실행 전 별도 검증합니다."),
+                event("db-sync-deploy-server-up-test", "DB 동기화 서버 올리기 테스트", "click", "executeDbSyncDeploy", "[data-help-id=\"db-sync-deploy-policy\"] .gov-btn-secondary",
+                        Collections.emptyList(), "build/restart/freshness/route proof 기준의 제한된 서버 올리기 테스트를 실행합니다."),
+                event("db-sync-deploy-breakglass", "긴급 우회 규칙 확인", "click", "reviewBreakglassPolicy", "[data-help-id=\"db-sync-deploy-breakglass\"] .gov-btn-secondary",
+                        Collections.emptyList(), "breakglass 실행 허용 조건과 감사 필수 항목을 확인합니다."))
+        );
+        page.put("apis", Arrays.asList(
+                api("admin.db-sync-deploy.page", "DB 동기화 배포 화면 조회", "GET", "/admin/system/db-sync-deploy/page-data",
+                        "AdminSystemCodeController.dbSyncDeployPageApi", "DbSyncDeployManagementService.buildPageData",
+                        "N/A", Collections.emptyList(), Collections.emptyList(), "현재 스크립트, SQL 기본 세트, 증적 원장을 읽어 화면 데이터를 구성합니다."),
+                api("admin.db-sync-deploy.analyze", "DB 동기화 사전 점검", "POST", "/admin/system/db-sync-deploy/analyze",
+                        "AdminSystemCodeController.analyzeDbSyncDeploy", "DbSyncDeployManagementService.analyze",
+                        "N/A", Collections.emptyList(), Collections.emptyList(), "실행 부작용 없이 스크립트와 로컬 저장소 상태를 분석합니다."),
+                api("admin.db-sync-deploy.validate-policy", "DB 동기화 정책 검증", "POST", "/admin/system/db-sync-deploy/validate-policy",
+                        "AdminSystemCodeController.validateDbSyncDeployPolicy", "DbSyncDeployManagementService.validatePolicy",
+                        "var/run/db-sync-deploy-history.tsv", Collections.singletonList("LOCAL_EVIDENCE_LEDGER"), Collections.emptyList(), "실제 실행 전 정책, SQL, 실행 소스, 증적 원장 조건을 검증합니다."),
+                api("admin.db-sync-deploy.execute", "DB 동기화 서버 올리기 테스트", "POST", "/admin/system/db-sync-deploy/execute",
+                        "AdminSystemCodeController.executeDbSyncDeploy", "DbSyncDeployManagementService.execute",
+                        "var/run/db-sync-deploy-history.tsv", Collections.singletonList("LOCAL_EVIDENCE_LEDGER"), Collections.emptyList(), "build/restart/freshness/route proof를 수행하고 로컬 증적 원장에 기록합니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060406"), "DB 동기화 배포 화면에 연결되는 관리자 메뉴 코드입니다."),
+                codeGroup("COMTNMENUFUNCTIONINFO", "기능 코드", Arrays.asList("A0060406_VIEW", "A0060406_ANALYZE", "A0060406_VALIDATE", "A0060406_EXECUTE", "A0060406_BREAKGLASS"),
+                        "페이지 조회, 사전 점검, 실행, 긴급 우회 실행 권한 코드입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;
@@ -3346,6 +3890,16 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 Collections.singletonList("React router / server forward"),
                 Collections.singletonList("N/A"),
                 Collections.singletonList(menuCode), Collections.emptyList(), "화면 이동 경로입니다.");
+    }
+
+    private Map<String, Object> pendingApi(String apiId, String label, String method, String endpoint, String notes) {
+        return api(apiId, label, method, endpoint,
+                Collections.singletonList("PENDING_CONTRACT"),
+                Collections.singletonList("PENDING_SERVICE"),
+                Collections.singletonList("PENDING_AUDIT_STORAGE"),
+                Collections.singletonList("PENDING_BACKEND_ACTION"),
+                Collections.emptyList(),
+                notes);
     }
 
     private List<String> splitChainValues(String value) {

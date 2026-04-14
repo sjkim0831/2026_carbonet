@@ -21,6 +21,10 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
         return selectList("AuthGroupManageMapper.selectAuthorList");
     }
 
+    public AuthorInfoVO selectAuthor(String authorCode) {
+        return selectOne("AuthGroupManageMapper.selectAuthor", authorCode);
+    }
+
     public List<FeatureCatalogItemVO> selectFeatureCatalog() {
         return selectList("AuthGroupManageMapper.selectFeatureCatalog");
     }
@@ -170,8 +174,16 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
         return selectList("AuthGroupManageMapper.selectDepartmentRoleMappings");
     }
 
+    public DepartmentRoleMappingVO selectDepartmentRoleMapping(Map<String, String> params) {
+        return selectOne("AuthGroupManageMapper.selectDepartmentRoleMapping", params);
+    }
+
     public List<UserAuthorityTargetVO> selectUserAuthorityTargets(Map<String, String> params) {
         return selectList("AuthGroupManageMapper.selectUserAuthorityTargets", params);
+    }
+
+    public UserAuthorityTargetVO selectUserAuthorityTarget(Map<String, String> params) {
+        return selectOne("AuthGroupManageMapper.selectUserAuthorityTarget", params);
     }
 
     public String selectEssentialIdByEmplyrId(String emplyrId) {

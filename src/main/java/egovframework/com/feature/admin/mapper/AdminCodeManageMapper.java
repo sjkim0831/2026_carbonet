@@ -19,8 +19,16 @@ public class AdminCodeManageMapper extends BaseMapperSupport {
         return selectList("AdminCodeManageMapper.selectClassCodeList");
     }
 
+    public ClassCodeVO selectClassCode(String clCode) {
+        return selectOne("AdminCodeManageMapper.selectClassCode", clCode);
+    }
+
     public List<CommonCodeVO> selectCodeList() {
         return selectList("AdminCodeManageMapper.selectCodeList");
+    }
+
+    public CommonCodeVO selectCommonCode(String codeId) {
+        return selectOne("AdminCodeManageMapper.selectCommonCode", codeId);
     }
 
     public List<DetailCodeVO> selectDetailCodeList(String codeId) {

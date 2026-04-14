@@ -32,5 +32,7 @@ Before typing your prompt, decide which family it belongs to:
 - [ ] Is the `plan` updated before using `apply` to narrow down the target scope?
 
 ## Key References
+- `docs/ai/00-governance/ai-skill-doc-routing-matrix.md`
+- `docs/ai/00-governance/ai-reference-reduction-policy.md`
 - `docs/operations/codex-token-optimization-guide.md`
 - `app/server.py` (Mode implementation details)

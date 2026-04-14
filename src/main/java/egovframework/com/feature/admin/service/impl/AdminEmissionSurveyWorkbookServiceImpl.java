@@ -3,6 +3,7 @@ package egovframework.com.feature.admin.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.feature.admin.dto.request.EmissionSurveyCaseSaveRequest;
+import egovframework.com.feature.admin.dto.request.EmissionSurveyDatasetReplaceRequest;
 import egovframework.com.feature.admin.dto.request.EmissionSurveyDraftSetSaveRequest;
 import egovframework.com.feature.admin.mapper.AdminEmissionSurveyDraftMapper;
 import egovframework.com.feature.admin.service.AdminEmissionSurveyWorkbookService;
@@ -53,14 +54,18 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
 
     private static final String MENU_CODE = "A0020110";
     private static final String DEFAULT_WORKBOOK_NAME = "데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx";
+    private static final String ADMIN_UPLOAD_WORKBOOK_NAME = "관리자 업로드 양식.xlsx";
     private static final String SHARED_OWNER_ACTOR_ID = "COMMON_DATASET";
     private static final String SHARED_DATASET_ID = "EMISSION_SURVEY_SHARED";
+    private static final String SHARED_DATASET_PRODUCT_PREFIX = SHARED_DATASET_ID + "::PRODUCT::";
     private static final String SHARED_DATASET_NAME_KO = "공통 배출 설문 데이터셋";
     private static final String SHARED_DATASET_NAME_EN = "Shared Emission Survey Dataset";
     private static final String TEMPLATE_MARKER_PROPERTY = "carbonetEmissionSurveyTemplate";
     private static final String TEMPLATE_MARKER_VALUE = "v2";
     private static final Path WORKSPACE_SAMPLE = Path.of("/opt/projects/carbonet", DEFAULT_WORKBOOK_NAME);
     private static final Path REFERENCE_SAMPLE = Path.of("/opt/reference/수식 설계 요", DEFAULT_WORKBOOK_NAME);
+    private static final Path WORKSPACE_ADMIN_SAMPLE = Path.of("/opt/projects/carbonet", ADMIN_UPLOAD_WORKBOOK_NAME);
+    private static final Path WINDOWS_ADMIN_SAMPLE = Path.of("/mnt/c/Users/jwchoo/Downloads", ADMIN_UPLOAD_WORKBOOK_NAME);
     private static final Path DRAFT_REGISTRY_PATH = Path.of("data", "admin", "emission-survey-admin", "case-drafts.json");
     private static final Path SET_REGISTRY_PATH = Path.of("data", "admin", "emission-survey-admin", "draft-sets.json");
     private static final Path UPLOAD_LOG_REGISTRY_PATH = Path.of("data", "admin", "emission-survey-admin", "upload-logs.json");
@@ -262,6 +267,92 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
             ), templateFixedColumns("OUTPUT_WATER", "B")),
             new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_WASTE", "폐기물", 0, -1, 0, 0, 52, 1, 1, 11, 53, 55, 56, 67, List.of(), templateFixedColumns("OUTPUT_WASTE", "B"))
     );
+    private static final List<SectionConfig> ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS = List.of(
+            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_RAW_MATERIALS", "원료 물질 및 보조 물질", 3, 7, 2, 3, 8, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("P"), 9, 11, 12, 18, List.of(), List.of(
+                    fixedColumn("group", "구분", "E"),
+                    fixedColumn("materialName", "물질명", "F"),
+                    fixedColumn("amount", "양", "G"),
+                    fixedColumn("annualUnit", "단위\n(연간)", "H"),
+                    fixedColumn("usage", "용도", "I"),
+                    fixedColumn("origin", "원산지\n(국가/업체명)", "J", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "원산지\n(국가/업체명)"),
+                    fixedColumn("marineTransport", "해양", "K", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "수송방법", "해양"),
+                    fixedColumn("marineTonKm", "물동량\n(ton · km)", "L", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "수송방법", "물동량\n(ton · km)"),
+                    fixedColumn("roadTransport", "육로", "M", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "수송방법", "육로"),
+                    fixedColumn("roadTonKm", "물동량\n(ton · km)", "N", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "수송방법", "물동량\n(ton · km)"),
+                    fixedColumn("transportRoute", "운송경로", "O", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "운송경로"),
+                    fixedColumn("remark", "비고", "P", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "비고")
+            )),
+            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_ENERGY", "에너지", 3, 7, 2, 3, 20, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("J"), 21, 21, 22, 25, List.of(), List.of(
+                    fixedColumn("group", "구분", "E"),
+                    fixedColumn("materialName", "물질명", "F"),
+                    fixedColumn("amount", "양", "G"),
+                    fixedColumn("annualUnit", "단위(연간)", "H"),
+                    fixedColumn("usage", "용도", "I"),
+                    fixedColumn("remark", "비고", "J")
+            )),
+            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_STEAM", "에너지 스팀", 3, 7, 2, 3, 25, excelColumnIndex("BS"), excelColumnIndex("BT"), excelColumnIndex("CF"), 26, 26, 27, 28, List.of(), List.of(
+                    fixedColumn("group", "구분", "BT"),
+                    fixedColumn("materialName", "물질명", "BU"),
+                    fixedColumn("amount", "양", "BV"),
+                    fixedColumn("annualUnit", "단위(연간)", "BW"),
+                    fixedColumn("usage", "용도", "BX"),
+                    fixedColumn("steamType", "스팀종류\n(포화증기/습증기/과열증기)", "BY"),
+                    fixedColumn("steamMass", "스팀의 질량", "CA"),
+                    fixedColumn("condensateMass", "응축수 질량", "CB"),
+                    fixedColumn("condensateTemperature", "응축수\n온도", "CD"),
+                    fixedColumn("steamCirculation", "스팀순환여부", "CE"),
+                    fixedColumn("externalSteam", "외부스팀 여부", "CF")
+            )),
+            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_MISC", "기타", 3, 7, 2, 3, 30, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("J"), 31, 31, 32, 80, List.of(), List.of(
+                    fixedColumn("group", "구분", "E"),
+                    fixedColumn("materialName", "물질명", "F"),
+                    fixedColumn("amount", "양", "G"),
+                    fixedColumn("annualUnit", "단위(연간)", "H"),
+                    fixedColumn("usage", "용도", "I"),
+                    fixedColumn("remark", "비고", "J")
+            )),
+            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_PRODUCTS", "제품 및 부산물", 3, 8, 2, 3, 9, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("K"), 10, 10, 11, 13, List.of(), List.of(
+                    fixedColumn("group", "구분", "E"),
+                    fixedColumn("materialName", "물질명", "F"),
+                    fixedColumn("amount", "양", "G"),
+                    fixedColumn("annualUnit", "단위\n(연간)", "H"),
+                    fixedColumn("productionCost", "생산원가", "I"),
+                    fixedColumn("costUnit", "단위", "J"),
+                    fixedColumn("remark", "비고", "K")
+            )),
+            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_AIR", "대기 배출물", 3, 8, 2, 3, 15, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("K"), 16, 16, 17, 23, List.of(), List.of(
+                    fixedColumn("group", "구분", "E"),
+                    fixedColumn("materialName", "물질명", "F"),
+                    fixedColumn("amount", "양", "G"),
+                    fixedColumn("annualUnit", "단위(연간)", "H"),
+                    fixedColumn("collectionMethod", "데이터 수집 방법", "I"),
+                    fixedColumn("remark", "비고", "K")
+            )),
+            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_WATER", "수계 배출물", 3, 8, 2, 3, 25, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("L"), 28, 28, 29, 33, List.of(
+                    new SectionMetaConfig("wastewaterFacilityInstalled", "사업장 내 1차 하수처리장 설치여부", 26, excelColumnIndex("E"), 27, excelColumnIndex("E"))
+            ), List.of(
+                    fixedColumn("group", "구분", "E"),
+                    fixedColumn("materialName", "물질명", "F"),
+                    fixedColumn("amount", "양", "G"),
+                    fixedColumn("annualUnit", "단위(연간)", "H"),
+                    fixedColumn("treatmentRoute", "처리경로", "I"),
+                    fixedColumn("treatmentMethod", "처리방법", "K"),
+                    fixedColumn("remark", "비고", "L")
+            )),
+            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_WASTE", "폐기물", 3, 8, 2, 3, 35, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("P"), 36, 38, 39, 120, List.of(), List.of(
+                    fixedColumn("group", "구분", "E"),
+                    fixedColumn("materialName", "물질명", "F"),
+                    fixedColumn("amount", "양", "G"),
+                    fixedColumn("annualUnit", "단위", "H"),
+                    fixedColumn("wasteType", "구분\n(일반/지정 폐기물)", "I"),
+                    fixedColumn("treatmentMethod", "처리방법\n(매립/소각/재활용/기타)", "K"),
+                    fixedColumn("transportTonKm", "물동량", "L", "재활용 및 최종폐기 과정 수송", "물동량"),
+                    fixedColumn("marineTransport", "해양", "M", "재활용 및 최종폐기 과정 수송", "수송방법", "해양"),
+                    fixedColumn("roadTransport", "육로", "N", "재활용 및 최종폐기 과정 수송", "수송방법", "육로"),
+                    fixedColumn("transportRoute", "운송경로", "O", "재활용 및 최종폐기 과정 수송", "운송경로"),
+                    fixedColumn("remark", "비고", "P", "재활용 및 최종폐기 과정 수송", "비고")
+            ))
+    );
 
     private final DataFormatter formatter = new DataFormatter(Locale.KOREA);
     private final ObjectMapper objectMapper;
@@ -282,7 +373,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
     }
 
     @Override
-    public Map<String, Object> getPagePayload(String actorId, boolean isEn) {
+    public Map<String, Object> getPagePayload(String actorId, String productName, boolean isEn) {
         Path samplePath = resolveSamplePath();
         if (samplePath != null && Files.exists(samplePath)) {
             try {
@@ -313,13 +404,13 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                     );
                     this.cachedTemplatePayload = payload;
                     this.templateLastModified = lastModified;
-                    return payload;
+                    return enrichPagePayloadWithProductSelection(payload, normalizeProductName(productName), isEn);
                 }
             } catch (Exception e) {
                 // Fallback to empty if file fails
             }
         }
-        return basePayload(storageActorId(), isEn, null, false, List.of());
+        return enrichPagePayloadWithProductSelection(basePayload(storageActorId(), isEn, null, false, List.of()), normalizeProductName(productName), isEn);
     }
 
     @Override
@@ -367,17 +458,16 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                 Sheet sheet = workbook.getSheetAt(i);
                 mergedRegionsMap.put(sheet.getSheetName(), sheet.getMergedRegions());
             }
-            Map<String, Object> payload = buildPayload(
+            Map<String, Object> payload = resolveSharedDatasetUploadPayload(
                     workbook,
                     uploadFile.getOriginalFilename(),
                     WORKSPACE_SAMPLE.toString(),
                     REFERENCE_SAMPLE.toString(),
-                    true,
                     storageActorId(),
                     isEn,
                     mergedRegionsMap
             );
-            List<Map<String, Object>> existingRows = readDatasetSections(storageActorId(), buildDatasetId());
+            List<Map<String, Object>> existingRows = readDatasetSections(storageActorId(), buildDatasetId(""));
             payload.put("existingDatasetSectionRows", existingRows);
             payload.put("hasExistingDataset", !existingRows.isEmpty());
             payload.put("previewMessage", !existingRows.isEmpty()
@@ -406,12 +496,11 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                 Sheet sheet = workbook.getSheetAt(i);
                 mergedRegionsMap.put(sheet.getSheetName(), sheet.getMergedRegions());
             }
-            Map<String, Object> payload = buildPayload(
+            Map<String, Object> payload = resolveSharedDatasetUploadPayload(
                     workbook,
                     uploadFile.getOriginalFilename(),
                     WORKSPACE_SAMPLE.toString(),
                     REFERENCE_SAMPLE.toString(),
-                    true,
                     storageActorId(),
                     isEn,
                     mergedRegionsMap
@@ -430,7 +519,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                     isEn
             );
             payload.put("uploadAudit", uploadAudit);
-            payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId(), buildDatasetId()));
+            payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId(), buildDatasetId("")));
             payload.put("message", isEn ? "Uploaded file has been applied to the shared DB dataset." : "업로드 파일 내용을 공통 데이터셋에 반영했습니다.");
             return payload;
         } catch (IllegalArgumentException e) {
@@ -443,16 +532,122 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
     }
 
     @Override
+    public synchronized Map<String, Object> replaceSharedDatasetSections(EmissionSurveyDatasetReplaceRequest request, boolean isEn) {
+        if (request == null || request.getSections() == null || request.getSections().isEmpty()) {
+            throw new IllegalArgumentException(isEn
+                    ? "At least one section is required to replace the shared dataset."
+                    : "공통 데이터셋 교체를 위해 최소 1개 이상의 섹션이 필요합니다.");
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("sections", request.getSections());
+        payload.put("sourcePath", safe(request.getSourcePath()));
+        payload.put("targetPath", safe(request.getTargetPath()));
+        clearSharedDataset();
+        Map<String, Object> uploadAudit = saveUploadedWorkbookDataset(
+                payload,
+                storageActorId(),
+                safe(request.getSourceFileName()),
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                isEn
+        );
+        payload.put("uploadAudit", uploadAudit);
+        payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId(), buildDatasetId("")));
+        payload.put("message", isEn ? "Mapped dataset sections have been applied to the shared DB dataset." : "매핑된 데이터셋 섹션을 공통 데이터셋에 반영했습니다.");
+        return payload;
+    }
+
+    private Map<String, Object> buildAdminUploadedPayload(Workbook workbook,
+                                                          String sourceFileName,
+                                                          String sourcePath,
+                                                          String targetPath,
+                                                          String actorId,
+                                                          boolean isEn,
+                                                          Map<String, List<CellRangeAddress>> mergedRegionsMap) {
+        List<SectionConfig> adminConfigs = ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS;
+        List<Map<String, Object>> sections = parseSections(workbook, adminConfigs, false, mergedRegionsMap);
+        Map<String, Object> payload = basePayload(actorId, isEn, sourcePath, true, sections);
+        payload.put("sourceFileName", sourceFileName == null || sourceFileName.isBlank() ? ADMIN_UPLOAD_WORKBOOK_NAME : sourceFileName);
+        payload.put("targetPath", targetPath);
+        payload.put("majorOptions", List.of(
+                option("INPUT", "3. 투입물 데이터 수집"),
+                option("OUTPUT", "4. 산출물 데이터 수집")
+        ));
+        payload.put("sectionOptions", adminConfigs.stream()
+                .map(config -> option(config.sectionCode, config.sectionLabel))
+                .collect(Collectors.toList()));
+        payload.put("caseOptions", List.of(
+                option("CASE_3_1", "3-1 시작"),
+                option("CASE_3_2", "3-2 LCI DB를 알고 있는 경우")
+        ));
+        payload.put("summaryCards", List.of(
+                summaryCard("원본 파일", payload.get("sourceFileName"), "관리자 업로드 양식 기준"),
+                summaryCard("대분류", "2", "투입물/산출물 2개 분류"),
+                summaryCard("중분류", String.valueOf(adminConfigs.size()), "관리자 양식 고정 섹션 수"),
+                summaryCard("Case", "2", "3-1 seed / 3-2 empty draft")
+        ));
+        return payload;
+    }
+
+    private Map<String, Object> resolveSharedDatasetUploadPayload(Workbook workbook,
+                                                                  String sourceFileName,
+                                                                  String sourcePath,
+                                                                  String targetPath,
+                                                                  String actorId,
+                                                                  boolean isEn,
+                                                                  Map<String, List<CellRangeAddress>> mergedRegionsMap) {
+        if (matchesAdminUploadedWorkbookLayout(workbook, mergedRegionsMap)) {
+            return buildAdminUploadedPayload(
+                    workbook,
+                    sourceFileName,
+                    sourcePath,
+                    targetPath,
+                    actorId,
+                    isEn,
+                    mergedRegionsMap
+            );
+        }
+        Map<String, Object> adminPayload = buildAdminUploadedPayload(
+                workbook,
+                sourceFileName,
+                sourcePath,
+                targetPath,
+                actorId,
+                isEn,
+                mergedRegionsMap
+        );
+        Map<String, Object> detectedPayload = buildPayload(
+                workbook,
+                sourceFileName,
+                sourcePath,
+                targetPath,
+                true,
+                actorId,
+                isEn,
+                mergedRegionsMap
+        );
+        int adminRowCount = totalParsedRowCount((List<Map<String, Object>>) (List<?>) (adminPayload.get("sections") instanceof List<?> ? adminPayload.get("sections") : List.of()));
+        int detectedRowCount = totalParsedRowCount((List<Map<String, Object>>) (List<?>) (detectedPayload.get("sections") instanceof List<?> ? detectedPayload.get("sections") : List.of()));
+        return detectedRowCount > adminRowCount ? detectedPayload : adminPayload;
+    }
+
+    @Override
     public Map<String, Object> loadClassificationCaseDrafts(String lciMajorCode,
                                                             String lciMiddleCode,
                                                             String lciSmallCode,
                                                             String caseCode,
+                                                            String productName,
                                                             String actorId,
                                                             boolean isEn) {
         String resolvedMajorCode = safe(lciMajorCode);
         String resolvedMiddleCode = safe(lciMiddleCode);
         String resolvedSmallCode = safe(lciSmallCode);
         String resolvedCaseCode = safe(caseCode);
+        String resolvedProductName = normalizeProductName(productName);
         if (resolvedMajorCode.isEmpty() || resolvedMiddleCode.isEmpty()) {
             throw new IllegalArgumentException(isEn
                     ? "Select the LCI major and middle classifications first."
@@ -466,16 +661,18 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                 resolvedMajorCode,
                 resolvedMiddleCode,
                 resolvedSmallCode,
-                resolvedCaseCode
+                resolvedCaseCode,
+                resolvedProductName
         );
         if (matchedCaseMap.isEmpty()) {
-            matchedCaseMap = readLatestSharedCaseMap(resolvedCaseCode);
+            matchedCaseMap = readLatestSharedCaseMap(resolvedCaseCode, resolvedProductName);
         }
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("lciMajorCode", resolvedMajorCode);
         response.put("lciMiddleCode", resolvedMiddleCode);
         response.put("lciSmallCode", resolvedSmallCode);
         response.put("caseCode", resolvedCaseCode);
+        response.put("productName", resolvedProductName);
         response.put("matchedCaseMap", matchedCaseMap);
         response.put("matchedCount", matchedCaseMap.size());
         response.put("message", matchedCaseMap.isEmpty()
@@ -484,10 +681,10 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         return response;
     }
 
-    private Map<String, Map<String, Object>> readLatestSharedCaseMap(String caseCode) {
+    private Map<String, Map<String, Object>> readLatestSharedCaseMap(String caseCode, String productName) {
         Map<String, Map<String, Object>> latestBySection = new LinkedHashMap<>();
         for (Map<String, Object> row : readDraftRegistry(storageActorId()).values()) {
-            if (!buildDatasetId().equals(safeObject(row.get("datasetId")))) {
+            if (!buildDatasetId(productName).equals(safeObject(row.get("datasetId")))) {
                 continue;
             }
             if (!safe(caseCode).equals(safeObject(row.get("caseCode")))) {
@@ -606,13 +803,16 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
             throw new IllegalArgumentException(isEn ? "Section code and case code are required." : "sectionCode와 caseCode는 필수입니다.");
         }
         request.setOwnerActorId(resolvedOwnerActorId);
-        request.setDatasetId(buildDatasetId());
-        request.setDatasetName(sharedDatasetName(isEn));
+        String resolvedProductName = normalizeProductName(request.getProductName());
+        request.setProductName(resolvedProductName);
+        request.setDatasetId(buildDatasetId(resolvedProductName));
+        request.setDatasetName(sharedDatasetName(isEn, resolvedProductName));
         Map<String, Map<String, Object>> registry = readDraftRegistryFromFile();
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("ownerActorId", resolvedOwnerActorId);
         row.put("datasetId", safe(request.getDatasetId()));
         row.put("datasetName", safe(request.getDatasetName()));
+        row.put("productName", safe(request.getProductName()));
         row.put("sectionCode", sectionCode);
         row.put("caseCode", caseCode);
         row.put("majorCode", safe(request.getMajorCode()));
@@ -651,23 +851,26 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
     }
 
     @Override
-    public synchronized Map<String, Object> deleteCaseDraft(String sectionCode, String caseCode, String actorId, boolean isEn) {
+    public synchronized Map<String, Object> deleteCaseDraft(String sectionCode, String caseCode, String productName, String actorId, boolean isEn) {
         String resolvedSectionCode = safe(sectionCode);
         String resolvedCaseCode = safe(caseCode);
+        String resolvedProductName = normalizeProductName(productName);
         String resolvedActorId = storageActorId();
         if (resolvedSectionCode.isEmpty() || resolvedCaseCode.isEmpty()) {
             throw new IllegalArgumentException(isEn ? "Section code and case code are required." : "sectionCode와 caseCode는 필수입니다.");
         }
         Map<String, Map<String, Object>> registry = readDraftRegistryFromFile();
         registry.entrySet().removeIf(entry -> matchesSectionAndCase(entry.getValue(), resolvedSectionCode, resolvedCaseCode)
+                && matchesProduct(entry.getValue(), resolvedProductName)
                 && matchesOwner(entry.getValue(), resolvedActorId));
         writeDraftRegistry(registry);
         if (isDraftTableReady()) {
-            deleteCaseDraftFromDatabase(resolvedSectionCode, resolvedCaseCode, resolvedActorId);
+            deleteCaseDraftFromDatabase(resolvedSectionCode, resolvedCaseCode, resolvedProductName, resolvedActorId);
         }
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("deleted", true);
         response.put("draftKey", resolvedSectionCode + ":" + resolvedCaseCode);
+        response.put("productName", resolvedProductName);
         response.put("savedCaseMap", readDraftRegistry(resolvedActorId));
         response.put("message", isEn ? "Survey case draft deleted." : "설문 케이스 초안을 삭제했습니다.");
         return response;
@@ -695,22 +898,46 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                                              boolean uploaded,
                                              String actorId,
                                              boolean isEn) {
-        boolean uploadedWorkbookLayout = matchesUploadedWorkbookLayout(workbook);
-        boolean generatedTemplate = isGeneratedTemplate(workbook) && !uploadedWorkbookLayout;
-        List<SectionConfig> sectionConfigs = resolveSectionConfigs(uploaded, generatedTemplate, uploadedWorkbookLayout);
-        List<Map<String, Object>> sections = new ArrayList<>();
+        Map<String, List<CellRangeAddress>> mergedRegionsMap = new LinkedHashMap<>();
+        if (workbook != null) {
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                Sheet sheet = workbook.getSheetAt(i);
+                mergedRegionsMap.put(sheet.getSheetName(), sheet.getMergedRegions());
+            }
+        }
+        return buildPayload(workbook, sourceFileName, sourcePath, targetPath, uploaded, actorId, isEn, mergedRegionsMap);
+    }
+
+    private Map<String, Object> buildPayload(Workbook workbook,
+                                             String sourceFileName,
+                                             String sourcePath,
+                                             String targetPath,
+                                             boolean uploaded,
+                                             String actorId,
+                                             boolean isEn,
+                                             Map<String, List<CellRangeAddress>> mergedRegionsMap) {
+        boolean adminUploadedWorkbookLayout = matchesAdminUploadedWorkbookLayout(workbook, mergedRegionsMap);
+        boolean uploadedWorkbookLayout = matchesUploadedWorkbookLayout(workbook, mergedRegionsMap);
+        boolean generatedTemplate = isGeneratedTemplate(workbook) && !uploadedWorkbookLayout && !adminUploadedWorkbookLayout;
+        List<SectionConfig> sectionConfigs = resolveSectionConfigs(uploaded, generatedTemplate, uploadedWorkbookLayout, adminUploadedWorkbookLayout);
+        List<Map<String, Object>> sections = parseSections(workbook, sectionConfigs, generatedTemplate, mergedRegionsMap);
+        if (uploaded && !generatedTemplate && totalParsedRowCount(sections) <= 0) {
+            sections = resolveUploadedSectionsByRowCount(workbook, mergedRegionsMap, sectionConfigs, sections);
+            sectionConfigs = resolveSectionConfigsForParsedSections(sectionConfigs, sections);
+        }
         LinkedHashSet<String> majorCodes = new LinkedHashSet<>();
         LinkedHashMap<String, String> sectionOptions = new LinkedHashMap<>();
 
-        for (SectionConfig config : sectionConfigs) {
-            Sheet sheet = workbook.getSheet(config.sheetName);
-            if (sheet == null) {
-                continue;
+        for (Map<String, Object> section : sections) {
+            String majorCode = safeObject(section.get("majorCode"));
+            String sectionCode = safeObject(section.get("sectionCode"));
+            String sectionLabel = safeObject(section.get("sectionLabel"));
+            if (!majorCode.isBlank()) {
+                majorCodes.add(majorCode);
             }
-            Map<String, Object> section = parseSection(sheet, config, sectionConfigs, generatedTemplate);
-            sections.add(section);
-            majorCodes.add(config.majorCode);
-            sectionOptions.put(config.sectionCode, config.sectionLabel);
+            if (!sectionCode.isBlank()) {
+                sectionOptions.put(sectionCode, sectionLabel);
+            }
         }
 
         Map<String, Object> payload = basePayload(actorId, isEn, sourcePath, uploaded, sections);
@@ -736,15 +963,81 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         return payload;
     }
 
-    private Map<String, Object> buildPayload(Workbook workbook,
-                                             String sourceFileName,
-                                             String sourcePath,
-                                             String targetPath,
-                                             boolean uploaded,
-                                             String actorId,
-                                             boolean isEn,
-                                             Map<String, List<CellRangeAddress>> mergedRegionsMap) {
-        return buildPayload(workbook, sourceFileName, sourcePath, targetPath, uploaded, actorId, isEn);
+    private List<Map<String, Object>> parseSections(Workbook workbook,
+                                                    List<SectionConfig> sectionConfigs,
+                                                    boolean generatedTemplate,
+                                                    Map<String, List<CellRangeAddress>> mergedRegionsMap) {
+        List<Map<String, Object>> sections = new ArrayList<>();
+        for (SectionConfig config : sectionConfigs) {
+            Sheet sheet = workbook.getSheet(config.sheetName);
+            if (sheet == null) {
+                continue;
+            }
+            Map<String, Object> section = parseSection(
+                    sheet,
+                    config,
+                    sectionConfigs,
+                    generatedTemplate,
+                    mergedRegionsMap.getOrDefault(config.sheetName, sheet.getMergedRegions())
+            );
+            sections.add(section);
+        }
+        return sections;
+    }
+
+    private List<Map<String, Object>> resolveUploadedSectionsByRowCount(Workbook workbook,
+                                                                        Map<String, List<CellRangeAddress>> mergedRegionsMap,
+                                                                        List<SectionConfig> detectedConfigs,
+                                                                        List<Map<String, Object>> detectedSections) {
+        int detectedRowCount = totalParsedRowCount(detectedSections);
+        List<Map<String, Object>> adminSections = parseSections(workbook, ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS, false, mergedRegionsMap);
+        int adminRowCount = totalParsedRowCount(adminSections);
+        List<Map<String, Object>> uploadedSections = parseSections(workbook, UPLOADED_WORKBOOK_SECTION_CONFIGS, false, mergedRegionsMap);
+        int uploadedRowCount = totalParsedRowCount(uploadedSections);
+
+        if (adminRowCount > Math.max(detectedRowCount, uploadedRowCount)) {
+            return adminSections;
+        }
+        if (uploadedRowCount > Math.max(detectedRowCount, adminRowCount)) {
+            return uploadedSections;
+        }
+        return detectedSections;
+    }
+
+    private List<SectionConfig> resolveSectionConfigsForParsedSections(List<SectionConfig> fallbackConfigs,
+                                                                       List<Map<String, Object>> sections) {
+        LinkedHashSet<String> sectionCodes = sections.stream()
+                .map(section -> safeObject(section.get("sectionCode")))
+                .filter(code -> !code.isBlank())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (sectionCodes.isEmpty()) {
+            return fallbackConfigs;
+        }
+        List<List<SectionConfig>> candidates = List.of(
+                ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS,
+                UPLOADED_WORKBOOK_SECTION_CONFIGS,
+                TEMPLATE_SECTION_CONFIGS,
+                SECTION_CONFIGS
+        );
+        for (List<SectionConfig> candidate : candidates) {
+            LinkedHashSet<String> candidateCodes = candidate.stream()
+                    .map(config -> config.sectionCode)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            if (candidateCodes.equals(sectionCodes)) {
+                return candidate;
+            }
+        }
+        return fallbackConfigs;
+    }
+
+    private int totalParsedRowCount(List<Map<String, Object>> sections) {
+        if (sections == null) {
+            return 0;
+        }
+        return sections.stream()
+                .map(section -> section.get("rows"))
+                .mapToInt(this::countRows)
+                .sum();
     }
 
     private Map<String, Object> basePayload(String actorId, boolean isEn, String sourcePath, boolean uploaded, List<Map<String, Object>> sections) {
@@ -764,7 +1057,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         payload.put("savedCaseMap", readDraftRegistry(storageActorId));
         payload.put("savedSetMap", readSetRegistry());
         payload.put("uploadLogRows", readUploadLogs(storageActorId, "", "", "", ""));
-        payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId, buildDatasetId()));
+        payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId, buildDatasetId("")));
         return payload;
     }
 
@@ -886,13 +1179,23 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                                                               boolean generatedTemplate,
                                                               List<CellRangeAddress> mergedRegions) {
         List<Map<String, Object>> rows = new ArrayList<>();
+        int rowStart = resolveDataStartRow(sheet, config, mergedRegions);
         int rowEnd = resolveDataEndRow(sheet, config, activeConfigs, generatedTemplate, mergedRegions);
-        for (int rowIndex = config.dataStartRow; rowIndex <= rowEnd; rowIndex++) {
+        String lastMeaningfulGroupValue = "";
+        for (int rowIndex = rowStart; rowIndex <= rowEnd; rowIndex++) {
             Map<String, String> values = new LinkedHashMap<>();
             for (FixedColumnConfig fixedColumn : fixedColumns) {
                 values.put(fixedColumn.key, normalizeValue(readMergedValue(sheet, mergedRegions, rowIndex, fixedColumn.colIndex)));
             }
-            if (isExamplePlaceholderRow(values) || isEmptyRow(values)) {
+            String currentGroupValue = normalizeValue(values.get("group"));
+            String currentMaterialName = normalizeValue(values.get("materialName"));
+            if (currentGroupValue.isBlank()
+                    && !currentMaterialName.isBlank()
+                    && !"물질명".equals(currentMaterialName)
+                    && !lastMeaningfulGroupValue.isBlank()) {
+                values.put("group", lastMeaningfulGroupValue);
+            }
+            if (shouldSkipFixedColumnRow(config, values)) {
                 continue;
             }
             Map<String, Object> row = new LinkedHashMap<>();
@@ -900,8 +1203,70 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
             row.put("values", values);
             row.put("templateRow", true);
             rows.add(row);
+            String resolvedGroupValue = normalizeValue(values.get("group"));
+            if (!resolvedGroupValue.isBlank() && !"구분".equals(resolvedGroupValue)) {
+                lastMeaningfulGroupValue = resolvedGroupValue;
+            }
         }
         return rows;
+    }
+
+    private int resolveDataStartRow(Sheet sheet, SectionConfig config, List<CellRangeAddress> mergedRegions) {
+        if (!isAdminUploadSection(config)) {
+            return config.dataStartRow;
+        }
+        int headerRow = findAdminUploadHeaderRow(sheet, config, config.fixedColumns, mergedRegions);
+        if (headerRow >= 0) {
+            return headerRow + 1;
+        }
+        return config.dataStartRow;
+    }
+
+    private boolean shouldSkipFixedColumnRow(SectionConfig config, Map<String, String> values) {
+        return isExamplePlaceholderRow(values)
+                || isEmptyRow(values)
+                || isGroupOnlyRow(values)
+                || isHeaderLikeRow(values)
+                || isInputSteamLeakRow(config, values)
+                || isOutputAirMetadataLeakRow(config, values)
+                || containsGuideMarker(values)
+                || isSectionOrMetadataTitleRow(config, values)
+                || !hasMeaningfulGroupValue(config, values);
+    }
+
+    private boolean isInputSteamLeakRow(SectionConfig config, Map<String, String> values) {
+        if (config == null || values == null || !"INPUT_STEAM".equals(config.sectionCode)) {
+            return false;
+        }
+        String materialName = normalizeValue(values.get("materialName"));
+        String steamType = normalizeValue(values.get("steamType"));
+        if (materialName.contains("스팀")) {
+            return false;
+        }
+        return !steamType.isBlank()
+                && !steamType.contains("포화증기")
+                && !steamType.contains("습증기")
+                && !steamType.contains("과열증기");
+    }
+
+    private boolean isOutputAirMetadataLeakRow(SectionConfig config, Map<String, String> values) {
+        if (config == null || values == null || !"OUTPUT_AIR".equals(config.sectionCode)) {
+            return false;
+        }
+        String groupValue = normalizeValue(values.get("group"));
+        String materialName = normalizeValue(values.get("materialName"));
+        if (groupValue.isBlank() || !groupValue.equals(materialName)) {
+            return false;
+        }
+        boolean onlyDuplicateHeaderValue = values.entrySet().stream()
+                .filter(entry -> !"group".equals(entry.getKey()) && !"materialName".equals(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .allMatch(this::isBlankCellValue);
+        if (!onlyDuplicateHeaderValue) {
+            return false;
+        }
+        return "사업장 내 1차 하수처리장 설치여부".equals(groupValue)
+                || "o".equalsIgnoreCase(groupValue);
     }
 
     private List<Map<String, Object>> parseRows(Sheet sheet,
@@ -947,6 +1312,9 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         if (sheet == null) {
             return config.dataEndRow;
         }
+        if (isAdminUploadSection(config)) {
+            return resolveAdminUploadDataEndRow(sheet, config, mergedRegions);
+        }
         int sheetLastRow = Math.max(config.dataEndRow, sheet.getLastRowNum());
         for (int rowIndex = config.dataStartRow; rowIndex <= sheetLastRow; rowIndex++) {
             if (rowIndex <= config.dataStartRow) {
@@ -959,6 +1327,75 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         return generatedTemplate || usesLeftAlignedWorkbookLayout(config)
                 ? sheetLastRow
                 : config.dataEndRow;
+    }
+
+    private int resolveAdminUploadDataEndRow(Sheet sheet,
+                                             SectionConfig config,
+                                             List<CellRangeAddress> mergedRegions) {
+        int sheetLastRow = Math.max(sheet.getLastRowNum(), config.dataEndRow);
+        if ("INPUT_ENERGY".equals(config.sectionCode)) {
+            for (int rowIndex = config.dataStartRow; rowIndex <= sheetLastRow; rowIndex++) {
+                if (rowIndex == config.dataStartRow) {
+                    continue;
+                }
+                Map<String, String> values = readFixedColumnValues(sheet, mergedRegions, rowIndex, config.fixedColumns);
+                if (isHeaderLikeRow(values)) {
+                    return rowIndex - 1;
+                }
+            }
+        }
+        int nextTitleRow = ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS.stream()
+                .filter(candidate -> !candidate.sectionCode.equals(config.sectionCode))
+                .filter(candidate -> candidate.sheetName.equals(config.sheetName))
+                .mapToInt(candidate -> candidate.titleRow)
+                .filter(titleRow -> titleRow > config.titleRow)
+                .min()
+                .orElse(sheetLastRow + 1);
+        return Math.max(config.dataStartRow, nextTitleRow - 1);
+    }
+
+    private Map<String, String> readFixedColumnValues(Sheet sheet,
+                                                      List<CellRangeAddress> mergedRegions,
+                                                      int rowIndex,
+                                                      List<FixedColumnConfig> fixedColumns) {
+        Map<String, String> values = new LinkedHashMap<>();
+        if (fixedColumns == null) {
+            return values;
+        }
+        for (FixedColumnConfig fixedColumn : fixedColumns) {
+            values.put(fixedColumn.key, normalizeValue(readMergedValue(sheet, mergedRegions, rowIndex, fixedColumn.colIndex)));
+        }
+        return values;
+    }
+
+    private int findAdminUploadHeaderRow(Sheet sheet,
+                                         SectionConfig config,
+                                         List<FixedColumnConfig> fixedColumns,
+                                         List<CellRangeAddress> mergedRegions) {
+        if (sheet == null || config == null || fixedColumns == null || fixedColumns.isEmpty()) {
+            return -1;
+        }
+        int searchStartRow = Math.max(0, Math.min(config.titleRow, config.dataStartRow) - 4);
+        int nextTitleRow = ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS.stream()
+                .filter(candidate -> !candidate.sectionCode.equals(config.sectionCode))
+                .filter(candidate -> candidate.sheetName.equals(config.sheetName))
+                .mapToInt(candidate -> candidate.titleRow)
+                .filter(titleRow -> titleRow > config.titleRow)
+                .min()
+                .orElse(sheet.getLastRowNum() + 1);
+        int searchEndRow = Math.min(Math.max(sheet.getLastRowNum(), config.dataStartRow), nextTitleRow - 1);
+        int matchedHeaderRow = -1;
+        for (int rowIndex = searchStartRow; rowIndex <= searchEndRow; rowIndex++) {
+            Map<String, String> values = readFixedColumnValues(sheet, mergedRegions, rowIndex, fixedColumns);
+            if (isHeaderLikeRow(values)) {
+                if ("INPUT_STEAM".equals(config.sectionCode)) {
+                    matchedHeaderRow = rowIndex;
+                    continue;
+                }
+                return rowIndex;
+            }
+        }
+        return matchedHeaderRow;
     }
 
     private boolean isNextSectionTitleRow(Sheet sheet,
@@ -987,6 +1424,89 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                 .allMatch(this::isPlaceholderCellValue);
     }
 
+    private boolean isGroupOnlyRow(Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return false;
+        }
+        String groupValue = values.getOrDefault("group", "");
+        if (isBlankCellValue(groupValue)) {
+            return false;
+        }
+        return values.entrySet().stream()
+                .filter(entry -> !"group".equals(entry.getKey()))
+                .allMatch(entry -> isBlankCellValue(entry.getValue()));
+    }
+
+    private boolean isHeaderLikeRow(Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return false;
+        }
+        String groupValue = normalizeValue(values.get("group"));
+        String materialName = normalizeValue(values.get("materialName"));
+        return "구분".equals(groupValue) && "물질명".equals(materialName);
+    }
+
+    private boolean containsGuideMarker(Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return false;
+        }
+        return values.values().stream()
+                .map(this::normalizeValue)
+                .filter(value -> !value.isBlank())
+                .anyMatch(value -> value.contains("◎") || value.contains("♣"));
+    }
+
+    private boolean isSectionOrMetadataTitleRow(SectionConfig config, Map<String, String> values) {
+        if (config == null || values == null || values.isEmpty()) {
+            return false;
+        }
+        List<String> nonBlankValues = values.values().stream()
+                .map(this::normalizeValue)
+                .filter(value -> !value.isBlank())
+                .collect(Collectors.toList());
+        if (nonBlankValues.isEmpty()) {
+            return false;
+        }
+        List<String> titleCandidates = new ArrayList<>();
+        titleCandidates.add(normalizeValue(config.sectionLabel));
+        for (SectionMetaConfig metadataConfig : config.metadataConfigs) {
+            titleCandidates.add(normalizeValue(metadataConfig.label));
+        }
+        return titleCandidates.stream()
+                .filter(title -> !title.isBlank())
+                .anyMatch(title -> nonBlankValues.stream().allMatch(title::equals));
+    }
+
+    private boolean hasMeaningfulGroupValue(SectionConfig config, Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return false;
+        }
+        String groupValue = normalizeValue(values.get("group"));
+        String materialName = normalizeValue(values.get("materialName"));
+        if (!materialName.isBlank() && !"물질명".equals(materialName)
+                && !containsGuideMarker(Map.of("materialName", materialName))) {
+            return true;
+        }
+        if (groupValue.isBlank()) {
+            return false;
+        }
+        if ("구분".equals(groupValue) || containsGuideMarker(Map.of("group", groupValue))) {
+            return false;
+        }
+        if (config != null) {
+            for (SectionMetaConfig metadataConfig : config.metadataConfigs) {
+                if (normalizeValue(metadataConfig.label).equals(groupValue)
+                        && values.entrySet().stream()
+                        .filter(entry -> !"group".equals(entry.getKey()))
+                        .map(Map.Entry::getValue)
+                        .allMatch(this::isBlankCellValue)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private boolean isBlankCellValue(String value) {
         return value == null || value.trim().isEmpty();
     }
@@ -1013,6 +1533,9 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
     }
 
     private List<Map<String, String>> parseSectionMetadata(Sheet sheet, List<CellRangeAddress> mergedRegions, SectionConfig config) {
+        if (isAdminUploadSection(config) && !config.metadataConfigs.isEmpty()) {
+            return parseAdminUploadSectionMetadata(sheet, mergedRegions, config, config.fixedColumns);
+        }
         List<Map<String, String>> items = new ArrayList<>();
         for (SectionMetaConfig metaConfig : config.metadataConfigs) {
             String label = normalizeValue(readMergedValue(sheet, mergedRegions, metaConfig.labelRow, metaConfig.labelCol));
@@ -1023,6 +1546,49 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
             Map<String, String> item = new LinkedHashMap<>();
             item.put("key", metaConfig.key);
             item.put("label", metaConfig.label.isBlank() ? label : metaConfig.label);
+            item.put("value", value);
+            items.add(item);
+        }
+        return items;
+    }
+
+    private List<Map<String, String>> parseAdminUploadSectionMetadata(Sheet sheet,
+                                                                      List<CellRangeAddress> mergedRegions,
+                                                                      SectionConfig config,
+                                                                      List<FixedColumnConfig> fixedColumns) {
+        List<Map<String, String>> items = new ArrayList<>();
+        int headerRow = findAdminUploadHeaderRow(sheet, config, fixedColumns, mergedRegions);
+        int searchStartRow = Math.max(0, Math.min(config.titleRow, config.dataStartRow) - 4);
+        int searchEndRow = headerRow > 0 ? headerRow - 1 : Math.max(config.dataStartRow - 1, config.titleRow);
+        for (SectionMetaConfig metaConfig : config.metadataConfigs) {
+            String configuredLabel = normalizeValue(metaConfig.label);
+            String label = configuredLabel;
+            String value = normalizeValue(readMergedValue(sheet, mergedRegions, metaConfig.valueRow, metaConfig.valueCol));
+            boolean resolved = false;
+            for (int rowIndex = searchStartRow; rowIndex <= searchEndRow && !resolved; rowIndex++) {
+                for (FixedColumnConfig fixedColumn : fixedColumns) {
+                    String candidate = normalizeValue(readMergedValue(sheet, mergedRegions, rowIndex, fixedColumn.colIndex));
+                    if (candidate.isBlank() || !candidate.equals(configuredLabel)) {
+                        continue;
+                    }
+                    label = candidate;
+                    for (int valueRowIndex = rowIndex + 1; valueRowIndex <= searchEndRow; valueRowIndex++) {
+                        String candidateValue = normalizeValue(readMergedValue(sheet, mergedRegions, valueRowIndex, fixedColumn.colIndex));
+                        if (!candidateValue.isBlank()) {
+                            value = candidateValue;
+                            break;
+                        }
+                    }
+                    resolved = true;
+                    break;
+                }
+            }
+            if (label.isBlank() && value.isBlank()) {
+                continue;
+            }
+            Map<String, String> item = new LinkedHashMap<>();
+            item.put("key", metaConfig.key);
+            item.put("label", label);
             item.put("value", value);
             items.add(item);
         }
@@ -1118,6 +1684,23 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         }
     }
 
+    @Override
+    public byte[] buildAdminUploadBlankTemplateBytes() {
+        Path adminSamplePath = resolveAdminSamplePath();
+        if (adminSamplePath == null || !Files.exists(adminSamplePath)) {
+            throw new IllegalStateException("관리자 업로드 양식 원본을 찾지 못했습니다.");
+        }
+        try (InputStream inputStream = Files.newInputStream(adminSamplePath);
+             Workbook workbook = new XSSFWorkbook(inputStream);
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            clearAdminWorkbookSampleValues(workbook);
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            throw new IllegalStateException("관리자 업로드 빈 양식 생성에 실패했습니다.", e);
+        }
+    }
+
     private void buildBlankTemplateWorkbook(Workbook workbook) {
         writeTemplateMarker(workbook);
         populateTemplateSheet(workbook, "투입물 데이터 수집", "3. 투입물 데이터 수집");
@@ -1125,6 +1708,39 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         ensureUnitOptionsSheet(workbook);
         workbook.setActiveSheet(0);
         workbook.setSelectedTab(0);
+    }
+
+    private void clearAdminWorkbookSampleValues(Workbook workbook) {
+        for (SectionConfig config : ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS) {
+            Sheet sheet = workbook.getSheet(config.sheetName);
+            if (sheet == null) {
+                continue;
+            }
+            for (int rowIndex = config.dataStartRow; rowIndex <= config.dataEndRow; rowIndex++) {
+                for (FixedColumnConfig column : config.fixedColumns) {
+                    clearCellValue(sheet, rowIndex, column.colIndex);
+                }
+            }
+            for (SectionMetaConfig metadataConfig : config.metadataConfigs) {
+                clearCellValue(sheet, metadataConfig.valueRow, metadataConfig.valueCol);
+            }
+        }
+        clearWorkbookRange(workbook.getSheet("표지"), "G", 25, "G", 25);
+        clearWorkbookRange(workbook.getSheet("데이터 수집 범위"), "F", 6, "G", 18);
+        clearWorkbookRange(workbook.getSheet("참고자료"), "U", 9, "V", 19);
+    }
+
+    private void clearWorkbookRange(Sheet sheet, String startColumnLetter, int startRow, String endColumnLetter, int endRow) {
+        if (sheet == null) {
+            return;
+        }
+        int startColIndex = excelColumnIndex(startColumnLetter);
+        int endColIndex = excelColumnIndex(endColumnLetter);
+        for (int rowIndex = Math.max(startRow - 1, 0); rowIndex <= Math.max(endRow - 1, 0); rowIndex++) {
+            for (int colIndex = startColIndex; colIndex <= endColIndex; colIndex++) {
+                clearCellValue(sheet, rowIndex, colIndex);
+            }
+        }
     }
 
     private void writeTemplateMarker(Workbook workbook) {
@@ -1468,11 +2084,25 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         return null;
     }
 
+    private Path resolveAdminSamplePath() {
+        if (Files.exists(WINDOWS_ADMIN_SAMPLE)) {
+            return WINDOWS_ADMIN_SAMPLE;
+        }
+        if (Files.exists(WORKSPACE_ADMIN_SAMPLE)) {
+            return WORKSPACE_ADMIN_SAMPLE;
+        }
+        return null;
+    }
+
     private List<SectionConfig> resolveSectionConfigs(boolean uploaded,
                                                       boolean generatedTemplate,
-                                                      boolean uploadedWorkbookLayout) {
+                                                      boolean uploadedWorkbookLayout,
+                                                      boolean adminUploadedWorkbookLayout) {
         if (generatedTemplate) {
             return TEMPLATE_SECTION_CONFIGS;
+        }
+        if (adminUploadedWorkbookLayout) {
+            return ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS;
         }
         if (uploadedWorkbookLayout || uploaded) {
             return UPLOADED_WORKBOOK_SECTION_CONFIGS;
@@ -1506,6 +2136,33 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         List<CellRangeAddress> outputMerged = mergedRegionsMap.getOrDefault("산출물 데이터 수집", List.of());
         return "원료 물질 및 보조 물질".equals(normalizeValue(readMergedValue(inputSheet, inputMerged, 2, 1)))
                 && "폐기물".equals(normalizeValue(readMergedValue(outputSheet, outputMerged, 43, 1)));
+    }
+
+    private boolean matchesAdminUploadedWorkbookLayout(Workbook workbook, Map<String, List<CellRangeAddress>> mergedRegionsMap) {
+        if (workbook == null) {
+            return false;
+        }
+        Sheet inputSheet = workbook.getSheet("투입물 데이터 수집");
+        Sheet outputSheet = workbook.getSheet("산출물 데이터 수집");
+        if (inputSheet == null || outputSheet == null) {
+            return false;
+        }
+        List<CellRangeAddress> inputMerged = mergedRegionsMap.getOrDefault("투입물 데이터 수집", List.of());
+        List<CellRangeAddress> outputMerged = mergedRegionsMap.getOrDefault("산출물 데이터 수집", List.of());
+        boolean legacyLayout = "원료 물질 및 보조 물질".equals(normalizeValue(readMergedValue(inputSheet, inputMerged, 8, excelColumnIndex("BR"))))
+                && "폐기물".equals(normalizeValue(readMergedValue(outputSheet, outputMerged, 35, excelColumnIndex("BO"))));
+        boolean currentLayout = "원료 물질 및 보조 물질".equals(normalizeValue(readMergedValue(inputSheet, inputMerged, 8, excelColumnIndex("BS"))))
+                && "폐기물".equals(normalizeValue(readMergedValue(outputSheet, outputMerged, 31, excelColumnIndex("BP"))));
+        return legacyLayout || currentLayout;
+    }
+
+    private boolean isAdminUploadSection(SectionConfig config) {
+        if (config == null) {
+            return false;
+        }
+        return ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS.stream()
+                .anyMatch(candidate -> candidate.sectionCode.equals(config.sectionCode)
+                        && candidate.sheetName.equals(config.sheetName));
     }
 
     private boolean matchesUploadedWorkbookLayout(Workbook workbook) {
@@ -1553,7 +2210,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                     continue;
                 }
                 String caseId = safeObject(header.get("caseId"));
-                Map<String, Object> row = new LinkedHashMap<>(header);
+                Map<String, Object> row = withDerivedProductName(new LinkedHashMap<>(header));
                 List<Map<String, Object>> items = adminEmissionSurveyDraftMapper.selectCaseRows(caseId);
                 List<Map<String, Object>> rows = new ArrayList<>();
                 for (Map<String, Object> item : items) {
@@ -1629,6 +2286,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         try {
             String caseId = buildCaseId(
                     safe(request.getOwnerActorId()).isBlank() ? safe(actorId) : safe(request.getOwnerActorId()),
+                    request.getProductName(),
                     request.getSectionCode(),
                     request.getCaseCode(),
                     request.getLciMajorCode(),
@@ -1682,11 +2340,14 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         }
     }
 
-    private void deleteCaseDraftFromDatabase(String sectionCode, String caseCode, String actorId) {
+    private void deleteCaseDraftFromDatabase(String sectionCode, String caseCode, String productName, String actorId) {
         try {
             List<Map<String, Object>> headers = adminEmissionSurveyDraftMapper.selectCaseHeaders();
             for (Map<String, Object> header : headers) {
                 if (!matchesSectionAndCase(header, sectionCode, caseCode)) {
+                    continue;
+                }
+                if (!matchesProduct(header, productName)) {
                     continue;
                 }
                 if (!matchesOwner(header, actorId)) {
@@ -1816,55 +2477,65 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         String resolvedMajorCode = safe(lciMajorCode);
         String resolvedMiddleCode = safe(lciMiddleCode);
         String resolvedSmallCode = safe(lciSmallCode);
-        String datasetId = buildDatasetId();
         String savedAt = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
         List<Map<String, Object>> sectionResults = new ArrayList<>();
         List<Map<String, Object>> sections = (List<Map<String, Object>>) (List<?>) (payload.get("sections") instanceof List<?> ? payload.get("sections") : List.of());
+        List<String> productNames = extractProductNames(sections);
+        if (productNames.isEmpty()) {
+            productNames = List.of("");
+        }
         int totalRowCount = 0;
         int savedSectionCount = 0;
         String resultStatus = "PARSE_ONLY";
         String message = isEn ? "Workbook parsed only." : "엑셀을 파싱만 완료했습니다.";
 
-        for (Map<String, Object> section : sections) {
-            EmissionSurveyCaseSaveRequest request = new EmissionSurveyCaseSaveRequest();
-            request.setOwnerActorId(resolvedActorId);
-            request.setDatasetId(datasetId);
-            request.setDatasetName(sharedDatasetName(isEn));
-            request.setSectionCode(safeObject(section.get("sectionCode")));
-            request.setCaseCode("CASE_3_1");
-            request.setMajorCode(safeObject(section.get("majorCode")));
-            request.setLciMajorCode(resolvedMajorCode);
-            request.setLciMajorLabel(safe(lciMajorLabel));
-            request.setLciMiddleCode(resolvedMiddleCode);
-            request.setLciMiddleLabel(safe(lciMiddleLabel));
-            request.setLciSmallCode(resolvedSmallCode);
-            request.setLciSmallLabel(safe(lciSmallLabel));
-            request.setSectionLabel(safeObject(section.get("sectionLabel")));
-            request.setSourceFileName(sourceFileName);
-            request.setSourcePath(safeObject(payload.get("sourcePath")));
-            request.setTargetPath(safeObject(payload.get("targetPath")));
-            request.setTitleRowLabel(safeObject(section.get("titleRowLabel")));
-            request.setGuidance((List<String>) (List<?>) (section.get("guidance") instanceof List<?> ? section.get("guidance") : List.of()));
-            request.setColumns((List<Map<String, String>>) (List<?>) (section.get("columns") instanceof List<?> ? section.get("columns") : List.of()));
-            request.setRows((List<Map<String, Object>>) (List<?>) (section.get("rows") instanceof List<?> ? section.get("rows") : List.of()));
-            saveCaseDraft(request, resolvedActorId, isEn);
-            int rowCount = request.getRows() == null ? 0 : request.getRows().size();
-            totalRowCount += rowCount;
-            savedSectionCount += 1;
-            Map<String, Object> sectionResult = new LinkedHashMap<>();
-            sectionResult.put("sectionCode", request.getSectionCode());
-            sectionResult.put("sectionLabel", request.getSectionLabel());
-            sectionResult.put("rowCount", rowCount);
-            sectionResult.put("caseCode", "CASE_3_1");
-            sectionResult.put("savedAt", savedAt);
-            sectionResults.add(sectionResult);
+        for (String productName : productNames) {
+            String datasetId = buildDatasetId(productName);
+            List<Map<String, Object>> productSections = filterSectionsForProduct(sections, productName);
+            for (Map<String, Object> section : productSections) {
+                EmissionSurveyCaseSaveRequest request = new EmissionSurveyCaseSaveRequest();
+                request.setOwnerActorId(resolvedActorId);
+                request.setProductName(productName);
+                request.setDatasetId(datasetId);
+                request.setDatasetName(sharedDatasetName(isEn, productName));
+                request.setSectionCode(safeObject(section.get("sectionCode")));
+                request.setCaseCode("CASE_3_1");
+                request.setMajorCode(safeObject(section.get("majorCode")));
+                request.setLciMajorCode(resolvedMajorCode);
+                request.setLciMajorLabel(safe(lciMajorLabel));
+                request.setLciMiddleCode(resolvedMiddleCode);
+                request.setLciMiddleLabel(safe(lciMiddleLabel));
+                request.setLciSmallCode(resolvedSmallCode);
+                request.setLciSmallLabel(safe(lciSmallLabel));
+                request.setSectionLabel(safeObject(section.get("sectionLabel")));
+                request.setSourceFileName(sourceFileName);
+                request.setSourcePath(safeObject(payload.get("sourcePath")));
+                request.setTargetPath(safeObject(payload.get("targetPath")));
+                request.setTitleRowLabel(safeObject(section.get("titleRowLabel")));
+                request.setGuidance((List<String>) (List<?>) (section.get("guidance") instanceof List<?> ? section.get("guidance") : List.of()));
+                request.setColumns((List<Map<String, String>>) (List<?>) (section.get("columns") instanceof List<?> ? section.get("columns") : List.of()));
+                request.setRows((List<Map<String, Object>>) (List<?>) (section.get("rows") instanceof List<?> ? section.get("rows") : List.of()));
+                saveCaseDraft(request, resolvedActorId, isEn);
+                int rowCount = request.getRows() == null ? 0 : request.getRows().size();
+                totalRowCount += rowCount;
+                savedSectionCount += 1;
+                Map<String, Object> sectionResult = new LinkedHashMap<>();
+                sectionResult.put("datasetId", datasetId);
+                sectionResult.put("productName", normalizeProductName(productName));
+                sectionResult.put("sectionCode", request.getSectionCode());
+                sectionResult.put("sectionLabel", request.getSectionLabel());
+                sectionResult.put("rowCount", rowCount);
+                sectionResult.put("caseCode", "CASE_3_1");
+                sectionResult.put("savedAt", savedAt);
+                sectionResults.add(sectionResult);
+            }
         }
         resultStatus = "SUCCESS";
         message = isEn ? "Workbook uploaded and saved into the shared dataset." : "엑셀 업로드 내용을 공통 데이터셋으로 저장했습니다.";
 
         Map<String, Object> logRow = new LinkedHashMap<>();
         logRow.put("logId", buildLogId());
-        logRow.put("datasetId", datasetId);
+        logRow.put("datasetId", SHARED_DATASET_ID);
         logRow.put("ownerActorId", resolvedActorId);
         logRow.put("sourceFileName", sourceFileName);
         logRow.put("lciMajorCode", resolvedMajorCode);
@@ -2014,7 +2685,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                 List<Map<String, Object>> headers = adminEmissionSurveyDraftMapper.selectDatasetSections(params);
                 List<Map<String, Object>> rows = new ArrayList<>();
                 for (Map<String, Object> header : headers) {
-                    Map<String, Object> row = new LinkedHashMap<>(header);
+                    Map<String, Object> row = withDerivedProductName(new LinkedHashMap<>(header));
                     List<Map<String, Object>> items = adminEmissionSurveyDraftMapper.selectCaseRows(safeObject(header.get("caseId")));
                     List<Map<String, Object>> caseRows = new ArrayList<>();
                     for (Map<String, Object> item : items) {
@@ -2098,8 +2769,12 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         return rows instanceof List<?> ? ((List<?>) rows).size() : 0;
     }
 
-    private String buildDatasetId() {
-        return SHARED_DATASET_ID;
+    private String buildDatasetId(String productName) {
+        String resolvedProductName = normalizeProductName(productName);
+        if (resolvedProductName.isEmpty()) {
+            return SHARED_DATASET_ID;
+        }
+        return SHARED_DATASET_PRODUCT_PREFIX + normalizeDatasetSegment(resolvedProductName);
     }
 
     private String buildDatasetName(String sourceFileName) {
@@ -2115,7 +2790,152 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
     }
 
     private String sharedDatasetName(boolean isEn) {
-        return isEn ? SHARED_DATASET_NAME_EN : SHARED_DATASET_NAME_KO;
+        return sharedDatasetName(isEn, "");
+    }
+
+    private String sharedDatasetName(boolean isEn, String productName) {
+        String resolvedProductName = normalizeProductName(productName);
+        if (resolvedProductName.isEmpty()) {
+            return isEn ? SHARED_DATASET_NAME_EN : SHARED_DATASET_NAME_KO;
+        }
+        return (isEn ? SHARED_DATASET_NAME_EN : SHARED_DATASET_NAME_KO) + " / " + resolvedProductName;
+    }
+
+    private String normalizeProductName(String productName) {
+        return safe(productName);
+    }
+
+    private Map<String, Object> withDerivedProductName(Map<String, Object> row) {
+        if (row == null) {
+            return new LinkedHashMap<>();
+        }
+        if (safeObject(row.get("productName")).isEmpty()) {
+            row.put("productName", extractProductName(row));
+        }
+        return row;
+    }
+
+    private String extractProductName(Map<String, Object> row) {
+        String datasetName = safeObject(row.get("datasetName"));
+        int separatorIndex = datasetName.indexOf(" / ");
+        if (separatorIndex >= 0 && separatorIndex + 3 < datasetName.length()) {
+            return datasetName.substring(separatorIndex + 3).trim();
+        }
+        return extractProductNameFromDatasetId(safeObject(row.get("datasetId")));
+    }
+
+    private String extractProductNameFromDatasetId(String datasetId) {
+        String resolvedDatasetId = safe(datasetId);
+        if (!resolvedDatasetId.startsWith(SHARED_DATASET_PRODUCT_PREFIX)) {
+            return "";
+        }
+        String suffix = resolvedDatasetId.substring(SHARED_DATASET_PRODUCT_PREFIX.length());
+        return suffix.replace('_', ' ').trim();
+    }
+
+    private String normalizeDatasetSegment(String value) {
+        String normalized = safe(value).replaceAll("[^0-9A-Za-z가-힣]+", "_").replaceAll("_+", "_").replaceAll("^_|_$", "");
+        return normalized.isEmpty() ? "UNKNOWN" : normalized;
+    }
+
+    private boolean matchesProduct(Map<String, Object> row, String productName) {
+        String resolvedProductName = normalizeProductName(productName);
+        if (resolvedProductName.isEmpty()) {
+            String datasetId = safeObject(row.get("datasetId"));
+            return datasetId.isEmpty() || SHARED_DATASET_ID.equals(datasetId);
+        }
+        return resolvedProductName.equals(safeObject(row.get("productName")))
+                || buildDatasetId(resolvedProductName).equals(safeObject(row.get("datasetId")));
+    }
+
+    private List<String> extractProductNames(List<Map<String, Object>> sections) {
+        LinkedHashSet<String> products = new LinkedHashSet<>();
+        for (Map<String, Object> section : sections == null ? List.<Map<String, Object>>of() : sections) {
+            if (!"OUTPUT_PRODUCTS".equals(safeObject(section.get("sectionCode")))) {
+                continue;
+            }
+            List<Map<String, Object>> rows = (List<Map<String, Object>>) (List<?>) (section.get("rows") instanceof List<?> ? section.get("rows") : List.of());
+            for (Map<String, Object> row : rows) {
+                Map<String, String> values = (Map<String, String>) (Map<?, ?>) (row.get("values") instanceof Map<?, ?> ? row.get("values") : Map.of());
+                String materialName = normalizeProductName(values.get("materialName"));
+                String groupValue = normalizeValue(values.get("group"));
+                if (materialName.isBlank()) {
+                    continue;
+                }
+                if (groupValue.contains("제품") || groupValue.equalsIgnoreCase("product") || products.isEmpty()) {
+                    products.add(materialName);
+                }
+            }
+        }
+        return new ArrayList<>(products);
+    }
+
+    private List<Map<String, Object>> filterSectionsForProduct(List<Map<String, Object>> sections, String productName) {
+        String resolvedProductName = normalizeProductName(productName);
+        if (resolvedProductName.isEmpty()) {
+            return sections == null ? List.of() : sections;
+        }
+        List<Map<String, Object>> filtered = new ArrayList<>();
+        for (Map<String, Object> section : sections == null ? List.<Map<String, Object>>of() : sections) {
+            Map<String, Object> copy = new LinkedHashMap<>(section);
+            if ("OUTPUT_PRODUCTS".equals(safeObject(section.get("sectionCode")))) {
+                List<Map<String, Object>> nextRows = new ArrayList<>();
+                List<Map<String, Object>> rows = (List<Map<String, Object>>) (List<?>) (section.get("rows") instanceof List<?> ? section.get("rows") : List.of());
+                for (Map<String, Object> row : rows) {
+                    Map<String, String> values = (Map<String, String>) (Map<?, ?>) (row.get("values") instanceof Map<?, ?> ? row.get("values") : Map.of());
+                    String materialName = normalizeProductName(values.get("materialName"));
+                    String groupValue = normalizeValue(values.get("group"));
+                    if (materialName.equals(resolvedProductName) || groupValue.contains("부산물") || groupValue.equalsIgnoreCase("byproduct")) {
+                        nextRows.add(row);
+                    }
+                }
+                copy.put("rows", nextRows);
+            }
+            filtered.add(copy);
+        }
+        return filtered;
+    }
+
+    private List<Map<String, String>> buildProductOptions(String selectedProductName) {
+        List<Map<String, String>> options = new ArrayList<>();
+        for (String productName : readSharedProductNames()) {
+            Map<String, String> option = new LinkedHashMap<>();
+            option.put("value", productName);
+            option.put("label", productName);
+            options.add(option);
+        }
+        String resolvedSelected = normalizeProductName(selectedProductName);
+        if (!resolvedSelected.isEmpty() && options.stream().noneMatch(option -> resolvedSelected.equals(option.get("value")))) {
+            Map<String, String> option = new LinkedHashMap<>();
+            option.put("value", resolvedSelected);
+            option.put("label", resolvedSelected);
+            options.add(0, option);
+        }
+        return options;
+    }
+
+    private List<String> readSharedProductNames() {
+        LinkedHashSet<String> products = new LinkedHashSet<>();
+        for (Map<String, Object> row : readDraftRegistry(storageActorId()).values()) {
+            String productName = normalizeProductName(safeObject(row.get("productName")));
+            if (!productName.isEmpty()) {
+                products.add(productName);
+            }
+        }
+        return new ArrayList<>(products);
+    }
+
+    private Map<String, Object> enrichPagePayloadWithProductSelection(Map<String, Object> payload, String productName, boolean isEn) {
+        String resolvedProductName = normalizeProductName(productName);
+        List<Map<String, String>> productOptions = buildProductOptions(resolvedProductName);
+        if (resolvedProductName.isEmpty() && !productOptions.isEmpty()) {
+            resolvedProductName = safe(productOptions.get(0).get("value"));
+        }
+        payload.put("productOptions", productOptions);
+        payload.put("selectedProductName", resolvedProductName);
+        payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId(), buildDatasetId(resolvedProductName)));
+        payload.put("currentActorId", sharedDatasetName(isEn, resolvedProductName));
+        return payload;
     }
 
     private void clearSharedDataset() {
@@ -2157,7 +2977,8 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                                                                                String lciMajorCode,
                                                                                String lciMiddleCode,
                                                                                String lciSmallCode,
-                                                                               String caseCode) {
+                                                                               String caseCode,
+                                                                               String productName) {
         Map<String, Map<String, Object>> matched = new LinkedHashMap<>();
         if (isDraftTableReady()) {
             try {
@@ -2169,7 +2990,10 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                 params.put("caseCode", caseCode);
                 List<Map<String, Object>> headers = adminEmissionSurveyDraftMapper.selectCaseHeadersByClassification(params);
                 for (Map<String, Object> header : headers) {
-                    Map<String, Object> row = new LinkedHashMap<>(header);
+                    if (!matchesProduct(header, productName)) {
+                        continue;
+                    }
+                    Map<String, Object> row = withDerivedProductName(new LinkedHashMap<>(header));
                     List<Map<String, Object>> items = adminEmissionSurveyDraftMapper.selectCaseRows(safeObject(header.get("caseId")));
                     List<Map<String, Object>> rows = new ArrayList<>();
                     for (Map<String, Object> item : items) {
@@ -2193,6 +3017,9 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         for (Map.Entry<String, Map<String, Object>> entry : readDraftRegistryFromFile().entrySet()) {
             Map<String, Object> value = entry.getValue();
             if (!matchesOwner(value, actorId)) {
+                continue;
+            }
+            if (!matchesProduct(value, productName)) {
                 continue;
             }
             if (!caseCode.equals(safeObject(value.get("caseCode")))) {
@@ -2234,6 +3061,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
     private String buildRegistryKey(EmissionSurveyCaseSaveRequest request) {
         return buildRegistryKey(Map.of(
                 "ownerActorId", safe(request.getOwnerActorId()),
+                "productName", safe(request.getProductName()),
                 "sectionCode", safe(request.getSectionCode()),
                 "caseCode", safe(request.getCaseCode()),
                 "lciMajorCode", safe(request.getLciMajorCode()),
@@ -2245,6 +3073,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
     private String buildRegistryKey(Map<String, Object> row) {
         String classificationKey = String.join(":",
                 safeObject(row.get("ownerActorId")),
+                safeObject(row.get("productName")),
                 safeObject(row.get("lciMajorCode")),
                 safeObject(row.get("lciMiddleCode")),
                 safeObject(row.get("lciSmallCode")));
@@ -2252,13 +3081,14 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
     }
 
     private String buildCaseId(String ownerActorId,
+                               String productName,
                                String sectionCode,
                                String caseCode,
                                String lciMajorCode,
                                String lciMiddleCode,
                                String lciSmallCode) {
         return "ESC_" + Math.abs((
-                safe(ownerActorId) + ":" + safe(sectionCode) + ":" + safe(caseCode) + ":" + safe(lciMajorCode) + ":" + safe(lciMiddleCode) + ":" + safe(lciSmallCode)
+                safe(ownerActorId) + ":" + safe(productName) + ":" + safe(sectionCode) + ":" + safe(caseCode) + ":" + safe(lciMajorCode) + ":" + safe(lciMiddleCode) + ":" + safe(lciSmallCode)
         ).hashCode());
     }
 

@@ -213,6 +213,40 @@ Rollback orchestration is not considered operator-ready unless the returned evid
 - backup roots: `var/backups/codex-deploy`, `var/backups/manual-deploy`
 - rollback log: `var/logs/codex-rollback-18000.log`
 
+## DB Change Capture Extension
+
+If `/admin/system/version` becomes the approval and execution surface for deployable admin DB changes, keep the ownership split explicit:
+
+- business save tracking belongs to a new db-change lane
+- version-management remains the operator console and deployment lane
+- deploy automation and diff verification remain the final execution proof
+
+Recommended extension ownership:
+
+- `docs/architecture/db-change-capture-and-version-deploy-queue.md`
+- `docs/sql/20260414_business_change_log_and_deployable_patch_queue.sql`
+- backend package family:
+  - `egovframework.com.platform.dbchange.model`
+  - `egovframework.com.platform.dbchange.service`
+  - `egovframework.com.platform.dbchange.web`
+  - `egovframework.com.platform.dbchange.mapper`
+
+Recommended `/admin/system/version` additions:
+
+- pending `BUSINESS_CHANGE_LOG` summary
+- `DEPLOYABLE_DB_PATCH_QUEUE` list with approval state
+- queue execution trigger
+- execution result list
+- deploy-time diff summary after queue execution
+
+Do not overload `DB_PATCH_HISTORY` with all day-to-day admin saves.
+
+Use:
+
+- `BUSINESS_CHANGE_LOG` for save capture
+- `DEPLOYABLE_DB_PATCH_QUEUE` for promotion governance
+- `DEPLOYABLE_DB_PATCH_RESULT` and `DB_PATCH_HISTORY` for execution evidence
+
 ## Compatibility Decision Flow
 
 The service implementation should classify upgrade impact in this order:

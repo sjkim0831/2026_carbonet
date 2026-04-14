@@ -4,26 +4,26 @@
 
 When AI starts work, prefer this order:
 
-1. `README.md`
-2. `STRUCTURE.md`
-3. `PROJECT_PATHS.md`
-4. `docs/ai/README.md`
-5. `docs/ai/00-governance/ai-fast-path.md`
-6. `docs/ai/10-architecture/repo-layout.md`
-7. `docs/architecture/system-folder-structure-alignment.md`
-8. `docs/architecture/builder-structure-wave-20260409-closure.md` when the task is about builder structure closure, source-of-truth, or shim/delete rules
-9. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the task is about continuing builder resource ownership closure
-10. `docs/architecture/builder-resource-ownership-queue-map.md` when the task needs the shortest builder resource ownership row queue
-11. `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` when the task changes live builder resource ownership continuation state
-12. `docs/architecture/builder-resource-executable-app-evidence-checklist.md` when row `5` executable-app fallback proof or blocker reasoning is being updated
-13. canonical partial phrase for the current builder resource ownership state:
+1. `docs/ai/00-governance/ai-skill-doc-routing-matrix.md`
+2. the selected primary skill file
+3. one or two task-specific docs only
+4. `docs/ai/00-governance/ai-reference-reduction-policy.md`
+5. `docs/ai/00-governance/ai-fast-path.md` when additional routing detail is needed
+6. `docs/architecture/system-folder-structure-alignment.md` when the task is about folder placement or source-of-truth rules
+7. `docs/architecture/builder-structure-wave-20260409-closure.md` when the task is about builder structure closure, source-of-truth, or shim/delete rules
+8. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the task is about continuing builder resource ownership closure
+9. `docs/architecture/builder-resource-ownership-queue-map.md` when the task needs the shortest builder resource ownership row queue
+10. `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` when the task changes live builder resource ownership continuation state
+11. `docs/architecture/builder-resource-executable-app-evidence-checklist.md` when row `5` executable-app fallback proof or blocker reasoning is being updated
+12. canonical partial phrase for the current builder resource ownership state:
    - `PARTIAL_DONE: builder resource ownership closure still counts rows 3 and 5 as blockers, rows 1 and 2 now carry bounded DELETE_NOW notes, row 4 now carries a stronger non-blocker note, and unresolved fallback blocker count is <n>.`
-14. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
-15. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
-16. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
-17. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
+13. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
+14. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
+15. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
+16. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
 
 Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unless the task is specifically about runtime output or build artifacts.
+Also avoid `docs/ai/60-operations/session-orchestration/archive/` and `**/*example.md` unless a live-entry doc explicitly routes there.
 
 ## Top-Level Directories
 

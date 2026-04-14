@@ -235,6 +235,53 @@ Status update:
   - source asset registry schema
   - generated artifact workspace schema
 
+### Admin System Screen Completion Closure
+
+- Task type:
+  - auditing `/admin/system`, `/admin/external`, and `/admin/monitoring` administrator screens for real completion instead of route-only rendering
+  - converting starter/static/read-only admin screens into action-backed operations consoles
+  - deciding which missing function belongs to common ops, general admin, or project admin ownership
+- Why current skills are insufficient:
+  - `admin-screen-unifier` covers visual and page-family consistency, while `carbonet-feature-builder` covers implementation, but teams still need a shared status model for `COMPLETE`, `PARTIAL`, and `SCAFFOLD`
+  - route existence and React rendering were too easy to mistake for business or operations completion
+- Repeated errors or omissions:
+  - claiming completion without checking mutation endpoints, audit, storage, and authority feature codes
+  - leaving static sample dashboards under system operations menus
+  - treating thin wrappers as distinct screens without documenting alias behavior
+- Current canonical audit:
+  - `docs/architecture/admin-system-screen-completion-audit.md`
+- Current closure backlog:
+  - `docs/architecture/admin-system-screen-closure-backlog.md`
+  - `docs/ai/20-ui/admin-system-screen-completion-map.csv`
+- Candidate follow-up assets:
+  - per-screen closure tickets for each `PARTIAL` screen
+  - route-to-action-feature matrix for system operations screens
+  - runtime verification route checklist for screens whose missing function changes `:18000` behavior
+
+### High-Parallel Multi-Account Collaboration Orchestration
+
+- Task type:
+  - using many Codex accounts or collab-driven sessions in parallel on one repository
+  - deciding whether `8`, `10`, or `14` available accounts should actually become active implementation lanes
+  - keeping account-to-lane ownership, standby lanes, and resume routing explicit
+- Why current skills are insufficient:
+  - `carbonet-ai-session-orchestrator` defines safe ownership and split rules well, but it does not yet provide a concise operator-facing playbook for high-account-count scheduling decisions and collab-specific lane activation policy
+- Repeated errors or omissions:
+  - assuming more accounts means more safe concurrent write lanes
+  - opening duplicate convenience lanes for the same shared file family
+  - deleting older orchestration docs without first confirming which live handoff doc is still authoritative
+- Candidate follow-up assets:
+  - high-parallel account activation matrix
+  - collab lane state model
+  - active versus standby lane checklist
+  - latest-live-doc preservation checklist
+  - archive/delete decision table for orchestration artifacts
+
+Status update:
+
+- a live baseline now exists in `docs/architecture/high-parallel-account-orchestration-playbook.md`
+- the remaining gap is a more concrete operator UI/state contract, not the absence of a baseline operating rule
+
 ### Operations UI Frame And State Contracts
 
 - Task type:

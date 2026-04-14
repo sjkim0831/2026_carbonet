@@ -10,6 +10,48 @@ const ENVIRONMENT_MANAGEMENT_ROUTE_DEFINITIONS = [
     group: "platform",
     koPath: "/admin/system/environment-management",
     enPath: "/en/admin/system/environment-management"
+  },
+  {
+    id: "asset-inventory",
+    label: "자산 인벤토리",
+    group: "platform",
+    koPath: "/admin/system/asset-inventory",
+    enPath: "/en/admin/system/asset-inventory"
+  },
+  {
+    id: "asset-detail",
+    label: "자산 상세",
+    group: "platform",
+    koPath: "/admin/system/asset-detail",
+    enPath: "/en/admin/system/asset-detail"
+  },
+  {
+    id: "asset-impact",
+    label: "자산 영향도",
+    group: "platform",
+    koPath: "/admin/system/asset-impact",
+    enPath: "/en/admin/system/asset-impact"
+  },
+  {
+    id: "asset-lifecycle",
+    label: "자산 생명주기",
+    group: "platform",
+    koPath: "/admin/system/asset-lifecycle",
+    enPath: "/en/admin/system/asset-lifecycle"
+  },
+  {
+    id: "asset-gap",
+    label: "자산 미흡 큐",
+    group: "platform",
+    koPath: "/admin/system/asset-gap",
+    enPath: "/en/admin/system/asset-gap"
+  },
+  {
+    id: "verification-center",
+    label: "검증 센터",
+    group: "platform",
+    koPath: "/admin/system/verification-center",
+    enPath: "/en/admin/system/verification-center"
   }
 ] as const satisfies RouteDefinitionsOf;
 
@@ -18,6 +60,36 @@ const ENVIRONMENT_MANAGEMENT_PAGE_UNITS = [
     id: "environment-management",
     exportName: "EnvironmentManagementHubPage",
     loader: environmentManagementLoader
+  },
+  {
+    id: "asset-inventory",
+    exportName: "AssetInventoryMigrationPage",
+    loader: () => import("../asset-inventory/AssetInventoryMigrationPage")
+  },
+  {
+    id: "asset-detail",
+    exportName: "AssetDetailMigrationPage",
+    loader: () => import("../asset-inventory/AssetDetailMigrationPage")
+  },
+  {
+    id: "asset-impact",
+    exportName: "AssetImpactMigrationPage",
+    loader: () => import("../asset-inventory/AssetImpactMigrationPage")
+  },
+  {
+    id: "asset-lifecycle",
+    exportName: "AssetLifecycleMigrationPage",
+    loader: () => import("../asset-inventory/AssetLifecycleMigrationPage")
+  },
+  {
+    id: "asset-gap",
+    exportName: "AssetGapMigrationPage",
+    loader: () => import("../asset-inventory/AssetGapMigrationPage")
+  },
+  {
+    id: "verification-center",
+    exportName: "VerificationCenterMigrationPage",
+    loader: () => import("./VerificationCenterMigrationPage")
   }
 ] as const satisfies PageUnitsOf<typeof ENVIRONMENT_MANAGEMENT_ROUTE_DEFINITIONS>;
 

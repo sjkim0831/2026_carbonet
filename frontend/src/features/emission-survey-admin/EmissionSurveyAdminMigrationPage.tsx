@@ -2,10 +2,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
+  fetchEmissionCategories,
+  fetchEmissionGwpValuesPage,
   fetchEmissionSurveyAdminPage,
+  fetchEmissionTiers,
+  fetchEmissionVariableDefinitions,
   uploadEmissionSurveyWorkbook
 } from "../../lib/api/emission";
-import type { EmissionSurveyAdminPagePayload, EmissionSurveyAdminSection } from "../../lib/api/emissionTypes";
+import type {
+  EmissionCategoryItem,
+  EmissionFactorDefinition,
+  EmissionSurveyAdminPagePayload,
+  EmissionSurveyAdminSection
+} from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { PageStatusNotice } from "../admin-ui/common";
@@ -16,6 +25,8 @@ type DraftRow = {
   rowId: string;
   values: Record<string, string>;
 };
+
+type GwpCandidateRow = Record<string, string>;
 
 type DraftCase = {
   rows: DraftRow[];
@@ -34,6 +45,19 @@ type ClassificationRow = {
 type ClassificationTreeNode = ClassificationRow & {
   middleRows?: ClassificationTreeNode[];
   smallRows?: ClassificationRow[];
+};
+
+type SurveyCalculationScopeState = {
+  loading: boolean;
+  ready: boolean;
+  categoryId: number;
+  categoryCode: string;
+  categoryName: string;
+  tier: number;
+  tierLabel: string;
+  factors: EmissionFactorDefinition[];
+  message: string;
+  blockingMessage: string;
 };
 
 const UNIT_OPTIONS = [
@@ -119,6 +143,76 @@ function normalizeRowValues(values: Record<string, string>) {
     nextValues.costUnit = normalizeUnitValue(nextValues.costUnit || "");
   }
   return nextValues;
+}
+
+function normalizeText(value: string) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function stringValue(value: unknown) {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function numberValue(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseTierLabelNumber(value: unknown) {
+  const digits = stringValue(value).replace(/[^0-9]/g, "");
+  if (!digits) {
+    return 0;
+  }
+  const parsed = Number(digits);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function resolveCategoryByClassification(categories: EmissionCategoryItem[], classificationCode: string) {
+  const normalizedCode = stringValue(classificationCode).trim();
+  if (!normalizedCode) {
+    return { matchedCategory: null as EmissionCategoryItem | null, ambiguous: false };
+  }
+  const exactMatch = categories.find((item) => stringValue(item.classificationCode) === normalizedCode) || null;
+  if (exactMatch) {
+    return { matchedCategory: exactMatch, ambiguous: false };
+  }
+  const prefixMatches = categories.filter((item) => stringValue(item.classificationCode).startsWith(normalizedCode));
+  if (prefixMatches.length === 1) {
+    return { matchedCategory: prefixMatches[0], ambiguous: false };
+  }
+  return { matchedCategory: null, ambiguous: prefixMatches.length > 1 };
+}
+
+function hasGwpMapping(values: Record<string, string>) {
+  return Boolean(
+    String(values.gwpMappedRowId || "").trim()
+      || String(values.gwpDirectValue || "").trim()
+  );
+}
+
+function requiresGwpMapping(section: EmissionSurveyAdminSection, values: Record<string, string>) {
+  const materialName = String(values.materialName || "").trim();
+  if (!materialName) {
+    return false;
+  }
+  return (section.sectionCode || "").startsWith("OUTPUT_");
+}
+
+function mapPriority(row: GwpCandidateRow, keyword: string) {
+  const commonName = normalizeText(String(row.commonName || ""));
+  const source = normalizeText(String(row.source || ""));
+  const note = normalizeText(String(row.note || ""));
+  const normalizedKeyword = normalizeText(keyword);
+  if (source.includes("ecoinvent") || note.includes("ecoinvent")) {
+    return 0;
+  }
+  if (commonName === normalizedKeyword) {
+    return 1;
+  }
+  if (commonName.includes(normalizedKeyword)) {
+    return 2;
+  }
+  return 3;
 }
 
 function buildRowsFromSection(section: EmissionSurveyAdminSection | undefined): DraftRow[] {
@@ -413,6 +507,120 @@ function useClassificationSelection(page: EmissionSurveyAdminPagePayload | undef
   };
 }
 
+function GwpMappingModal({
+  open,
+  materialName,
+  searchKeyword,
+  searchRows,
+  loading,
+  valueType,
+  directValue,
+  onClose,
+  onSearchKeywordChange,
+  onSearch,
+  onSelectValueType,
+  onDirectValueChange,
+  onApplyCandidate,
+  onApplyDirect
+}: {
+  open: boolean;
+  materialName: string;
+  searchKeyword: string;
+  searchRows: GwpCandidateRow[];
+  loading: boolean;
+  valueType: "AR4" | "AR5" | "AR6";
+  directValue: string;
+  onClose: () => void;
+  onSearchKeywordChange: (value: string) => void;
+  onSearch: () => void;
+  onSelectValueType: (value: "AR4" | "AR5" | "AR6") => void;
+  onDirectValueChange: (value: string) => void;
+  onApplyCandidate: (row: GwpCandidateRow) => void;
+  onApplyDirect: () => void;
+}) {
+  if (!open) {
+    return null;
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+      <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[var(--kr-gov-radius)] bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div>
+            <h3 className="text-lg font-black text-[var(--kr-gov-text-primary)]">GWP 매핑 선택</h3>
+            <p className="mt-1 text-sm text-slate-500">물질명: {materialName || "-"}</p>
+          </div>
+          <MemberButton onClick={onClose} type="button" variant="secondary">닫기</MemberButton>
+        </div>
+        <div className="space-y-4 p-5">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[2fr,1fr,auto]">
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">검색어</span>
+              <AdminInput value={searchKeyword} onChange={(event) => onSearchKeywordChange(event.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">값 기준</span>
+              <AdminSelect value={valueType} onChange={(event) => onSelectValueType(event.target.value as "AR4" | "AR5" | "AR6")}>
+                <option value="AR4">AR4</option>
+                <option value="AR5">AR5</option>
+                <option value="AR6">AR6</option>
+              </AdminSelect>
+            </label>
+            <div className="flex items-end">
+              <MemberButton onClick={onSearch} type="button" variant="primary">{loading ? "검색 중..." : "검색"}</MemberButton>
+            </div>
+          </div>
+          <div className="rounded-[var(--kr-gov-radius)] border border-slate-200">
+            <div className="grid grid-cols-[1.5fr,0.8fr,0.8fr,0.8fr,1fr,1fr,90px] border-b border-slate-200 bg-slate-50 text-xs font-bold text-slate-600">
+              <div className="px-3 py-2">Common Name</div>
+              <div className="px-3 py-2">AR4</div>
+              <div className="px-3 py-2">AR5</div>
+              <div className="px-3 py-2">AR6</div>
+              <div className="px-3 py-2">출처</div>
+              <div className="px-3 py-2">임의 입력값</div>
+              <div className="px-3 py-2 text-center">선택</div>
+            </div>
+            <div className="max-h-[45vh] overflow-y-auto">
+              {searchRows.length === 0 ? (
+                <div className="px-4 py-8 text-sm text-slate-500">검색 결과가 없습니다.</div>
+              ) : (
+                searchRows.map((row) => (
+                  <div className="grid grid-cols-[1.5fr,0.8fr,0.8fr,0.8fr,1fr,1fr,90px] border-b border-slate-100 text-sm last:border-b-0" key={String(row.rowId || row.commonName || Math.random())}>
+                    <div className="px-3 py-3">
+                      <p className="font-bold text-slate-900">{String(row.commonName || "-")}</p>
+                      <p className="mt-1 text-xs text-slate-500">{String(row.note || "-")}</p>
+                      <p className="mt-1 text-[11px] font-bold text-[var(--kr-gov-blue)]">
+                        {mapPriority(row, searchKeyword) === 0 ? "1순위 Ecoinvent" : mapPriority(row, searchKeyword) === 1 ? "정확 일치" : "후보"}
+                      </p>
+                    </div>
+                    <div className="px-3 py-3">{String(row.ar4Value || "-")}</div>
+                    <div className="px-3 py-3">{String(row.ar5Value || "-")}</div>
+                    <div className="px-3 py-3">{String(row.ar6Value || "-")}</div>
+                    <div className="px-3 py-3 text-xs text-slate-600">{String(row.source || "-")}</div>
+                    <div className="px-3 py-3 font-mono text-xs text-slate-600">{String(row.manualInputValue || "-")}</div>
+                    <div className="flex items-center justify-center px-3 py-3">
+                      <MemberButton onClick={() => onApplyCandidate(row)} size="sm" type="button" variant="secondary">선택</MemberButton>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="rounded-[var(--kr-gov-radius)] border border-rose-200 bg-rose-50/60 p-4">
+            <p className="text-sm font-bold text-rose-700">직접 입력</p>
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <label className="block min-w-[220px] flex-1">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-rose-700">직접 배출계수 값</span>
+                <AdminInput value={directValue} onChange={(event) => onDirectValueChange(event.target.value)} />
+              </label>
+              <MemberButton onClick={onApplyDirect} type="button" variant="secondary">직접입력 적용</MemberButton>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SectionEditor({
   section,
   activeRows,
@@ -420,7 +628,8 @@ function SectionEditor({
   onToggleExpanded,
   onAddRow,
   onRemoveRow,
-  onChangeCell
+  onChangeCell,
+  onOpenGwpMapping
 }: {
   section: EmissionSurveyAdminSection;
   activeRows: DraftRow[];
@@ -429,6 +638,7 @@ function SectionEditor({
   onAddRow: () => void;
   onRemoveRow: (rowId: string) => void;
   onChangeCell: (rowId: string, key: string, value: string) => void;
+  onOpenGwpMapping: (row: DraftRow) => void;
 }) {
   const columns = buildEditableColumns(((section.columns || []) as Array<Record<string, string>>));
   const displayColumns = buildDisplayColumnLabels(columns);
@@ -466,7 +676,7 @@ function SectionEditor({
           ) : (
             <div className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white">
               {headerModel.hasMergedHeader ? (
-                <div className="grid border-b border-slate-200 bg-slate-100" style={{ gridTemplateColumns }}>
+                <div className="grid border-b border-slate-200 bg-slate-100" style={{ gridTemplateColumns: `${gridTemplateColumns} 96px` }}>
                   <div className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]" style={{ gridRow: `span ${headerModel.depth}` }}>행</div>
                   {headerModel.cells.map((cell) => (
                     <div
@@ -477,21 +687,23 @@ function SectionEditor({
                       {cell.lines.map((line, index) => <span className="block leading-4" key={`${cell.key}-${index}`}>{line}</span>)}
                     </div>
                   ))}
+                  <div className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]" style={{ gridRow: `span ${headerModel.depth}` }}>GWP</div>
                   <div className="px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]" style={{ gridRow: `span ${headerModel.depth}` }}>관리</div>
                 </div>
               ) : (
-                <div className="grid border-b border-slate-200 bg-slate-100" style={{ gridTemplateColumns }}>
+                <div className="grid border-b border-slate-200 bg-slate-100" style={{ gridTemplateColumns: `${gridTemplateColumns} 96px` }}>
                   <div className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]">행</div>
                   {headerModel.columns.map((column) => (
                     <div className="border-r border-slate-200 px-2 py-2 text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)] last:border-r-0" key={`header-${column.key}`} title={column.fullLabel}>
                       {column.displayLines.map((line, index) => <span className="block leading-4" key={`${column.key}-${index}`}>{line}</span>)}
                     </div>
                   ))}
+                  <div className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]">GWP</div>
                   <div className="px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]">관리</div>
                 </div>
               )}
               {activeRows.map((row, index) => (
-                <div className="grid border-b border-slate-200 last:border-b-0" key={row.rowId} style={{ gridTemplateColumns }}>
+                <div className={`grid border-b border-slate-200 last:border-b-0 ${requiresGwpMapping(section, row.values) && !hasGwpMapping(row.values) ? "bg-rose-50/70" : ""}`} key={row.rowId} style={{ gridTemplateColumns: `${gridTemplateColumns} 96px` }}>
                   <div className="flex items-center justify-center border-r border-slate-200 bg-slate-50 px-2 py-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{index + 1}</div>
                   {headerModel.columns.map((column) => (
                     <label className="block border-r border-slate-200 px-2 py-2 last:border-r-0" key={`${row.rowId}-${column.key}`} title={column.fullLabel}>
@@ -508,6 +720,17 @@ function SectionEditor({
                       )}
                     </label>
                   ))}
+                  <div className="flex flex-col items-center justify-center gap-1 border-r border-slate-200 px-2 py-2">
+                    <MemberButton onClick={() => onOpenGwpMapping(row)} size="sm" type="button" variant="secondary">매핑</MemberButton>
+                    {requiresGwpMapping(section, row.values) && !hasGwpMapping(row.values) ? (
+                      <span className="text-center text-[10px] font-bold text-rose-700">오류
+                        <br />
+                        관리자 문의
+                      </span>
+                    ) : (
+                      <span className="text-center text-[10px] font-bold text-emerald-700">{hasGwpMapping(row.values) ? "완료" : "-"}</span>
+                    )}
+                  </div>
                   <div className="flex items-center justify-center px-2 py-2">
                     <MemberButton onClick={() => onRemoveRow(row.rowId)} size="sm" type="button" variant="secondary">삭제</MemberButton>
                   </div>
@@ -533,6 +756,25 @@ export function EmissionSurveyAdminMigrationPage() {
   const [drafts, setDrafts] = useState<DraftState>({});
   const [activeCases, setActiveCases] = useState<SectionCaseState>({});
   const [expandedSections, setExpandedSections] = useState<SectionExpandState>({});
+  const [selectedProductName, setSelectedProductName] = useState("");
+  const [mappingTarget, setMappingTarget] = useState<{ sectionCode: string; rowId: string; materialName: string } | null>(null);
+  const [mappingSearchKeyword, setMappingSearchKeyword] = useState("");
+  const [mappingRows, setMappingRows] = useState<GwpCandidateRow[]>([]);
+  const [mappingLoading, setMappingLoading] = useState(false);
+  const [mappingValueType, setMappingValueType] = useState<"AR4" | "AR5" | "AR6">("AR4");
+  const [mappingDirectValue, setMappingDirectValue] = useState("");
+  const [calculationScope, setCalculationScope] = useState<SurveyCalculationScopeState>({
+    loading: false,
+    ready: false,
+    categoryId: 0,
+    categoryCode: "",
+    categoryName: "",
+    tier: 0,
+    tierLabel: "",
+    factors: [],
+    message: "",
+    blockingMessage: ""
+  });
 
   const pageState = useAsyncValue<EmissionSurveyAdminPagePayload>(() => fetchEmissionSurveyAdminPage(), []);
   const page = pageOverride || pageState.value;
@@ -548,7 +790,15 @@ export function EmissionSurveyAdminMigrationPage() {
   const majorRows = classification.tree.map((item) => ({ value: item.code, label: item.label }));
   const middleRows = (findCurrentMajor(classification.tree, classification.majorCode)?.middleRows || []).map((item) => ({ value: item.code, label: item.label }));
   const smallRows = (findCurrentMiddle(classification.tree, classification.majorCode, classification.middleCode)?.smallRows || []).map((item) => ({ value: item.code, label: item.label }));
+  const productRows = (((page?.productOptions || []) as Array<Record<string, string>>)).map((item) => ({ value: stringOf(item, "value"), label: stringOf(item, "label") }));
   const isClassificationReady = Boolean(classification.majorCode && classification.middleCode);
+
+  useEffect(() => {
+    const nextSelected = stringOf(page as Record<string, unknown>, "selectedProductName");
+    if (nextSelected && nextSelected !== selectedProductName) {
+      setSelectedProductName(nextSelected);
+    }
+  }, [page, selectedProductName]);
 
   useEffect(() => {
     if (!classification.majorCode || !classification.middleCode) {
@@ -609,6 +859,140 @@ export function EmissionSurveyAdminMigrationPage() {
     });
   }, [classification.majorCode, classification.middleCode, classification.smallCode, en, page?.uploaded]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCalculationScope() {
+      if (!classification.middleCode) {
+        setCalculationScope({
+          loading: false,
+          ready: false,
+          categoryId: 0,
+          categoryCode: "",
+          categoryName: "",
+          tier: 0,
+          tierLabel: "",
+          factors: [],
+          message: "중분류 이상을 선택하면 계산에 사용할 배출계수 범위를 함께 확인합니다.",
+          blockingMessage: "탄소배출량 계산 전에 LCI 중분류를 선택하세요."
+        });
+        return;
+      }
+
+      setCalculationScope((current) => ({
+        ...current,
+        loading: true,
+        ready: false,
+        message: "",
+        blockingMessage: ""
+      }));
+
+      try {
+        const categoryResponse = await fetchEmissionCategories("");
+        if (cancelled) {
+          return;
+        }
+        const categories = (categoryResponse.items || []) as EmissionCategoryItem[];
+        const preferredClassificationCode = classification.smallCode || classification.middleCode;
+        const resolution = resolveCategoryByClassification(categories, preferredClassificationCode);
+        const matchedCategory = resolution.matchedCategory;
+        if (!matchedCategory) {
+          setCalculationScope({
+            loading: false,
+            ready: false,
+            categoryId: 0,
+            categoryCode: "",
+            categoryName: "",
+            tier: 0,
+            tierLabel: "",
+            factors: [],
+            message: resolution.ambiguous
+              ? "선택한 중분류에 연결된 계산 카테고리가 여러 개라 소분류 선택이 더 필요합니다."
+              : "선택한 분류와 연결된 배출 산정 카테고리를 찾지 못했습니다.",
+            blockingMessage: resolution.ambiguous
+              ? "계산 대상이 여러 개라 탄소배출량 계산 전에 LCI 소분류를 선택하세요."
+              : "연결된 배출 산정 카테고리가 없어 계산할 수 없습니다. 관리자에 문의하세요."
+          });
+          return;
+        }
+
+        const categoryId = numberValue(matchedCategory.categoryId);
+        const tiersResponse = await fetchEmissionTiers(categoryId);
+        if (cancelled) {
+          return;
+        }
+        const supportedTiers = ((tiersResponse.tiers || []) as Array<Record<string, unknown>>)
+          .map((item) => ({
+            tier: numberValue(item.tier),
+            tierLabel: stringValue(item.tierLabel) || `Tier ${numberValue(item.tier)}`
+          }))
+          .filter((item) => item.tier > 0);
+        const recommendedTier = parseTierLabelNumber(matchedCategory.classificationTierLabel);
+        const selectedTier = supportedTiers.find((item) => item.tier === recommendedTier)?.tier || supportedTiers[0]?.tier || 0;
+        const selectedTierLabel = supportedTiers.find((item) => item.tier === selectedTier)?.tierLabel || (selectedTier > 0 ? `Tier ${selectedTier}` : "");
+
+        if (selectedTier <= 0) {
+          setCalculationScope({
+            loading: false,
+            ready: false,
+            categoryId,
+            categoryCode: stringValue(matchedCategory.subCode),
+            categoryName: stringValue(matchedCategory.subName),
+            tier: 0,
+            tierLabel: "",
+            factors: [],
+            message: "연결된 카테고리는 확인했지만 실행 가능한 Tier가 없습니다.",
+            blockingMessage: "실행 가능한 Tier가 없어 계산할 수 없습니다. 관리자에 문의하세요."
+          });
+          return;
+        }
+
+        const definitionResponse = await fetchEmissionVariableDefinitions(categoryId, selectedTier);
+        if (cancelled) {
+          return;
+        }
+        const loadedFactors = (definitionResponse.factors || []) as EmissionFactorDefinition[];
+        setCalculationScope({
+          loading: false,
+          ready: loadedFactors.length > 0,
+          categoryId,
+          categoryCode: stringValue(matchedCategory.subCode),
+          categoryName: stringValue(matchedCategory.subName),
+          tier: selectedTier,
+          tierLabel: selectedTierLabel,
+          factors: loadedFactors,
+          message: loadedFactors.length > 0
+            ? `계산 범위 ${stringValue(matchedCategory.subName)} / ${selectedTierLabel}에서 배출계수 ${loadedFactors.length}건을 확인했습니다.`
+            : `계산 범위 ${stringValue(matchedCategory.subName)} / ${selectedTierLabel}에 저장된 배출계수가 없습니다.`,
+          blockingMessage: loadedFactors.length > 0
+            ? ""
+            : "저장된 배출계수 값이 없어 계산할 수 없습니다. 관리자에 문의하세요."
+        });
+      } catch (scopeError) {
+        if (cancelled) {
+          return;
+        }
+        setCalculationScope({
+          loading: false,
+          ready: false,
+          categoryId: 0,
+          categoryCode: "",
+          categoryName: "",
+          tier: 0,
+          tierLabel: "",
+          factors: [],
+          message: scopeError instanceof Error ? scopeError.message : "계산용 배출계수 범위를 불러오지 못했습니다.",
+          blockingMessage: "배출계수 범위를 확인하지 못해 계산을 진행할 수 없습니다. 관리자에 문의하세요."
+        });
+      }
+    }
+
+    void loadCalculationScope();
+    return () => {
+      cancelled = true;
+    };
+  }, [classification.middleCode, classification.smallCode]);
+
   function getCase(sectionCode: string, caseCode: "CASE_3_1" | "CASE_3_2", fallbackRows: DraftRow[]) {
     return drafts[buildDraftKey(classificationKey, sectionCode, caseCode)] || { rows: fallbackRows, savedAt: "" };
   }
@@ -646,6 +1030,82 @@ export function EmissionSurveyAdminMigrationPage() {
     setCaseRows(sectionCode, currentCaseCode, currentRows);
   }
 
+  function handleOpenGwpMapping(section: EmissionSurveyAdminSection, row: DraftRow) {
+    setMappingTarget({
+      sectionCode: section.sectionCode || "",
+      rowId: row.rowId,
+      materialName: String(row.values.materialName || "")
+    });
+    setMappingSearchKeyword(String(row.values.materialName || ""));
+    setMappingRows([]);
+    setMappingDirectValue(String(row.values.gwpDirectValue || ""));
+  }
+
+  async function handleSearchGwpMapping() {
+    if (!mappingTarget) {
+      return;
+    }
+    setMappingLoading(true);
+    try {
+      const payload = await fetchEmissionGwpValuesPage({ searchKeyword: mappingSearchKeyword });
+      const rows = (((payload.gwpRows || []) as Array<Record<string, string>>))
+        .slice()
+        .sort((left, right) => mapPriority(left, mappingSearchKeyword) - mapPriority(right, mappingSearchKeyword));
+      setMappingRows(rows);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "GWP 검색에 실패했습니다.");
+    } finally {
+      setMappingLoading(false);
+    }
+  }
+
+  function applyGwpMapping(sectionCode: string, rowId: string, updater: (row: DraftRow) => DraftRow) {
+    const currentCaseCode = activeCases[sectionCode] || "CASE_3_1";
+    const section = sections.find((item) => item.sectionCode === sectionCode);
+    if (!section) {
+      return;
+    }
+    const currentRows = getCase(sectionCode, currentCaseCode, buildRowsFromSection(section)).rows.map((row) => row.rowId === rowId ? updater(row) : row);
+    setCaseRows(sectionCode, currentCaseCode, currentRows);
+  }
+
+  function handleApplyCandidateMapping(row: GwpCandidateRow) {
+    if (!mappingTarget) {
+      return;
+    }
+    const selectedValue = String(row[mappingValueType.toLowerCase() === "ar4" ? "ar4Value" : mappingValueType.toLowerCase() === "ar5" ? "ar5Value" : "ar6Value"] || "");
+    applyGwpMapping(mappingTarget.sectionCode, mappingTarget.rowId, (draftRow) => ({
+      ...draftRow,
+      values: {
+        ...draftRow.values,
+        gwpMappedRowId: String(row.rowId || ""),
+        gwpMappedName: String(row.commonName || ""),
+        gwpValueType: mappingValueType,
+        gwpValue: selectedValue,
+        gwpDirectValue: ""
+      }
+    }));
+    setMappingTarget(null);
+  }
+
+  function handleApplyDirectMapping() {
+    if (!mappingTarget) {
+      return;
+    }
+    applyGwpMapping(mappingTarget.sectionCode, mappingTarget.rowId, (draftRow) => ({
+      ...draftRow,
+      values: {
+        ...draftRow.values,
+        gwpMappedRowId: "",
+        gwpMappedName: "",
+        gwpValueType: "DIRECT",
+        gwpValue: mappingDirectValue,
+        gwpDirectValue: mappingDirectValue
+      }
+    }));
+    setMappingTarget(null);
+  }
+
   function handleToggleSection(sectionCode: string) {
     setExpandedSections((current) => ({
       ...current,
@@ -679,7 +1139,7 @@ export function EmissionSurveyAdminMigrationPage() {
     setMessage("");
     setErrorMessage("");
     try {
-      const latestPage = caseCode === "CASE_3_1" ? await fetchEmissionSurveyAdminPage() : null;
+      const latestPage = caseCode === "CASE_3_1" ? await fetchEmissionSurveyAdminPage({ productName: selectedProductName }) : null;
       if (latestPage) {
         setPageOverride(latestPage);
       }
@@ -732,6 +1192,19 @@ export function EmissionSurveyAdminMigrationPage() {
     }
   }
 
+  async function handleReloadSharedProduct(productName: string) {
+    setMessage("");
+    setErrorMessage("");
+    try {
+      const latestPage = await fetchEmissionSurveyAdminPage({ productName });
+      setPageOverride(latestPage);
+      setSelectedProductName(productName);
+      setMessage(`${productName || "기본"} 제품 기준 DB사용 데이터를 불러올 준비가 되었습니다.`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "제품 기준 DB 데이터를 불러오지 못했습니다.");
+    }
+  }
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -765,6 +1238,16 @@ export function EmissionSurveyAdminMigrationPage() {
           <input accept=".xlsx" className="hidden" onChange={handleUploadChange} ref={fileInputRef} type="file" />
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
             <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">제품 선택</span>
+              <div className="flex gap-2">
+                <AdminSelect value={selectedProductName} onChange={(event) => setSelectedProductName(event.target.value)}>
+                  <option value="">선택</option>
+                  {productRows.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </AdminSelect>
+                <MemberButton disabled={!selectedProductName} onClick={() => { void handleReloadSharedProduct(selectedProductName); }} type="button" variant="secondary">제품 반영</MemberButton>
+              </div>
+            </label>
+            <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">LCI 대분류</span>
               <AdminSelect onChange={(event) => { setMessage(""); classification.setMajorCode(event.target.value); }} value={classification.majorCode}>
                 <option value="">선택</option>
@@ -779,18 +1262,54 @@ export function EmissionSurveyAdminMigrationPage() {
               </AdminSelect>
             </label>
             <label className="block">
-              <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">LCI 소분류</span>
+                <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">LCI 소분류 (선택사항)</span>
               <AdminSelect disabled={!classification.middleCode} onChange={(event) => { setMessage(""); classification.setSmallCode(event.target.value); }} value={classification.smallCode}>
-                <option value="">미선택</option>
-                {smallRows.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  <option value="">미선택 (선택사항)</option>
+                  {smallRows.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </AdminSelect>
             </label>
           </div>
           <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-4 text-sm text-[var(--kr-gov-text-secondary)]">
-            <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
               <p>저장 대상: <span className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(page as Record<string, unknown>, "currentActorId") || "공통 데이터셋"}</span></p>
+              <p>선택 제품: <span className="font-bold text-[var(--kr-gov-text-primary)]">{selectedProductName || "-"}</span></p>
               <p>선택 분류: <span className="font-bold text-[var(--kr-gov-text-primary)]">{classification.majorLabel || "-"} / {classification.middleLabel || "-"} / {classification.smallLabel || "미선택"}</span></p>
             </div>
+          </div>
+          <div className={`mt-4 rounded-[var(--kr-gov-radius)] border px-4 py-4 text-sm ${
+            calculationScope.ready
+              ? "border-emerald-200 bg-emerald-50"
+              : calculationScope.loading
+                ? "border-sky-200 bg-sky-50"
+                : "border-amber-200 bg-amber-50"
+          }`}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">계산 배출계수 준비 상태</p>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {calculationScope.loading ? "선택한 분류 기준 계산 카테고리와 배출계수를 확인하는 중입니다." : calculationScope.message || "아직 계산 범위를 확인하지 못했습니다."}
+                </p>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                calculationScope.ready
+                  ? "bg-emerald-100 text-emerald-700"
+                  : calculationScope.loading
+                    ? "bg-sky-100 text-sky-700"
+                    : "bg-amber-100 text-amber-700"
+              }`}>
+                {calculationScope.ready ? "준비 완료" : calculationScope.loading ? "확인 중" : "확인 필요"}
+              </span>
+            </div>
+            {(calculationScope.categoryName || calculationScope.tierLabel) ? (
+              <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-3">
+                <p>카테고리: <span className="font-bold text-[var(--kr-gov-text-primary)]">{calculationScope.categoryName || "-"}</span></p>
+                <p>Tier: <span className="font-bold text-[var(--kr-gov-text-primary)]">{calculationScope.tierLabel || "-"}</span></p>
+                <p>배출계수: <span className="font-bold text-[var(--kr-gov-text-primary)]">{calculationScope.factors.length}건</span></p>
+              </div>
+            ) : null}
+            {!calculationScope.ready && calculationScope.blockingMessage ? (
+              <p className="mt-3 text-xs font-bold text-amber-800">{calculationScope.blockingMessage}</p>
+            ) : null}
           </div>
         </section>
 
@@ -817,6 +1336,7 @@ export function EmissionSurveyAdminMigrationPage() {
                     key={section.sectionCode}
                     onAddRow={() => handleAddRow(section)}
                     onChangeCell={(rowId, key, value) => handleCellChange(section, rowId, key, value)}
+                    onOpenGwpMapping={(row) => handleOpenGwpMapping(section, row)}
                     onRemoveRow={(rowId) => handleRemoveRow(section, rowId)}
                     onToggleExpanded={() => handleToggleSection(section.sectionCode || "")}
                     section={section}
@@ -850,6 +1370,7 @@ export function EmissionSurveyAdminMigrationPage() {
                     key={section.sectionCode}
                     onAddRow={() => handleAddRow(section)}
                     onChangeCell={(rowId, key, value) => handleCellChange(section, rowId, key, value)}
+                    onOpenGwpMapping={(row) => handleOpenGwpMapping(section, row)}
                     onRemoveRow={(rowId) => handleRemoveRow(section, rowId)}
                     onToggleExpanded={() => handleToggleSection(section.sectionCode || "")}
                     section={section}
@@ -867,7 +1388,19 @@ export function EmissionSurveyAdminMigrationPage() {
             <div className="flex flex-wrap items-center justify-end gap-3">
               <MemberButton
                 onClick={() => {
-                  window.location.href = emissionManagementHref;
+                  if (!classification.middleCode) {
+                    setErrorMessage("탄소배출량 계산 전에 LCI 중분류를 선택하세요.");
+                    return;
+                  }
+                  if (!calculationScope.ready || calculationScope.categoryId <= 0 || calculationScope.tier <= 0) {
+                    setErrorMessage(calculationScope.blockingMessage || "배출계수 범위를 확인하지 못해 계산을 진행할 수 없습니다. 관리자에 문의하세요.");
+                    return;
+                  }
+                  const url = new URL(emissionManagementHref, window.location.origin);
+                  url.searchParams.set("categoryId", String(calculationScope.categoryId));
+                  url.searchParams.set("tier", String(calculationScope.tier));
+                  url.searchParams.set("fromSurveyAdmin", "Y");
+                  window.location.href = `${url.pathname}${url.search}${url.hash}`;
                 }}
                 type="button"
               >
@@ -876,6 +1409,22 @@ export function EmissionSurveyAdminMigrationPage() {
             </div>
           )}
           title={en ? "Carbon Emission Calculation" : "탄소배출량 계산"}
+        />
+        <GwpMappingModal
+          directValue={mappingDirectValue}
+          loading={mappingLoading}
+          materialName={mappingTarget?.materialName || ""}
+          onApplyCandidate={handleApplyCandidateMapping}
+          onApplyDirect={handleApplyDirectMapping}
+          onClose={() => setMappingTarget(null)}
+          onDirectValueChange={setMappingDirectValue}
+          onSearch={() => { void handleSearchGwpMapping(); }}
+          onSearchKeywordChange={setMappingSearchKeyword}
+          onSelectValueType={setMappingValueType}
+          open={Boolean(mappingTarget)}
+          searchKeyword={mappingSearchKeyword}
+          searchRows={mappingRows}
+          valueType={mappingValueType}
         />
       </AdminWorkspacePageFrame>
     </AdminPageShell>

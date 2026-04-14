@@ -10,6 +10,17 @@ import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { AdminInput, AdminSelect } from "../member/common";
 
+type ExternalKeyCloseoutItem = {
+  label: string;
+  value: string;
+  ready: boolean;
+  detail: string;
+};
+
+function readyBadgeClass(ready: boolean) {
+  return ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700";
+}
+
 function badgeClass(value: string) {
   const upper = value.toUpperCase();
   if (upper.includes("EXPIRED") || upper.includes("ROTATE_NOW") || upper.includes("CRITICAL")) {
@@ -22,6 +33,81 @@ function badgeClass(value: string) {
     return "bg-emerald-100 text-emerald-700";
   }
   return "bg-slate-100 text-slate-700";
+}
+
+function looksMasked(value: string) {
+  const normalized = value.trim();
+  return Boolean(normalized) && (normalized.includes("*") || normalized.toUpperCase().includes("MASKED"));
+}
+
+function ExternalKeyCloseoutPanel({
+  actionItems,
+  items,
+  en
+}: {
+  actionItems: Array<{ label: string; description: string }>;
+  items: ExternalKeyCloseoutItem[];
+  en: boolean;
+}) {
+  return (
+    <section className="gov-card" data-help-id="external-keys-closeout-gate">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Route Closeout Gate" : "라우트 완료 게이트"}</p>
+          <h2 className="mt-1 text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Credential Key Execution Readiness" : "외부 인증키 실행 준비 상태"}</h2>
+          <p className="mt-2 max-w-4xl text-sm text-[var(--kr-gov-text-secondary)]">
+            {en
+              ? "This route can safely inspect masked credential metadata today. Issue, rotate, revoke, and audit mutations remain blocked until backend action contracts and feature codes are wired."
+              : "현재 이 화면은 마스킹된 인증키 메타데이터 점검은 가능합니다. 발급, 회전, 폐기, 감사 변경 이력은 백엔드 실행 계약과 기능 코드가 연결될 때까지 차단 상태로 표시합니다."}
+          </p>
+        </div>
+        <span className="inline-flex w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-700">
+          {en ? "PARTIAL" : "부분 완료"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-4">
+        {items.map((item) => (
+          <article key={item.label} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{item.label}</h3>
+              <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${readyBadgeClass(item.ready)}`}>
+                {item.ready ? (en ? "READY" : "준비됨") : (en ? "BLOCKED" : "차단")}
+              </span>
+            </div>
+            <p className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{item.value}</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{item.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-dashed border-amber-300 bg-amber-50 p-4" data-help-id="external-keys-action-contract">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h3 className="text-sm font-black text-amber-900">{en ? "Action Contract Preview" : "실행 계약 미리보기"}</h3>
+            <p className="mt-1 text-sm text-amber-900">
+              {en
+                ? "Actions are intentionally disabled so operators cannot assume credential mutations are audited before the backend runner exists."
+                : "백엔드 실행기와 감사 기록이 준비되기 전에는 운영자가 인증키 변경이 처리된 것으로 오인하지 않도록 액션을 의도적으로 비활성화했습니다."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {actionItems.map((item) => (
+              <button
+                key={item.label}
+                className="gov-btn gov-btn-outline opacity-60"
+                disabled
+                title={item.description}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function ExternalKeysMigrationPage() {
@@ -56,6 +142,60 @@ export function ExternalKeysMigrationPage() {
   const urgentRows = useMemo(
     () => rows.filter((row) => ["ROTATE_NOW", "EXPIRED"].includes(stringOf(row, "rotationStatus").toUpperCase())),
     [rows]
+  );
+
+  const closeoutItems = useMemo<ExternalKeyCloseoutItem[]>(() => {
+    const maskedRows = rows.filter((row) => looksMasked(stringOf(row, "maskedReference")));
+    const scopedRows = rows.filter((row) => Boolean(stringOf(row, "scopeSummary") && stringOf(row, "targetRoute")));
+    const expiryRows = rows.filter((row) => Boolean(stringOf(row, "expiresAt") && stringOf(row, "rotationStatus")));
+    return [
+      {
+        label: en ? "Secret Masking" : "비밀값 마스킹",
+        value: `${maskedRows.length}/${rows.length}`,
+        ready: rows.length > 0 && maskedRows.length === rows.length,
+        detail: en ? "Inventory renders masked references only." : "인벤토리는 마스킹된 참조값만 렌더링합니다."
+      },
+      {
+        label: en ? "Partner Scope" : "파트너 범위",
+        value: `${scopedRows.length}/${rows.length}`,
+        ready: rows.length > 0 && scopedRows.length === rows.length,
+        detail: en ? "Each row links to the owning connection and scope summary." : "각 항목은 소유 연계와 권한 범위 요약을 함께 표시합니다."
+      },
+      {
+        label: en ? "Expiry Policy" : "만료 정책",
+        value: `${expiryRows.length}/${rows.length}`,
+        ready: rows.length > 0 && expiryRows.length === rows.length,
+        detail: en ? "Expiry date and rotation status are visible before action." : "실행 전 만료일과 교체 상태를 확인할 수 있습니다."
+      },
+      {
+        label: en ? "Mutation Audit" : "변경 감사",
+        value: en ? "API pending" : "API 대기",
+        ready: false,
+        detail: en ? "Issue, rotate, and revoke require backend action endpoints and secret-safe audit events." : "발급, 회전, 폐기는 백엔드 액션 엔드포인트와 비밀값 안전 감사 이벤트가 필요합니다."
+      }
+    ];
+  }, [en, rows]);
+
+  const actionItems = useMemo(
+    () => [
+      {
+        label: en ? "Issue Key" : "키 발급",
+        description: en ? "Requires issue action API and feature code." : "발급 액션 API와 기능 코드가 필요합니다."
+      },
+      {
+        label: en ? "Rotate Selected" : "선택 키 회전",
+        description: en ? "Requires rotation runner, owner approval, and audit evidence." : "회전 실행기, 담당자 승인, 감사 증적이 필요합니다."
+      },
+      {
+        label: en ? "Revoke Selected" : "선택 키 폐기",
+        description: en ? "Requires revoke API, downstream cutover check, and rollback policy." : "폐기 API, 하위 시스템 전환 확인, 롤백 정책이 필요합니다."
+      },
+      {
+        label: en ? "Export Audit Inventory" : "감사용 인벤토리 내보내기",
+        description: en ? "Requires secret-safe export contract." : "비밀값 안전 내보내기 계약이 필요합니다."
+      }
+    ],
+    [en]
   );
 
   const authMethodRows = useMemo(() => {
@@ -119,6 +259,8 @@ export function ExternalKeysMigrationPage() {
               : `${urgentRows.length}건의 인증키가 즉시 검토 또는 교체 대상입니다. 다음 하위 시스템 점검 창 이전에 담당자 확인이 필요합니다.`}
           </PageStatusNotice>
         ) : null}
+
+        <ExternalKeyCloseoutPanel actionItems={actionItems} en={en} items={closeoutItems} />
 
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="external-keys-summary">
           {summary.map((item, index) => (

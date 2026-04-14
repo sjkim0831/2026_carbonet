@@ -11,7 +11,11 @@ public interface AdminCodeManageService {
 
     List<ClassCodeVO> selectClassCodeList() throws Exception;
 
+    ClassCodeVO selectClassCode(String clCode) throws Exception;
+
     List<CommonCodeVO> selectCodeList() throws Exception;
+
+    CommonCodeVO selectCommonCode(String codeId) throws Exception;
 
     List<DetailCodeVO> selectDetailCodeList(String codeId) throws Exception;
 

@@ -18,6 +18,16 @@
             AUTHOR_CODE
     </select>
 
+    <select id="selectAuthor" parameterType="string" resultType="egovframework.com.feature.admin.model.vo.AuthorInfoVO">
+        SELECT
+            AUTHOR_CODE AS authorCode,
+            AUTHOR_NM AS authorNm,
+            AUTHOR_DC AS authorDc,
+            AUTHOR_CREAT_DE AS authorCreatDe
+        FROM COMTNAUTHORINFO
+        WHERE AUTHOR_CODE = #{_parameter}
+    </select>
+
     <select id="selectFeatureCatalog" resultType="egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO">
         SELECT
             F.MENU_CODE AS menuCode,
@@ -678,6 +688,33 @@
         ORDER BY B.CMPNY_NM, B.DEPT_NM
     </select>
 
+    <select id="selectDepartmentRoleMapping" parameterType="map" resultType="egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO">
+        SELECT
+            B.INSTT_ID AS insttId,
+            B.CMPNY_NM AS cmpnyNm,
+            COALESCE(B.DEPT_NM, '') AS deptNm,
+            B.MEMBER_COUNT AS memberCount,
+            COALESCE(R.AUTHOR_CODE, '') AS authorCode,
+            COALESCE(A.AUTHOR_NM, '') AS authorNm,
+            COALESCE(R.USE_AT, 'Y') AS useAt
+        FROM (
+            SELECT
+                TRIM(INSTT_ID) AS INSTT_ID,
+                MAX(CMPNY_NM) AS CMPNY_NM,
+                COALESCE(DEPT_NM, '') AS DEPT_NM,
+                COUNT(*) AS MEMBER_COUNT
+            FROM COMTNENTRPRSMBER
+            WHERE TRIM(COALESCE(INSTT_ID, '')) = #{insttId}
+              AND COALESCE(DEPT_NM, '') = #{deptNm}
+            GROUP BY TRIM(INSTT_ID), COALESCE(DEPT_NM, '')
+        ) B
+        LEFT JOIN COMTNDEPTAUTHORRELATE R
+            ON R.INSTT_ID = B.INSTT_ID
+           AND R.DEPT_NM = B.DEPT_NM
+        LEFT JOIN COMTNAUTHORINFO A
+            ON A.AUTHOR_CODE = R.AUTHOR_CODE
+    </select>
+
     <select id="selectUserAuthorityTargets" parameterType="map" resultType="egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO">
         SELECT
             E.ENTRPRS_MBER_ID AS userId,
@@ -702,6 +739,24 @@
             )
         </if>
         ORDER BY E.SBSCRB_DE DESC, E.ENTRPRS_MBER_ID DESC
+    </select>
+
+    <select id="selectUserAuthorityTarget" parameterType="map" resultType="egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO">
+        SELECT
+            E.ENTRPRS_MBER_ID AS userId,
+            COALESCE(E.APPLCNT_NM, '') AS userNm,
+            TRIM(E.INSTT_ID) AS insttId,
+            COALESCE(E.CMPNY_NM, '') AS cmpnyNm,
+            COALESCE(E.DEPT_NM, '') AS deptNm,
+            COALESCE(S.AUTHOR_CODE, '') AS authorCode,
+            COALESCE(A.AUTHOR_NM, '') AS authorNm
+        FROM COMTNENTRPRSMBER E
+        LEFT JOIN COMTNEMPLYRSCRTYESTBS S
+            ON E.ESNTL_ID = S.SCRTY_DTRMN_TRGET_ID
+        LEFT JOIN COMTNAUTHORINFO A
+            ON A.AUTHOR_CODE = S.AUTHOR_CODE
+        WHERE TRIM(COALESCE(E.INSTT_ID, '')) = #{insttId}
+          AND E.ENTRPRS_MBER_ID = #{userId}
     </select>
 
     <select id="selectEssentialIdByEmplyrId" parameterType="string" resultType="string">

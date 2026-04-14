@@ -15,6 +15,8 @@
             AR4_VALUE AS "ar4Value",
             AR5_VALUE AS "ar5Value",
             AR6_VALUE AS "ar6Value",
+            SOURCE_TXT AS "source",
+            MANUAL_INPUT_VALUE AS "manualInputValue",
             NOTE_TXT AS "note",
             SOURCE_DOCUMENT_NM AS "sourceDocumentName",
             SOURCE_PAGE_NO AS "sourcePageNo",
@@ -35,6 +37,8 @@
             AR4_VALUE AS "ar4Value",
             AR5_VALUE AS "ar5Value",
             AR6_VALUE AS "ar6Value",
+            SOURCE_TXT AS "source",
+            MANUAL_INPUT_VALUE AS "manualInputValue",
             NOTE_TXT AS "note",
             SOURCE_DOCUMENT_NM AS "sourceDocumentName",
             SOURCE_PAGE_NO AS "sourcePageNo",
@@ -71,12 +75,12 @@
     <insert id="insertRow" parameterType="hashmap">
         INSERT INTO ADMIN_EMISSION_GWP_VALUE (
             ROW_ID, SECTION_CODE, SECTION_ORDR, COMMON_NAME, FORMULA,
-            AR4_VALUE, AR5_VALUE, AR6_VALUE, NOTE_TXT,
+            AR4_VALUE, AR5_VALUE, AR6_VALUE, SOURCE_TXT, MANUAL_INPUT_VALUE, NOTE_TXT,
             SOURCE_DOCUMENT_NM, SOURCE_PAGE_NO, SORT_ORDR,
             FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID
         ) VALUES (
             #{rowId}, #{sectionCode}, #{sectionOrder}, #{commonName}, #{formula},
-            #{ar4Value}, #{ar5Value}, #{ar6Value}, #{note},
+            #{ar4Value}, #{ar5Value}, #{ar6Value}, #{source}, #{manualInputValue}, #{note},
             #{sourceDocumentName}, #{sourcePageNo}, #{sortOrder},
             CURRENT_DATETIME, #{actorId}, CURRENT_DATETIME, #{actorId}
         )
@@ -91,6 +95,8 @@
             AR4_VALUE = #{ar4Value},
             AR5_VALUE = #{ar5Value},
             AR6_VALUE = #{ar6Value},
+            SOURCE_TXT = #{source},
+            MANUAL_INPUT_VALUE = #{manualInputValue},
             NOTE_TXT = #{note},
             SOURCE_DOCUMENT_NM = #{sourceDocumentName},
             SOURCE_PAGE_NO = #{sourcePageNo},

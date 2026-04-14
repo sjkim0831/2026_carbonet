@@ -4,6 +4,8 @@ import type {
   BackupConfigPagePayload,
   BatchManagementPagePayload,
   CertificateAuditLogPagePayload,
+  DbSyncDeployPagePayload,
+  DbPromotionPolicyPagePayload,
   ExternalConnectionFormPagePayload,
   ExternalConnectionListPagePayload,
   ExternalKeysPagePayload,
@@ -75,6 +77,61 @@ export async function fetchPerformancePage() {
     "/admin/system/performance/page-data",
     "/en/admin/system/performance/page-data",
     { fallbackMessage: "Failed to load performance page" }
+  );
+}
+
+export async function fetchDbPromotionPolicyPage() {
+  return fetchLocalizedPageJson<DbPromotionPolicyPagePayload>(
+    "/admin/system/db-promotion-policy/page-data",
+    "/en/admin/system/db-promotion-policy/page-data",
+    { fallbackMessage: "Failed to load DB promotion policy page" }
+  );
+}
+
+export async function saveDbPromotionPolicy(payload: Record<string, string>) {
+  return postLocalizedOpsAction<DbPromotionPolicyPagePayload>(
+    "/admin/system/db-promotion-policy/save",
+    "/en/admin/system/db-promotion-policy/save",
+    payload,
+    "Failed to save DB promotion policy."
+  );
+}
+
+export async function fetchDbSyncDeployPage() {
+  return fetchLocalizedPageJson<DbSyncDeployPagePayload>(
+    "/admin/system/db-sync-deploy/page-data",
+    "/en/admin/system/db-sync-deploy/page-data",
+    { fallbackMessage: "Failed to load DB sync deploy page" }
+  );
+}
+
+export async function analyzeDbSyncDeploy() {
+  return postLocalizedOpsAction<DbSyncDeployPagePayload>(
+    "/admin/system/db-sync-deploy/analyze",
+    "/en/admin/system/db-sync-deploy/analyze",
+    {},
+    "Failed to analyze DB sync deploy preflight."
+  );
+}
+
+export async function validateDbSyncDeployPolicy() {
+  return postLocalizedOpsAction<DbSyncDeployPagePayload>(
+    "/admin/system/db-sync-deploy/validate-policy",
+    "/en/admin/system/db-sync-deploy/validate-policy",
+    {},
+    "Failed to validate DB sync deploy policy."
+  );
+}
+
+export async function executeDbSyncDeploy(payload?: {
+  executionMode?: string;
+  targetRoute?: string;
+}) {
+  return postLocalizedOpsAction<DbSyncDeployPagePayload>(
+    "/admin/system/db-sync-deploy/execute",
+    "/en/admin/system/db-sync-deploy/execute",
+    payload || {},
+    "Failed to execute DB sync deploy runner."
   );
 }
 

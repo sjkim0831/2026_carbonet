@@ -40,6 +40,11 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
     }
 
     @Override
+    public AuthorInfoVO selectAuthor(String authorCode) {
+        return authGroupManageMapper.selectAuthor(authorCode);
+    }
+
+    @Override
     public List<FeatureCatalogItemVO> selectFeatureCatalog() {
         return authGroupManageMapper.selectFeatureCatalog();
     }
@@ -216,11 +221,27 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
     }
 
     @Override
+    public DepartmentRoleMappingVO selectDepartmentRoleMapping(String insttId, String deptNm) {
+        Map<String, String> params = new HashMap<>();
+        params.put("insttId", insttId == null ? "" : insttId.trim());
+        params.put("deptNm", deptNm == null ? "" : deptNm.trim());
+        return authGroupManageMapper.selectDepartmentRoleMapping(params);
+    }
+
+    @Override
     public List<UserAuthorityTargetVO> selectUserAuthorityTargets(String insttId, String searchKeyword) {
         Map<String, String> params = new HashMap<>();
         params.put("insttId", insttId == null ? "" : insttId.trim());
         params.put("searchKeyword", searchKeyword == null ? "" : searchKeyword.trim());
         return authGroupManageMapper.selectUserAuthorityTargets(params);
+    }
+
+    @Override
+    public UserAuthorityTargetVO selectUserAuthorityTarget(String insttId, String userId) {
+        Map<String, String> params = new HashMap<>();
+        params.put("insttId", insttId == null ? "" : insttId.trim());
+        params.put("userId", userId == null ? "" : userId.trim());
+        return authGroupManageMapper.selectUserAuthorityTarget(params);
     }
 
     @Override

@@ -11,7 +11,10 @@ Use this as the default implementation skill for normal Carbonet features. If th
 
 If the request explicitly wants common-platform extraction, project-common separation, reversible common/project switching, shared jar preparation, or "make this easy to move later", use `carbonet-common-project-boundary-switcher` first and only then return here for repository implementation.
 
+If the request is about system asset management, CMDB-like admin inventory, asset-governance screen grouping, or deciding which existing operations screens should be reused versus upgraded, read `docs/architecture/system-asset-management-screen-and-menu-plan.md` first before placing menus or routes.
+
 If the request asks whether an existing page is really systemized, builder-ready, installable, or authority-scope-complete, read `docs/architecture/page-systemization-minimum-contract.md` first before deciding where code should land.
+If the request grows into central project-governance work such as schedule, issue, document, mail, or call management, read `docs/architecture/project-governance-control-plane-and-priority-roadmap.md` first and keep technical governance closure ahead of the new management overlays.
 If the request needs page-by-page closure rather than broad structure cleanup, read these too before implementation:
 - `docs/architecture/page-systemization-checklist.md`
 - `docs/architecture/builder-install-deploy-closeout-checklist.md`
@@ -36,6 +39,8 @@ Incremental cleanup rule:
 - Read [references/business-requirements-map.md](references/business-requirements-map.md) when the request originates from `사업내용.txt` or the `screen` folders and you need the domain intent behind the screen.
 - Read [references/screen-design-map.md](references/screen-design-map.md) when the request references `/home/imaneya/workspace/화면설계` artifacts, the mirrored `설계HTML*` and `html/화면` outputs, or the root `1.`, `2.`, `3.`, `4.` files.
 - If the task touches `/admin/system/security-policy`, read `/opt/projects/carbonet/docs/operations/security-policy-ops.md` first so implementation stays aligned with the current detection engines, workflow states, suppress/baseline rules, and auto-fix boundaries.
+- If the task can create or modify DB rows, metadata tables, seed SQL, mapper SQL, or deploy-time schema/data patches, read `/opt/projects/carbonet/docs/operations/ai-agent-db-patch-governance.md` first and treat DB patch capture as mandatory rather than optional.
+- If the task changes an existing page, route, save flow, or authority path, read `/opt/projects/carbonet/docs/operations/ai-change-baseline-and-regression-rule.md` first and capture a lightweight baseline before editing.
 
 ## Workflow
 
@@ -71,48 +76,58 @@ Incremental cleanup rule:
    - menu/page/feature metadata rows or SQL changes if the menu must become manageable in admin
 13. Add Korean and English route handling together unless the request explicitly scopes to one language.
 14. If the change introduces new generated files, local-runtime artifacts, environment files, logs, caches, uploads, or build outputs, review `.gitignore` in the same turn and update it when needed.
-15. Verify page URL, menu code, feature code, authority assumptions, and any schema naming choices against the design docs before finishing.
-16. For admin page-management or feature-management changes, treat the following as one authority chain and review them together:
+15. Before editing an existing feature, capture the smallest useful baseline for the affected route, page, or mutation flow:
+   - exact route response or redirect behavior
+   - page-governance metadata when available
+   - one or two critical actions or state signals that must keep working
+16. Verify page URL, menu code, feature code, authority assumptions, and any schema naming choices against the design docs before finishing.
+17. After editing an existing feature, re-run the same baseline checks before broader verification so regressions on already-working behavior are visible.
+18. If the work changes DB state in any way, make the DB change traceable through the repository DB patch path:
+   - admin-save changes must write `BUSINESS_CHANGE_LOG`
+   - AI-created SQL files must be applied through the DB patch flow, not as untracked ad hoc SQL
+   - remote DB reflection must leave `DEPLOYABLE_DB_PATCH_QUEUE`, `...RESULT`, and final `DB_PATCH_HISTORY` evidence
+   - destructive changes, rename-like changes, and bidirectional sync assumptions must be recorded in the patch metadata
+19. For admin page-management or feature-management changes, treat the following as one authority chain and review them together:
    - page registration in `COMTCCMMNDETAILCODE` and `COMTNMENUINFO`
    - default `PAGE_CODE_VIEW` feature creation in `COMTNMENUFUNCTIONINFO`
    - role and user-override cleanup or exposure through `COMTNAUTHORFUNCTIONRELATE` and `COMTNUSERFEATUREOVERRIDE`
    - bilingual feedback messages and delete-impact warnings in the page UI contracts
-17. When this authority chain is touched, keep the shared controller, service, mapper XML, and page route contracts under one session owner and update the AI docs/CSV maps in the same turn.
-18. Treat admin authority work as a full chain, not a page-local edit:
+20. When this authority chain is touched, keep the shared controller, service, mapper XML, and page route contracts under one session owner and update the AI docs/CSV maps in the same turn.
+21. Treat admin authority work as a full chain, not a page-local edit:
    - `menu -> page -> feature -> authority group -> member/dept assignment -> user override -> audit log`
    - non-master flows must enforce `instt_id` or company scope in controller, service, and mapper layers
    - feature or permission pickers must only expose items the current actor is allowed to grant
-19. When a request mixes admin React migration with authority editing, stabilize backend contracts and scope rules first, then restore the original admin screen structure, then re-attach added features.
-20. For the current authority restoration track, keep these five screens aligned as one working set:
+22. When a request mixes admin React migration with authority editing, stabilize backend contracts and scope rules first, then restore the original admin screen structure, then re-attach added features.
+23. For the current authority restoration track, keep these five screens aligned as one working set:
    - `auth_group`
    - `auth_change`
    - `dept_role_mapping`
    - `member_edit`
    - `admin_account`
-21. When extending `메뉴 관리`, treat it as the orchestration hub for managed screens:
+24. When extending `메뉴 관리`, treat it as the orchestration hub for managed screens:
    - keep existing legacy page/function screens working and hide them with `useAt` instead of deleting them
    - menu creation should auto-register page metadata and the default `PAGE_CODE_VIEW` feature when safe
    - menu creation should also seed draft UI manifest metadata so `screen command`, `full-stack management`, and `sr-workbench` can inspect the new page immediately
    - page position changes should be driven by menu order, not ad hoc code edits
    - do not couple site-map exposure directly to menu visibility; prefer a dedicated site-map management surface
-22. When adding admin planning or governance tools such as `WBS 관리`, prefer this ownership model:
+25. When adding admin planning or governance tools such as `WBS 관리`, prefer this ownership model:
    - DB menu tree remains the source of truth for menu inventory
    - planning fields such as owner, status, planned schedule, actual schedule, notes, and AI work instruction are stored as an overlay, not as a replacement for menu metadata
    - menu-based tools should still resolve menu URL, page ID, feature codes, and related governance metadata from existing services before inventing new registries
-23. For schedule-oriented admin tools, separate planned dates and actual dates in both storage and UI:
+26. For schedule-oriented admin tools, separate planned dates and actual dates in both storage and UI:
    - planned start/end
    - actual start/end
    - derived metrics such as variance days, overdue, on-time completion rate, and missing-plan count should be computed from those fields rather than manually entered
-24. When the request adds or revises admin shell bootstrap behavior, keep the shell page contract and feature page contract aligned:
+27. When the request adds or revises admin shell bootstrap behavior, keep the shell page contract and feature page contract aligned:
    - page bootstrap data should be composed in backend services before the React screen starts rendering
    - React shell fallback behavior should not silently replace missing authority or page metadata
    - if a new admin capability introduces reusable profile or preset data, store that profile data separately from the menu tree and document which service owns it
-25. Treat `/admin/system/security-policy` as an operations product, not a single page:
+28. Treat `/admin/system/security-policy` as an operations product, not a single page:
    - keep backend detection rules, status workflow, suppress/baseline behavior, notification routing, and auto-fix/rollback actions in sync
    - when adding a new detection, update both the detection engine output contract and the React operator workflow in the same turn
    - distinguish between real remediation and heuristic tuning; do not hide real findings just to reduce counts
    - preserve explicit categories for `auto-fixable`, `review-required`, and source/heuristic/manual governance findings
-26. When security-policy changes affect real remediation paths, verify the corresponding runtime controls too:
+29. When security-policy changes affect real remediation paths, verify the corresponding runtime controls too:
    - JWT/session behavior
    - admin authorization/interceptor coverage
    - rate limits for sensitive admin actions
@@ -141,6 +156,11 @@ Incremental cleanup rule:
 - Use `행정안전부_공공데이터 공통표준용어_20251101.csv` as a naming sanity check for new Korean labels, columns, and code names; adapt to the existing project conventions rather than copying blindly.
 - When the request is ambiguous, infer structure from the nearest implemented menu, but do not infer hidden business policy. Surface that gap in the final response.
 - If the feature introduces a new admin tool page and local deployment is needed for verification, package first and restart second. Do not run `mvn package` and restart in parallel because the runtime jar can copy a stale artifact.
+- If the feature introduces DB changes, never leave them as “source code only” or “manual DB work later”.
+  Required closeout:
+  - code path records `BUSINESS_CHANGE_LOG` for AI-created admin saves or metadata writes
+  - SQL patch path records `DB_PATCH_HISTORY` for actual DB apply
+  - remote DB apply must be reproducible by `ops/scripts/windows-db-sync-push-and-fresh-deploy-221.sh` or the queue execution path
 - When working on security-policy or other diagnostic consoles, verify both sides:
   - UI behavior and operator actions
   - actual runtime remediations in Java/Spring/React code when findings are marked fixed

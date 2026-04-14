@@ -19,6 +19,11 @@
     <dependencies>
         <dependency>
             <groupId>egovframework</groupId>
+            <artifactId>common-auth</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>egovframework</groupId>
             <artifactId>carbonet-builder-observability</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
@@ -215,6 +220,12 @@
                         <exclude>egovframework/com/feature/member/model/vo/InsttInfoVO.java</exclude>
                         <exclude>egovframework/com/platform/help/web/HelpManagementApiController.java</exclude>
                         <exclude>egovframework/com/feature/admin/service/model/ControlPlaneCompareRow.java</exclude>
+                        <exclude>egovframework/com/feature/auth/domain/**/*.java</exclude>
+                        <exclude>egovframework/com/feature/auth/dto/**/*.java</exclude>
+                        <exclude>egovframework/com/feature/auth/mapper/AuthLoginMapper.java</exclude>
+                        <exclude>egovframework/com/feature/auth/service/AuthService.java</exclude>
+                        <exclude>egovframework/com/feature/auth/service/impl/AuthServiceImpl.java</exclude>
+                        <exclude>egovframework/com/feature/auth/util/JwtTokenProvider.java</exclude>
                         <exclude>egovframework/com/platform/versioncontrol/**/*.java</exclude>
                         <exclude>egovframework/com/platform/runtimecontrol/**/*.java</exclude>
                     </excludes>

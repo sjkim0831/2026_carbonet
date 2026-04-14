@@ -37,6 +37,7 @@ public class AdminAdminAccountCreateCommandService {
     private final AdminAdminAccountAccessService adminAdminAccountAccessService;
     private final AdminAdminAccountCreateSupportService adminAdminAccountCreateSupportService;
     private final AdminRequestContextSupport adminRequestContextSupport;
+    private final AdminRoleAssignmentDbChangeCaptureSupport adminRoleAssignmentDbChangeCaptureSupport;
 
     public ResponseEntity<Map<String, Object>> submitApi(
             AdminAdminAccountCreateRequestDTO payload,
@@ -189,6 +190,16 @@ public class AdminAdminAccountCreateCommandService {
             employMemberRepository.save(savedAdmin);
 
             authGroupManageService.updateAdminRoleAssignment(adminId, authorCode);
+            adminRoleAssignmentDbChangeCaptureSupport.captureAdminRoleAssignment(
+                    request,
+                    currentUserId,
+                    currentUserAuthorCode,
+                    scopedInsttId,
+                    adminId,
+                    null,
+                    adminAuthorityPagePayloadSupport.buildAuthorSummary(authorCode),
+                    "AMENU_ADMIN_ACCOUNT_CREATE",
+                    "admin-account-create");
             adminPermissionOverrideService.savePermissionOverrides(
                     adminAdminAccountCreateSupportService.safeString(savedAdmin.getEsntlId()),
                     "USR03",

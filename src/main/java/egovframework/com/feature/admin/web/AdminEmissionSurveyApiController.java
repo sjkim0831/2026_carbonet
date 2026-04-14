@@ -1,6 +1,7 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.dto.request.EmissionSurveyCaseSaveRequest;
+import egovframework.com.feature.admin.dto.request.EmissionSurveyDatasetReplaceRequest;
 import egovframework.com.feature.admin.dto.request.EmissionSurveyDraftSetSaveRequest;
 import egovframework.com.feature.admin.service.AdminEmissionSurveyWorkbookService;
 import egovframework.com.feature.admin.service.EmissionClassificationCatalogService;
@@ -39,6 +40,7 @@ public class AdminEmissionSurveyApiController {
     private static final String DEFAULT_WORKBOOK_NAME = "데이터 수집 설문지 excel 양식_steel, electric, low-alloy.xlsx";
     private static final String BLANK_WORKBOOK_NAME = "데이터 수집 설문지 blank 양식_steel, electric, low-alloy.xlsx";
     private static final String SAMPLE_WORKBOOK_NAME = "데이터 수집 설문지 sample 양식_steel, electric, low-alloy.xlsx";
+    private static final String ADMIN_BLANK_WORKBOOK_NAME = "관리자 업로드 양식_빈양식.xlsx";
     private static final Path WORKSPACE_SAMPLE = Path.of("/opt/projects/carbonet", DEFAULT_WORKBOOK_NAME);
     private static final Path REFERENCE_SAMPLE = Path.of("/opt/reference/수식 설계 요", DEFAULT_WORKBOOK_NAME);
 
@@ -52,9 +54,10 @@ public class AdminEmissionSurveyApiController {
             "/admin/emission/survey-admin/page-data",
             "/en/admin/emission/survey-admin/page-data"
     })
-    public ResponseEntity<Map<String, Object>> getPageData(HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> getPageData(@RequestParam(value = "productName", required = false) String productName,
+                                                           HttpServletRequest request) {
         boolean isEn = adminReactRouteSupport.isEnglishRequest(request, null);
-        Map<String, Object> payload = adminEmissionSurveyWorkbookService.getPagePayload(resolveActorId(request), isEn);
+        Map<String, Object> payload = adminEmissionSurveyWorkbookService.getPagePayload(resolveActorId(request), productName, isEn);
         payload.put("classificationCatalog", emissionClassificationCatalogService.buildPayload(isEn));
         return ResponseEntity.ok(payload);
     }
@@ -119,6 +122,16 @@ public class AdminEmissionSurveyApiController {
                 .body(new InputStreamResource(inputStream));
     }
 
+    @GetMapping({
+            "/api/admin/emission-survey-admin/admin-template-download",
+            "/admin/api/admin/emission-survey-admin/admin-template-download",
+            "/en/admin/api/admin/emission-survey-admin/admin-template-download"
+    })
+    public ResponseEntity<Resource> downloadAdminTemplate() throws Exception {
+        byte[] workbookBytes = adminEmissionSurveyWorkbookService.buildAdminUploadBlankTemplateBytes();
+        return buildWorkbookResponse(workbookBytes, ADMIN_BLANK_WORKBOOK_NAME);
+    }
+
     @PostMapping({
             "/api/admin/emission-survey-admin/parse-workbook",
             "/admin/api/admin/emission-survey-admin/parse-workbook",
@@ -174,6 +187,19 @@ public class AdminEmissionSurveyApiController {
         return ResponseEntity.ok(payload);
     }
 
+    @PostMapping({
+            "/api/admin/emission-survey-admin/replace-shared-dataset-sections",
+            "/admin/api/admin/emission-survey-admin/replace-shared-dataset-sections",
+            "/en/admin/api/admin/emission-survey-admin/replace-shared-dataset-sections"
+    })
+    public ResponseEntity<Map<String, Object>> replaceSharedDatasetSections(@RequestBody EmissionSurveyDatasetReplaceRequest request,
+                                                                            HttpServletRequest httpServletRequest) {
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(httpServletRequest, null);
+        Map<String, Object> payload = adminEmissionSurveyWorkbookService.replaceSharedDatasetSections(request, isEn);
+        payload.put("classificationCatalog", emissionClassificationCatalogService.buildPayload(isEn));
+        return ResponseEntity.ok(payload);
+    }
+
     @GetMapping({
             "/api/admin/emission-survey-admin/case-drafts/by-classification",
             "/admin/api/admin/emission-survey-admin/case-drafts/by-classification",
@@ -183,12 +209,14 @@ public class AdminEmissionSurveyApiController {
                                                                               @RequestParam("lciMiddleCode") String lciMiddleCode,
                                                                               @RequestParam("lciSmallCode") String lciSmallCode,
                                                                               @RequestParam("caseCode") String caseCode,
+                                                                              @RequestParam(value = "productName", required = false) String productName,
                                                                               HttpServletRequest request) {
         return ResponseEntity.ok(adminEmissionSurveyWorkbookService.loadClassificationCaseDrafts(
                 lciMajorCode,
                 lciMiddleCode,
                 lciSmallCode,
                 caseCode,
+                productName,
                 resolveActorId(request),
                 adminReactRouteSupport.isEnglishRequest(request, null)
         ));
@@ -229,10 +257,12 @@ public class AdminEmissionSurveyApiController {
     })
     public ResponseEntity<Map<String, Object>> deleteCaseDraft(@RequestParam("sectionCode") String sectionCode,
                                                                @RequestParam("caseCode") String caseCode,
+                                                               @RequestParam(value = "productName", required = false) String productName,
                                                                HttpServletRequest request) {
         return ResponseEntity.ok(adminEmissionSurveyWorkbookService.deleteCaseDraft(
                 sectionCode,
                 caseCode,
+                productName,
                 resolveActorId(request),
                 adminReactRouteSupport.isEnglishRequest(request, null)));
     }

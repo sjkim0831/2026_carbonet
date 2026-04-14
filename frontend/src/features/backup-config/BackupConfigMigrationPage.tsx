@@ -8,7 +8,7 @@ import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
-import { AdminCheckbox, AdminInput, MemberButton, MemberPageActions, MemberPagination, PageStatusNotice } from "../member/common";
+import { AdminCheckbox, AdminInput, AdminSelect, MemberButton, MemberPageActions, MemberPagination, PageStatusNotice } from "../member/common";
 import { stringOf } from "../admin-system/adminSystemShared";
 
 const TABLE_PAGE_SIZE = 10;
@@ -96,7 +96,13 @@ function buildVersionDetailRows(version: Record<string, string> | null, en: bool
     { group: "DB", label: en ? "Host / Port" : "Host / Port", value: [stringOf(version, "dbHost"), stringOf(version, "dbPort")].filter(Boolean).join(":") || "-" },
     { group: "DB", label: en ? "User" : "사용자", value: stringOf(version, "dbUser") || "-" },
     { group: "DB", label: en ? "Dump Command" : "덤프 명령", value: stringOf(version, "dbDumpCommand") || "-" },
-    { group: "DB", label: en ? "Schema Scope" : "스키마 범위", value: stringOf(version, "dbSchemaScope") || "-" }
+    { group: "DB", label: en ? "Schema Scope" : "스키마 범위", value: stringOf(version, "dbSchemaScope") || "-" },
+    { group: "DB Policy", label: en ? "Promotion Data Policy" : "반영 데이터 정책", value: stringOf(version, "dbPromotionDataPolicy") || "-" },
+    { group: "DB Policy", label: en ? "Diff Execution Preset" : "diff 실행 프리셋", value: stringOf(version, "dbDiffExecutionPreset") || "-" },
+    { group: "DB Policy", label: en ? "Allow Local Diff" : "local diff 허용", value: stringOf(version, "dbApplyLocalDiffYn") || "-" },
+    { group: "DB Policy", label: en ? "Force Destructive Diff" : "파괴적 diff 강제", value: stringOf(version, "dbForceDestructiveDiffYn") || "-" },
+    { group: "DB Policy", label: en ? "Fail On Untracked Destructive Diff" : "미추적 파괴적 diff 실패", value: stringOf(version, "dbFailOnUntrackedDestructiveDiffYn") || "-" },
+    { group: "DB Policy", label: en ? "Require Patch History" : "패치 이력 필수", value: stringOf(version, "dbRequirePatchHistoryYn") || "-" }
   ];
 }
 
@@ -120,7 +126,13 @@ function buildVersionDiffRows(current: Record<string, string> | null, previous: 
     { key: "dbHost", label: en ? "DB Host" : "DB Host" },
     { key: "dbPort", label: en ? "DB Port" : "DB Port" },
     { key: "dbDumpCommand", label: en ? "DB Dump Command" : "DB 덤프 명령" },
-    { key: "dbSchemaScope", label: en ? "DB Schema Scope" : "DB 스키마 범위" }
+    { key: "dbSchemaScope", label: en ? "DB Schema Scope" : "DB 스키마 범위" },
+    { key: "dbPromotionDataPolicy", label: en ? "Promotion Data Policy" : "반영 데이터 정책" },
+    { key: "dbDiffExecutionPreset", label: en ? "Diff Execution Preset" : "diff 실행 프리셋" },
+    { key: "dbApplyLocalDiffYn", label: en ? "Allow Local Diff" : "local diff 허용" },
+    { key: "dbForceDestructiveDiffYn", label: en ? "Force Destructive Diff" : "파괴적 diff 강제" },
+    { key: "dbFailOnUntrackedDestructiveDiffYn", label: en ? "Fail On Untracked Destructive Diff" : "미추적 파괴적 diff 실패" },
+    { key: "dbRequirePatchHistoryYn", label: en ? "Require Patch History" : "패치 이력 필수" }
   ];
   return fields
     .map((field) => ({
@@ -129,6 +141,51 @@ function buildVersionDiffRows(current: Record<string, string> | null, previous: 
       current: stringOf(current, field.key) || "-"
     }))
     .filter((row) => row.previous !== row.current);
+}
+
+type CloseoutItem = {
+  label: string;
+  value: string;
+  ready: boolean;
+  note: string;
+};
+
+function renderReadyBadge(ready: boolean, en: boolean) {
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ${ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+      {ready ? (en ? "Ready" : "준비됨") : (en ? "Needs Check" : "점검 필요")}
+    </span>
+  );
+}
+
+function BackupModeCloseoutPanel({ title, description, items, en }: { title: string; description: string; items: CloseoutItem[]; en: boolean }) {
+  const readyCount = items.filter((item) => item.ready).length;
+  return (
+    <section className="gov-card mb-6" data-help-id="backup-route-closeout">
+      <div className="flex flex-col gap-4 border-b border-[var(--kr-gov-border-light)] px-6 py-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Route Closeout Gate" : "라우트 완료 게이트"}</p>
+          <h3 className="mt-1 text-lg font-bold">{title}</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{description}</p>
+        </div>
+        <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3 text-sm font-bold">
+          {readyCount} / {items.length} {en ? "ready" : "준비"}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 px-6 py-6 md:grid-cols-2 xl:grid-cols-4">
+        {items.map((item) => (
+          <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4" key={item.label}>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{item.label}</p>
+              {renderReadyBadge(item.ready, en)}
+            </div>
+            <p className="mt-3 text-xl font-black text-[var(--kr-gov-text-primary)]">{item.value}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{item.note}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export function BackupConfigMigrationPage() {
@@ -343,6 +400,58 @@ export function BackupConfigMigrationPage() {
   const previousVersion = selectedVersionIndex >= 0 ? enrichedVersions[selectedVersionIndex + 1] || null : null;
   const versionDetailRows = buildVersionDetailRows(selectedVersion, en);
   const versionDiffRows = buildVersionDiffRows(selectedVersion, previousVersion, en);
+  const backupExecutionCloseoutItems: CloseoutItem[] = [
+    {
+      label: en ? "Execution Authority" : "실행 권한",
+      value: page?.canUseBackupExecution ? (en ? "Granted" : "허용") : (en ? "Blocked" : "차단"),
+      ready: Boolean(page?.canUseBackupExecution),
+      note: en ? "Backup run buttons stay disabled until the execution feature is available." : "실행 기능 권한이 없으면 백업 실행 버튼은 비활성화됩니다."
+    },
+    {
+      label: en ? "DB Backup Target" : "DB 백업 대상",
+      value: valueOf(form, "dbName") || "-",
+      ready: yes(form, "dbEnabled") && Boolean(valueOf(form, "dbDumpCommand")),
+      note: en ? "Database execution requires DB backup to be enabled and a dump command to be configured." : "DB 실행은 DB 백업 사용과 dump 명령 설정이 모두 필요합니다."
+    },
+    {
+      label: en ? "Git Evidence Path" : "Git 증적 경로",
+      value: valueOf(form, "gitBranchPattern") || "-",
+      ready: yes(form, "gitEnabled") && Boolean(valueOf(form, "gitRepositoryPath")),
+      note: en ? "Source backup evidence is tied to the configured repository and base branch." : "소스 백업 증적은 설정된 저장소와 기준 브랜치에 연결됩니다."
+    },
+    {
+      label: en ? "Run History" : "실행 이력",
+      value: String(executions.length),
+      ready: executions.length > 0,
+      note: en ? "A route cannot be considered closed without visible execution evidence." : "실행 증적이 화면에 보이지 않으면 완료 화면으로 볼 수 없습니다."
+    }
+  ];
+  const restoreExecutionCloseoutItems: CloseoutItem[] = [
+    {
+      label: en ? "Restore Authority" : "복구 권한",
+      value: page?.canUseBackupExecution ? (en ? "Granted" : "허용") : (en ? "Blocked" : "차단"),
+      ready: Boolean(page?.canUseBackupExecution),
+      note: en ? "Restore actions require the same governed backup execution feature chain." : "복구 작업은 같은 백업 실행 권한 체인을 요구합니다."
+    },
+    {
+      label: en ? "Git Rollback Points" : "Git 롤백 지점",
+      value: String(restoreGitRows.length),
+      ready: restoreGitRows.length > 0 && Boolean(gitRestoreCommit),
+      note: en ? "Git rollback needs a selectable commit target before execution." : "Git 롤백은 실행 전 선택 가능한 커밋 대상이 필요합니다."
+    },
+    {
+      label: en ? "DB Restore Targets" : "DB 복구 대상",
+      value: String(restoreSqlRows.length + restorePhysicalRows.length),
+      ready: restoreSqlRows.length > 0 || restorePhysicalRows.length > 0 || Boolean(stringOf(restorePitrInfo, "windowEnd")),
+      note: en ? "Restore evidence must expose SQL, physical, or point-in-time recovery targets." : "복구 증적은 SQL, 물리, 시점 복구 대상 중 하나 이상을 보여야 합니다."
+    },
+    {
+      label: en ? "Maintenance Guard" : "점검 보호",
+      value: dbRestoreType,
+      ready: dbRestoreType === "SQL" || Boolean(sudoPassword),
+      note: en ? "Physical and PITR execution require runtime privilege confirmation; SQL restore stays manual-only." : "물리/PITR 실행은 실행 권한 확인이 필요하고, SQL 복구는 수동 전용입니다."
+    }
+  ];
 
   const handleSave = async () => {
     setSaving(true);
@@ -898,6 +1007,64 @@ export function BackupConfigMigrationPage() {
                   <BackupField label={en ? "Dump Command" : "Dump 명령"} value={valueOf(form, "dbDumpCommand")} onChange={(value) => updateField("dbDumpCommand", value)} placeholder="/opt/util/cubrid/11.2/scripts/backup_sql.sh" />
                   <BackupField label={en ? "Schema Scope" : "스키마 범위"} value={valueOf(form, "dbSchemaScope")} onChange={(value) => updateField("dbSchemaScope", value)} placeholder="FULL" />
                 </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <MemberButton type="button" variant="secondary" onClick={() => { window.location.href = buildLocalizedPath("/admin/system/db-promotion-policy", "/en/admin/system/db-promotion-policy"); }}>
+                    {en ? "Open Table Policy Catalog" : "테이블 정책 카탈로그 열기"}
+                  </MemberButton>
+                </div>
+              </section>
+
+              <section className="space-y-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-5 py-5">
+                <div>
+                  <h4 className="text-base font-bold">{en ? "Production DB Reflection Policy" : "운영 DB 반영 정책"}</h4>
+                  <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {en
+                      ? "Set the default policy used by version-management diff and patch execution. Controlled metadata stays promotable; business data stays blocked unless you explicitly loosen the rule."
+                      : "버전 관리 화면의 diff/patch 실행 기본 정책을 정의합니다. 관리 메타데이터는 반영 가능 상태를 유지하고, 업무 데이터는 정책을 명시적으로 풀지 않으면 기본 차단합니다."}
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Promotion Data Policy" : "반영 데이터 정책"}</span>
+                    <AdminSelect value={valueOf(form, "dbPromotionDataPolicy") || "CONTROLLED_REFERENCE_ONLY"} onChange={(event) => updateField("dbPromotionDataPolicy", event.target.value)}>
+                      <option value="CONTROLLED_REFERENCE_ONLY">{en ? "Controlled metadata only" : "관리 메타데이터만"}</option>
+                      <option value="BUSINESS_WITH_OVERRIDE">{en ? "Business data with override" : "업무 데이터는 우회 사유 필요"}</option>
+                      <option value="BUSINESS_ALLOWED">{en ? "Business data allowed" : "업무 데이터 허용"}</option>
+                    </AdminSelect>
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Diff Execution Preset" : "diff 실행 프리셋"}</span>
+                    <AdminSelect value={valueOf(form, "dbDiffExecutionPreset") || "PATCH_WITH_DIFF"} onChange={(event) => updateField("dbDiffExecutionPreset", event.target.value)}>
+                      <option value="PATCH_ONLY">{en ? "Patch only" : "패치만 반영"}</option>
+                      <option value="PATCH_WITH_DIFF">{en ? "Patch with diff guard" : "패치 + diff 검증"}</option>
+                      <option value="FULL_REMOTE_DEPLOY">{en ? "Full remote deploy" : "원격 전체 배포"}</option>
+                    </AdminSelect>
+                  </label>
+                  <BackupToggle
+                    label={en ? "Allow Local Diff Apply" : "local diff 적용 허용"}
+                    checked={yes(form, "dbApplyLocalDiffYn")}
+                    onChange={(checked) => updateField("dbApplyLocalDiffYn", checked ? "Y" : "N")}
+                    description={en ? "Use only when you intentionally want remote changes synchronized back into local/dev." : "운영 변경을 로컬/개발로 역반영하려는 경우에만 사용하세요."}
+                  />
+                  <BackupToggle
+                    label={en ? "Force Destructive Diff" : "파괴적 diff 강제"}
+                    checked={yes(form, "dbForceDestructiveDiffYn")}
+                    onChange={(checked) => updateField("dbForceDestructiveDiffYn", checked ? "Y" : "N")}
+                    description={en ? "Keep this off unless a reviewed destructive migration really must run." : "검토된 파괴적 마이그레이션이 정말 필요한 경우가 아니면 끄는 것이 기본입니다."}
+                  />
+                  <BackupToggle
+                    label={en ? "Fail On Untracked Destructive Diff" : "미추적 파괴적 diff 발견 시 실패"}
+                    checked={yes(form, "dbFailOnUntrackedDestructiveDiffYn")}
+                    onChange={(checked) => updateField("dbFailOnUntrackedDestructiveDiffYn", checked ? "Y" : "N")}
+                    description={en ? "Recommended for production safety so unmanaged destructive drift blocks execution." : "관리되지 않은 파괴적 drift가 있으면 실행을 막아 운영 안전성을 유지합니다."}
+                  />
+                  <BackupToggle
+                    label={en ? "Require DB Patch History Evidence" : "DB Patch 이력 증거 필수"}
+                    checked={yes(form, "dbRequirePatchHistoryYn")}
+                    onChange={(checked) => updateField("dbRequirePatchHistoryYn", checked ? "Y" : "N")}
+                    description={en ? "Treat remote DB apply as failed unless DB_PATCH_HISTORY or equivalent evidence is recorded." : "DB_PATCH_HISTORY 또는 동등한 증거가 남지 않으면 원격 DB 반영을 실패로 간주합니다."}
+                  />
+                </div>
               </section>
 
               <MemberPageActions>
@@ -920,6 +1087,14 @@ export function BackupConfigMigrationPage() {
 
       {preset.pageKey === "backup-execution" ? (
         <>
+          {BackupModeCloseoutPanel({
+            title: en ? "Backup Execution Readiness" : "백업 실행 준비 상태",
+            description: en
+              ? "This route is execution-first: operators must see authority, targets, source evidence, and history before running a backup."
+              : "이 라우트는 실행 우선 화면입니다. 운영자는 백업 실행 전 권한, 대상, 소스 증적, 이력을 먼저 확인해야 합니다.",
+            items: backupExecutionCloseoutItems,
+            en
+          })}
           <section className="gov-card mb-6" data-help-id="backup-config-run-actions">
             <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
               <h3 className="text-lg font-bold">{en ? "Backup Run Actions" : "백업 실행 작업"}</h3>
@@ -973,6 +1148,14 @@ export function BackupConfigMigrationPage() {
 
       {preset.pageKey === "restore-execution" ? (
         <>
+          {BackupModeCloseoutPanel({
+            title: en ? "Restore Execution Readiness" : "복구 실행 준비 상태",
+            description: en
+              ? "This route is restore-first: operators must confirm rollback points, database targets, runtime guard, and execution authority before restoring."
+              : "이 라우트는 복구 우선 화면입니다. 운영자는 복구 전 롤백 지점, DB 대상, 런타임 보호, 실행 권한을 먼저 확인해야 합니다.",
+            items: restoreExecutionCloseoutItems,
+            en
+          })}
           <section className="gov-card mb-6" data-help-id="backup-restore-actions">
             <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
               <h3 className="text-lg font-bold">{en ? "Restore Targets" : "복구 대상 선택"}</h3>

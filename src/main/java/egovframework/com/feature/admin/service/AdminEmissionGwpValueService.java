@@ -218,6 +218,8 @@ public class AdminEmissionGwpValueService {
         params.put("ar4Value", safe(request == null ? null : request.getAr4Value()));
         params.put("ar5Value", safe(request == null ? null : request.getAr5Value()));
         params.put("ar6Value", safe(request == null ? null : request.getAr6Value()));
+        params.put("source", safe(request == null ? null : request.getSource()));
+        params.put("manualInputValue", safe(request == null ? null : request.getManualInputValue()));
         params.put("note", safe(request == null ? null : request.getNote()));
         params.put("sourceDocumentName", DOCUMENT_NAME);
         params.put("sourcePageNo", resolveSourcePage(sectionCode));
@@ -286,6 +288,8 @@ public class AdminEmissionGwpValueService {
                     + "AR4_VALUE VARCHAR(60),"
                     + "AR5_VALUE VARCHAR(60),"
                     + "AR6_VALUE VARCHAR(60),"
+                    + "SOURCE_TXT VARCHAR(200),"
+                    + "MANUAL_INPUT_VALUE VARCHAR(120),"
                     + "NOTE_TXT VARCHAR(4000),"
                     + "SOURCE_DOCUMENT_NM VARCHAR(200) NOT NULL,"
                     + "SOURCE_PAGE_NO INTEGER,"
@@ -300,6 +304,8 @@ public class AdminEmissionGwpValueService {
             jdbcTemplate.execute("CREATE INDEX IDX_ADMIN_EMISSION_GWP_VALUE_02 ON " + TABLE_NAME + " (COMMON_NAME)");
             log.info("Created table {}", TABLE_NAME);
         }
+        ensureColumn("SOURCE_TXT", "ALTER TABLE " + TABLE_NAME + " ADD COLUMN SOURCE_TXT VARCHAR(200)");
+        ensureColumn("MANUAL_INPUT_VALUE", "ALTER TABLE " + TABLE_NAME + " ADD COLUMN MANUAL_INPUT_VALUE VARCHAR(120)");
 
         int inserted = 0;
         int updated = 0;
@@ -348,6 +354,19 @@ public class AdminEmissionGwpValueService {
                 || !safe(stringValue(existing.get("note"))).equals(safe(seedRow.get("note")))
                 || safeInt(stringValue(existing.get("sortOrder"))) != safeInt(seedRow.get("sortOrder"))
                 || safeInt(stringValue(existing.get("sourcePageNo"))) != resolveSourcePage(safe(seedRow.get("sectionCode")));
+    }
+
+    private void ensureColumn(String columnName, String alterSql) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM db_attribute WHERE LOWER(class_name) = LOWER(?) AND LOWER(attr_name) = LOWER(?)",
+                Integer.class,
+                TABLE_NAME,
+                columnName);
+        if (count != null && count > 0) {
+            return;
+        }
+        jdbcTemplate.execute(alterSql);
+        log.info("Added column {} to {}", columnName, TABLE_NAME);
     }
 
     private Map<String, Map<String, String>> loadSeedRowIndex() {
@@ -1475,6 +1494,8 @@ public class AdminEmissionGwpValueService {
         row.put("ar4Value", safe(stringValue(source.get("ar4Value"))));
         row.put("ar5Value", safe(stringValue(source.get("ar5Value"))));
         row.put("ar6Value", safe(stringValue(source.get("ar6Value"))));
+        row.put("source", safe(stringValue(source.get("source"))));
+        row.put("manualInputValue", safe(stringValue(source.get("manualInputValue"))));
         row.put("note", safe(stringValue(source.get("note"))));
         row.put("sortOrder", safe(stringValue(source.get("sortOrder"))));
         row.put("sourcePageNo", safe(stringValue(source.get("sourcePageNo"))));

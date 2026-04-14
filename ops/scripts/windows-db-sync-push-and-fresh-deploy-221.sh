@@ -87,6 +87,13 @@ REMOTE_DB_SNAPSHOT_RETRY_SECONDS="${REMOTE_DB_SNAPSHOT_RETRY_SECONDS:-10}"
 APPLY_MODE="${APPLY_MODE:-sql-files}"
 SQL_FILE_LIST_DEFAULT="$ROOT_DIR/docs/sql/20260409_admin_project_version_management_menu.sql:$ROOT_DIR/docs/sql/project_version_governance_schema.sql:$ROOT_DIR/docs/sql/20260413_fleet_common_upgrade_governance.sql:$ROOT_DIR/docs/sql/platform_control_plane_schema.sql"
 SQL_FILE_LIST="${SQL_FILE_LIST:-$SQL_FILE_LIST_DEFAULT}"
+DB_PATCH_ID="${DB_PATCH_ID:-}"
+DB_PATCH_NAME="${DB_PATCH_NAME:-}"
+DB_PATCH_SOURCE_ENV="${DB_PATCH_SOURCE_ENV:-local}"
+DB_PATCH_TARGET_ENV="${DB_PATCH_TARGET_ENV:-remote}"
+DB_PATCH_DIRECTION="${DB_PATCH_DIRECTION:-LOCAL_TO_REMOTE}"
+DB_PATCH_RISK_LEVEL="${DB_PATCH_RISK_LEVEL:-HIGH}"
+REQUIRE_DB_PATCH_HISTORY="${REQUIRE_DB_PATCH_HISTORY:-true}"
 
 GITHUB_TOKEN="${GITHUB_TOKEN:-${BACKUP_GIT_AUTH_TOKEN:-}}"
 GIT_REMOTE_NAME="${GIT_REMOTE_NAME:-origin}"
@@ -130,6 +137,13 @@ FAIL_ON_UNTRACKED_DESTRUCTIVE_DIFF="${FAIL_ON_UNTRACKED_DESTRUCTIVE_DIFF:-false}
 SKIP_LOCAL_BUILD_PACKAGE="${SKIP_LOCAL_BUILD_PACKAGE:-false}"
 SKIP_GIT_PUSH="${SKIP_GIT_PUSH:-false}"
 SKIP_REMOTE_DEPLOY="${SKIP_REMOTE_DEPLOY:-false}"
+REMOTE_DEPLOY_MODE="${REMOTE_DEPLOY_MODE:-pull}"
+EXECUTION_SOURCE="${EXECUTION_SOURCE:-}"
+SIGNED_EXECUTION_REQUEST_ID="${SIGNED_EXECUTION_REQUEST_ID:-}"
+POLICY_CHECK_RESULT="${POLICY_CHECK_RESULT:-}"
+APPROVED_TARGET_HOSTS="${APPROVED_TARGET_HOSTS:-}"
+BREAKGLASS_REASON="${BREAKGLASS_REASON:-}"
+BREAKGLASS_APPROVER="${BREAKGLASS_APPROVER:-}"
 JAVA_TOOL_SRC="$TMP_DIR/CarbonetJdbcSnapshotTool.java"
 JAVA_TOOL_CLASS="$TMP_DIR/CarbonetJdbcSnapshotTool.class"
 REMOTE_DB_SSH_PID=""
@@ -151,6 +165,39 @@ require_command() {
 require_env() {
   local env_name="$1"
   [[ -n "${!env_name:-}" ]] || fail "missing required env: $env_name"
+}
+
+require_nonempty_value() {
+  local value="$1"
+  local label="$2"
+  [[ -n "$value" ]] || fail "missing required value: $label"
+}
+
+enforce_execution_contract() {
+  case "$EXECUTION_SOURCE" in
+    page|queue)
+      require_nonempty_value "$SIGNED_EXECUTION_REQUEST_ID" "SIGNED_EXECUTION_REQUEST_ID"
+      require_nonempty_value "$APPROVED_TARGET_HOSTS" "APPROVED_TARGET_HOSTS"
+      case "$POLICY_CHECK_RESULT" in
+        PASS|APPROVED)
+          ;;
+        *)
+          fail "POLICY_CHECK_RESULT must be PASS or APPROVED for EXECUTION_SOURCE=$EXECUTION_SOURCE"
+          ;;
+      esac
+      ;;
+    breakglass)
+      require_nonempty_value "$BREAKGLASS_REASON" "BREAKGLASS_REASON"
+      require_nonempty_value "$BREAKGLASS_APPROVER" "BREAKGLASS_APPROVER"
+      ;;
+    "")
+      fail "EXECUTION_SOURCE is required. allowed values: page, queue, breakglass"
+      ;;
+    *)
+      fail "unsupported EXECUTION_SOURCE=$EXECUTION_SOURCE (allowed: page, queue, breakglass)"
+      ;;
+  esac
+  log "execution source contract OK source=$EXECUTION_SOURCE"
 }
 
 cleanup() {
@@ -287,6 +334,18 @@ public class CarbonetJdbcSnapshotTool {
         }
         ensurePatchHistoryTable(connection);
         recordPatchHistory(connection, args[2], args[3], args[4], args[5], args[6], args[7], args[8], file);
+        return;
+      }
+      if ("patch-exists".equals(mode)) {
+        if (args.length < 3) {
+          throw new IllegalArgumentException("patch-exists requires <file> <patchId>");
+        }
+        ensurePatchHistoryTable(connection);
+        boolean exists = patchHistoryExists(connection, args[2]);
+        System.out.println(exists ? "EXISTS" : "MISSING");
+        if (!exists) {
+          System.exit(4);
+        }
         return;
       }
       throw new IllegalArgumentException("Unsupported mode: " + mode);
@@ -1410,6 +1469,20 @@ record_patch_history() {
     "$patch_id" "$patch_name" "$source_env" "$target_env" "$direction" "$risk_level" "$status"
 }
 
+verify_patch_history() {
+  local db_url="$1"
+  local db_user="$2"
+  local db_password="$3"
+  local patch_id="$4"
+
+  if [[ "$REQUIRE_DB_PATCH_HISTORY" != "true" ]]; then
+    log "DB patch history verification skipped by REQUIRE_DB_PATCH_HISTORY=false"
+    return 0
+  fi
+
+  run_java_tool patch-exists "$db_url" "$db_user" "$db_password" /dev/null "$patch_id" >/dev/null
+}
+
 run_java_diff_tool() {
   local local_to_remote_file="$1"
   local remote_to_local_file="$2"
@@ -1828,6 +1901,9 @@ apply_configured_sql_files_to_remote_db() {
   local remote_tmp=""
   local remote_target=""
   local remote_log=""
+  local remote_url="jdbc:cubrid:127.0.0.1:${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8"
+  local patch_id=""
+  local patch_name=""
 
   parse_sql_file_list
   for sql_file in "${SQL_FILES[@]}"; do
@@ -1839,12 +1915,34 @@ apply_configured_sql_files_to_remote_db() {
     if should_skip_remote_sql_file "$sql_file"; then
       continue
     fi
+    patch_id="$DB_PATCH_ID"
+    if [[ -z "$patch_id" ]]; then
+      patch_id="sqlpatch-${BACKUP_RUN_STAMP}-$(basename "$sql_file" | tr -cs 'A-Za-z0-9' '-')"
+    elif [[ "${#SQL_FILES[@]}" -gt 1 ]]; then
+      patch_id="${patch_id}-$(basename "$sql_file" | tr -cs 'A-Za-z0-9' '-')"
+    fi
+    patch_name="$DB_PATCH_NAME"
+    if [[ -z "$patch_name" ]]; then
+      patch_name="configured sql $(basename "$sql_file")"
+    elif [[ "${#SQL_FILES[@]}" -gt 1 ]]; then
+      patch_name="${patch_name} / $(basename "$sql_file")"
+    fi
+    record_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$sql_file" \
+      "$patch_id" "$patch_name" "$DB_PATCH_SOURCE_ENV" "$DB_PATCH_TARGET_ENV" "$DB_PATCH_DIRECTION" "$DB_PATCH_RISK_LEVEL" "RUNNING"
     log "remote DB apply SQL started: $sql_file"
     remote_tmp="/tmp/$(basename "$sql_file")"
     remote_log="/tmp/$(basename "$sql_file").log"
     remote_target="${REMOTE_DB_SSH_USER}@${REMOTE_DB_SSH_HOST}:${remote_tmp}"
     remote_db_scp_cmd "$sql_file" "$remote_target"
-    remote_db_ssh_cmd "bash -lc 'set -o pipefail; /opt/util/cubrid/11.2/scripts/csql_local.sh -u \"$REMOTE_DB_USER\" \"$REMOTE_DB_NAME\" < \"$remote_tmp\" 2>&1 | tee \"$remote_log\"; status=\${PIPESTATUS[0]}; if grep -Eq \"SYNTAX ERROR|^ERROR:|Semantic:\" \"$remote_log\"; then exit 1; fi; rm -f \"$remote_tmp\" \"$remote_log\"; exit \$status'"
+    if remote_db_ssh_cmd "bash -lc 'set -o pipefail; /opt/util/cubrid/11.2/scripts/csql_local.sh -u \"$REMOTE_DB_USER\" \"$REMOTE_DB_NAME\" < \"$remote_tmp\" 2>&1 | tee \"$remote_log\"; status=\${PIPESTATUS[0]}; if grep -Eq \"SYNTAX ERROR|^ERROR:|Semantic:\" \"$remote_log\"; then exit 1; fi; rm -f \"$remote_tmp\" \"$remote_log\"; exit \$status'"; then
+      record_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$sql_file" \
+        "$patch_id" "$patch_name" "$DB_PATCH_SOURCE_ENV" "$DB_PATCH_TARGET_ENV" "$DB_PATCH_DIRECTION" "$DB_PATCH_RISK_LEVEL" "SUCCESS"
+      verify_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$patch_id"
+    else
+      record_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$sql_file" \
+        "$patch_id" "$patch_name" "$DB_PATCH_SOURCE_ENV" "$DB_PATCH_TARGET_ENV" "$DB_PATCH_DIRECTION" "$DB_PATCH_RISK_LEVEL" "FAILED"
+      fail "remote DB apply SQL failed with no successful DB patch history evidence: $sql_file"
+    fi
     log "remote DB apply SQL completed: $sql_file"
   done
 }
@@ -1908,7 +2006,7 @@ commit_and_push_all() {
 
 run_remote_clone_and_restart() {
   if [[ "$SKIP_REMOTE_DEPLOY" == "true" ]]; then
-    log "221 fresh clone/build/restart skipped by SKIP_REMOTE_DEPLOY=true"
+    log "221 remote deploy skipped by SKIP_REMOTE_DEPLOY=true"
     return 0
   fi
 
@@ -1916,13 +2014,25 @@ run_remote_clone_and_restart() {
   local remote_script=""
   local mosh_ssh=""
   local mosh_server_cmd=""
+  local remote_mode="${REMOTE_DEPLOY_MODE:-pull}"
+  local remote_tmp_dir="/tmp/carbonet-jar-mosh-${BACKUP_RUN_STAMP}"
+  local remote_scripts=(
+    "ops/scripts/build-restart-18000.sh"
+    "ops/scripts/restart-18000.sh"
+    "ops/scripts/restart-18000-runtime.sh"
+    "ops/scripts/stop-18000.sh"
+    "ops/scripts/start-18000.sh"
+    "ops/scripts/run-18000-supervised.sh"
+    "ops/scripts/codex-verify-18000-freshness.sh"
+    "ops/scripts/runtime-url-common.sh"
+  )
 
   require_env "MAIN_REMOTE_PASSWORD"
 
   clone_url="$(build_authenticated_repo_url "$REPO_URL")"
   mosh_ssh="sshpass -p '$MAIN_REMOTE_PASSWORD' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $MAIN_REMOTE_PORT"
-
-  remote_script=$(cat <<EOF
+  if [[ "$remote_mode" == "fresh-clone" ]]; then
+    remote_script=$(cat <<EOF
 set -euo pipefail
 REMOTE_ROOT='$MAIN_REMOTE_ROOT'
 BACKUP_ROOT="/tmp/carbonet-preclone-backup-\$(date '+%Y%m%d-%H%M%S')"
@@ -1938,11 +2048,11 @@ mkdir -p "\$(dirname "\$REMOTE_ROOT")"
 EOF
 )
 
-  remote_script+=$'\n'
-  remote_script+="git clone --branch '$GIT_BRANCH' --single-branch '$clone_url' \"\$REMOTE_ROOT\""
+    remote_script+=$'\n'
+    remote_script+="git clone --branch '$GIT_BRANCH' --single-branch '$clone_url' \"\$REMOTE_ROOT\""
 
-  remote_script+=$'\n'
-  remote_script+=$(cat <<EOF
+    remote_script+=$'\n'
+    remote_script+=$(cat <<EOF
 mkdir -p "\$REMOTE_ROOT/ops/config"
 if [ -d "\$BACKUP_ROOT/ops-config" ]; then
   cp -a "\$BACKUP_ROOT/ops-config/." "\$REMOTE_ROOT/ops/config/"
@@ -1958,22 +2068,110 @@ fi
 VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-180}" bash ops/scripts/codex-verify-18000-freshness.sh
 EOF
 )
+  elif [[ "$remote_mode" == "pull" ]]; then
+    remote_script=$(cat <<EOF
+set -euo pipefail
+REMOTE_ROOT='$MAIN_REMOTE_ROOT'
+REPO_URL='$clone_url'
+BRANCH='$GIT_BRANCH'
+if [ ! -d "\$REMOTE_ROOT/.git" ]; then
+  echo "[windows-db-sync-push-and-fresh-deploy-221] remote repo missing; falling back to fresh clone"
+  BACKUP_ROOT="/tmp/carbonet-preclone-backup-\$(date '+%Y%m%d-%H%M%S')"
+  mkdir -p "\$BACKUP_ROOT/ops-config"
+  if [ -d "\$REMOTE_ROOT/ops/config" ]; then
+    find "\$REMOTE_ROOT/ops/config" -maxdepth 1 -type f -name '*.env' -exec cp {} "\$BACKUP_ROOT/ops-config/" \;
+    if [ -d "\$REMOTE_ROOT/ops/config/certs" ]; then
+      cp -a "\$REMOTE_ROOT/ops/config/certs" "\$BACKUP_ROOT/ops-config/"
+    fi
+  fi
+  rm -rf "\$REMOTE_ROOT"
+  mkdir -p "\$(dirname "\$REMOTE_ROOT")"
+  git clone --branch "\$BRANCH" --single-branch "\$REPO_URL" "\$REMOTE_ROOT"
+  mkdir -p "\$REMOTE_ROOT/ops/config"
+  if [ -d "\$BACKUP_ROOT/ops-config" ]; then
+    cp -a "\$BACKUP_ROOT/ops-config/." "\$REMOTE_ROOT/ops/config/"
+  fi
+else
+  cd "\$REMOTE_ROOT"
+  git remote set-url origin "\$REPO_URL"
+  git fetch origin "\$BRANCH"
+  git checkout "\$BRANCH"
+  git reset --hard "origin/\$BRANCH"
+fi
+cd "\$REMOTE_ROOT"
+if command -v npm >/dev/null 2>&1; then
+  bash ops/scripts/build-restart-18000.sh
+else
+  echo "[windows-db-sync-push-and-fresh-deploy-221] npm not found on remote; running backend package + runtime restart"
+  mvn -q -pl apps/carbonet-app -am -DskipTests package
+  bash ops/scripts/restart-18000-runtime.sh
+fi
+VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-180}" bash ops/scripts/codex-verify-18000-freshness.sh
+EOF
+)
+  elif [[ "$remote_mode" == "jar-mosh" ]]; then
+    local local_target_jar="$ROOT_DIR/apps/carbonet-app/target/carbonet.jar"
+    [[ -f "$local_target_jar" ]] || fail "jar-mosh requires local packaged jar: $local_target_jar"
 
-  log "221 fresh clone/build/restart started"
+    log "221 jar-mosh upload started"
+    sshpass -p "$MAIN_REMOTE_PASSWORD" ssh \
+      -o StrictHostKeyChecking=no \
+      -o UserKnownHostsFile=/dev/null \
+      -p "$MAIN_REMOTE_PORT" \
+      "$MAIN_TARGET" \
+      "mkdir -p '$MAIN_REMOTE_ROOT/apps/carbonet-app/target' '$MAIN_REMOTE_ROOT/ops/scripts' '$MAIN_REMOTE_ROOT/ops/config' '$remote_tmp_dir'"
+    sshpass -p "$MAIN_REMOTE_PASSWORD" scp \
+      -o StrictHostKeyChecking=no \
+      -o UserKnownHostsFile=/dev/null \
+      -P "$MAIN_REMOTE_PORT" \
+      "$local_target_jar" \
+      "$MAIN_TARGET:$MAIN_REMOTE_ROOT/apps/carbonet-app/target/carbonet.jar"
+    local script_path=""
+    for script_path in "${remote_scripts[@]}"; do
+      sshpass -p "$MAIN_REMOTE_PASSWORD" scp \
+        -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        -P "$MAIN_REMOTE_PORT" \
+        "$ROOT_DIR/$script_path" \
+        "$MAIN_TARGET:$MAIN_REMOTE_ROOT/$script_path"
+    done
+    if [[ -f "$CONFIG_DIR/deploy-automation.env" ]]; then
+      sshpass -p "$MAIN_REMOTE_PASSWORD" scp \
+        -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        -P "$MAIN_REMOTE_PORT" \
+        "$CONFIG_DIR/deploy-automation.env" \
+        "$MAIN_TARGET:$MAIN_REMOTE_ROOT/ops/config/deploy-automation.env"
+    fi
+    remote_script=$(cat <<EOF
+set -euo pipefail
+cd '$MAIN_REMOTE_ROOT'
+if [ -f ops/config/deploy-automation.env ]; then
+  chmod 600 ops/config/deploy-automation.env
+fi
+bash ops/scripts/restart-18000-runtime.sh
+VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-180}" bash ops/scripts/codex-verify-18000-freshness.sh
+EOF
+)
+  else
+    fail "unsupported REMOTE_DEPLOY_MODE: $remote_mode (supported: pull, fresh-clone, jar-mosh)"
+  fi
+
+  log "221 remote deploy started mode=$remote_mode"
   mosh_server_cmd="bash -lc $(printf '%q' "$remote_script")"
   if MOSH_SSH="$mosh_ssh" mosh --no-init "$MAIN_TARGET" --server="$mosh_server_cmd"; then
-    log "221 deploy completed over mosh"
+    log "221 deploy completed over mosh mode=$remote_mode"
     return 0
   fi
 
-  log "mosh batch execution failed; falling back to ssh"
+  log "mosh batch execution failed; falling back to ssh mode=$remote_mode"
   sshpass -p "$MAIN_REMOTE_PASSWORD" ssh \
     -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
     -p "$MAIN_REMOTE_PORT" \
     "$MAIN_TARGET" \
     "bash -lc $(printf '%q' "$remote_script")"
-  log "221 deploy completed over ssh fallback"
+  log "221 deploy completed over ssh fallback mode=$remote_mode"
 }
 
 main() {
@@ -1987,6 +2185,7 @@ main() {
 
   [[ -n "$GIT_BRANCH" ]] || fail "could not resolve current git branch"
 
+  enforce_execution_contract
   ensure_java_tool
   if [[ "$APPLY_MODE" == "snapshot" ]]; then
     backup_local_db

@@ -15,6 +15,79 @@ import { stringOf } from "../admin-system/adminSystemShared";
 import { AdminInput, AdminSelect, DiagnosticCard, MemberButton, MemberButtonGroup, MemberLinkButton, MemberPagination, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 
+type NotificationCloseoutRow = {
+  titleKo: string;
+  titleEn: string;
+  status: "Available" | "Blocked";
+  detailKo: string;
+  detailEn: string;
+};
+
+const NOTIFICATION_CLOSEOUT_ROWS: NotificationCloseoutRow[] = [
+  {
+    titleKo: "보안 알림 라우팅 저장",
+    titleEn: "Security alert routing save",
+    status: "Available",
+    detailKo: "Slack, Mail, Webhook, severity, digest 설정은 전체 관리자 권한으로 저장할 수 있습니다.",
+    detailEn: "Slack, mail, webhook, severity, and digest settings can be saved by global administrators."
+  },
+  {
+    titleKo: "발송/운영 이력",
+    titleEn: "Delivery / activity history",
+    status: "Available",
+    detailKo: "발송 이력과 운영자 조치 이력은 필터와 페이지네이션으로 확인할 수 있습니다.",
+    detailEn: "Delivery and operator activity history are available with filters and pagination."
+  },
+  {
+    titleKo: "알림 규칙 CRUD",
+    titleEn: "Notification rule CRUD",
+    status: "Blocked",
+    detailKo: "현재 화면은 보안 정책 알림 라우팅 중심입니다. 범용 알림 rule 생성/수정/비활성화 모델이 필요합니다.",
+    detailEn: "This page is centered on security-policy routing. Generic notification rule create/update/disable models are still required."
+  },
+  {
+    titleKo: "수신자 Scope",
+    titleEn: "Recipient scope",
+    status: "Blocked",
+    detailKo: "역할, 부서, 담당자, 외부 시스템별 수신자 범위와 미리보기/마스킹 계약이 필요합니다.",
+    detailEn: "Recipient scope by role, department, owner, or external system needs preview and masking contracts."
+  },
+  {
+    titleKo: "테스트 발송/재시도",
+    titleEn: "Test dispatch / retry",
+    status: "Blocked",
+    detailKo: "운영 발송과 분리된 테스트 발송, 실패 건 재시도, 멱등키, 재시도 감사가 필요합니다.",
+    detailEn: "A test dispatch path separate from production dispatch, failed-delivery retry, idempotency keys, and retry audit are required."
+  }
+];
+
+const NOTIFICATION_ACTION_CONTRACT = [
+  {
+    labelKo: "알림 규칙 생성",
+    labelEn: "Create Rule",
+    noteKo: "범용 rule 저장 API와 rule-level feature code가 필요합니다.",
+    noteEn: "Requires generic rule save API and rule-level feature codes."
+  },
+  {
+    labelKo: "수신자 Scope 미리보기",
+    labelEn: "Preview Recipients",
+    noteKo: "역할/부서/담당자별 수신자 해석과 마스킹 응답이 필요합니다.",
+    noteEn: "Requires recipient resolution by role/department/owner and masked response."
+  },
+  {
+    labelKo: "테스트 발송",
+    labelEn: "Test Dispatch",
+    noteKo: "운영 발송과 분리된 테스트 전용 API와 결과 이력이 필요합니다.",
+    noteEn: "Requires a test-only API and result history separated from production dispatch."
+  },
+  {
+    labelKo: "실패 재시도",
+    labelEn: "Retry Failed",
+    noteKo: "실패 delivery id, 멱등키, 재시도 제한, 재시도 감사가 필요합니다.",
+    noteEn: "Requires failed delivery id, idempotency key, retry limit, and retry audit."
+  }
+];
+
 function normalizeFlag(value: string, fallback = "N") {
   return value === "Y" ? "Y" : fallback;
 }
@@ -492,6 +565,7 @@ export function NotificationCenterMigrationPage() {
         {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
 
         <DiagnosticCard
+          data-help-id="notification-snapshot"
           title={en ? "Operations Snapshot" : "운영 현황"}
           description={en ? "Check alert routing health first, then move into response screens." : "알림 경로 상태를 먼저 점검한 뒤 상세 대응 화면으로 이동합니다."}
           actions={(
@@ -505,7 +579,7 @@ export function NotificationCenterMigrationPage() {
           )}
         />
 
-        <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="notification-summary">
           {summaryRows.map((item, index) => {
             const tone = toneClasses(stringOf(item, "tone"));
             return (
@@ -521,8 +595,53 @@ export function NotificationCenterMigrationPage() {
           })}
         </section>
 
+        <section className="gov-card mt-6 overflow-hidden" data-help-id="notification-closeout-gate">
+          <div className="px-6 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Closeout Gate" : "완료 게이트"}</p>
+                <h2 className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "What is still missing for a general notification center" : "범용 알림센터 완성을 위해 남은 기능"}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "This screen already handles security-policy notification routing, production dispatch, and history visibility. It is not yet a generic notification rule console until rule CRUD, recipient scope, test dispatch, retry, and audit contracts are generalized."
+                    : "이 화면은 이미 보안 정책 알림 라우팅, 운영 발송, 이력 조회를 처리합니다. 다만 rule CRUD, 수신자 scope, 테스트 발송, 재시도, 감사 계약이 일반화되기 전까지는 범용 알림 규칙 콘솔이 아닙니다."}
+                </p>
+              </div>
+              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700">
+                {en ? "PARTIAL / generic actions blocked" : "PARTIAL / 범용 조치 차단"}
+              </span>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-5">
+              {NOTIFICATION_CLOSEOUT_ROWS.map((row) => (
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4" key={row.titleEn}>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${row.status === "Available" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                    {row.status}
+                  </span>
+                  <h3 className="mt-3 text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? row.titleEn : row.titleKo}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{en ? row.detailEn : row.detailKo}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-[var(--kr-gov-border-light)] bg-slate-50 px-6 py-5" data-help-id="notification-action-contract">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-[var(--kr-gov-text-primary)]">{en ? "Blocked Generic Notification Actions" : "차단된 범용 알림 조치"}</h3>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Security routing actions remain active below; generic notification actions stay disabled until backend contracts and audit are added." : "아래 보안 라우팅 조치는 유지하되, 범용 알림 조치는 백엔드 계약과 감사가 생기기 전까지 비활성화합니다."}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {NOTIFICATION_ACTION_CONTRACT.map((action) => (
+                  <button className="gov-btn gov-btn-outline opacity-60" disabled key={action.labelEn} title={en ? action.noteEn : action.noteKo} type="button">
+                    {en ? action.labelEn : action.labelKo}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)]">
-          <article className="gov-card">
+          <article className="gov-card" data-help-id="notification-routing">
             <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
               <h2 className="text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "Notification Routing" : "알림 라우팅"}</h2>
               <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
@@ -636,7 +755,7 @@ export function NotificationCenterMigrationPage() {
           </article>
 
           <div className="space-y-6">
-            <article className="gov-card">
+            <article className="gov-card" data-help-id="notification-history">
               <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
                 <h2 className="text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "Delivery Visibility" : "전달 현황"}</h2>
                 <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
@@ -796,7 +915,7 @@ export function NotificationCenterMigrationPage() {
               </div>
             </article>
 
-            <article className="gov-card">
+            <article className="gov-card" data-help-id="notification-guidance">
               <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
                 <h2 className="text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "Routing Guide" : "운영 가이드"}</h2>
               </div>

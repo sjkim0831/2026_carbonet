@@ -28,13 +28,18 @@ npm run dev
 
 ## AI Fast Path
 
-Read these first before making structural changes:
+Use the routing gate first:
+
+1. [ai-skill-doc-routing-matrix.md](/opt/projects/carbonet/docs/ai/00-governance/ai-skill-doc-routing-matrix.md)
+2. [ai-reference-reduction-policy.md](/opt/projects/carbonet/docs/ai/00-governance/ai-reference-reduction-policy.md)
+3. [ai-fast-path.md](/opt/projects/carbonet/docs/ai/00-governance/ai-fast-path.md)
+
+Read these only when the chosen route needs them:
 
 1. [STRUCTURE.md](/opt/projects/carbonet/STRUCTURE.md)
 2. [PROJECT_PATHS.md](/opt/projects/carbonet/PROJECT_PATHS.md)
 3. [docs/ai/README.md](/opt/projects/carbonet/docs/ai/README.md)
-4. [docs/ai/00-governance/ai-fast-path.md](/opt/projects/carbonet/docs/ai/00-governance/ai-fast-path.md)
-5. [docs/ai/10-architecture/repo-layout.md](/opt/projects/carbonet/docs/ai/10-architecture/repo-layout.md)
+4. [docs/ai/10-architecture/repo-layout.md](/opt/projects/carbonet/docs/ai/10-architecture/repo-layout.md)
 
 Operational and history docs:
 

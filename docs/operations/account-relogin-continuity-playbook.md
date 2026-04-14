@@ -1,6 +1,6 @@
 # Account Re-Login Continuity Playbook
 
-Use this when a new login, new account, or fresh Codex session must continue the same Carbonet work without overlapping an already-active file family.
+Use this when a new login, new account, token expiry, provider reset, or fresh Codex session must continue the same Carbonet work without overlapping an already-active file family.
 
 ## Goal
 
@@ -8,6 +8,7 @@ Use this when a new login, new account, or fresh Codex session must continue the
 - detect current in-progress work from the repository, not memory
 - keep shared files under one temporary owner
 - leave a durable handoff trail for the next login
+- survive token expiry without reopening overlapping lanes
 
 ## Reopen Order
 
@@ -75,6 +76,20 @@ Generated files under `src/main/resources/static/react-app/` do not define owner
 5. if yes, stay in that lane or update the handoff instead of opening a duplicate lane
 6. if no, add the new lane boundary to `session-plan.md` before editing
 7. leave `handoff-latest.md` updated before you stop
+
+## Token Expiry Checklist
+
+Before stopping because of likely token expiry or provider reset:
+
+1. update `handoff-latest.md`
+2. note the current owned family
+3. note the next exact step
+4. note whether verification is pending or complete
+5. if owned files changed, refresh `current-worktree.md`
+
+Suggested phrase:
+
+- `EXPIRY SAFE: <lane> may resume from <entry point>; owned family is <family>; next step is <step>.`
 
 ## Status Phrase Standard
 

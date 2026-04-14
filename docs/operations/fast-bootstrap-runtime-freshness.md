@@ -228,6 +228,13 @@ After a local refresh, verify at least:
 4. the relevant route or health check responds
 5. if the task added or changed a specific page such as `/edu/survey`, call that exact URL and confirm the response after restart
 
+If the task changed an existing page or workflow rather than adding a brand-new one, also verify:
+
+1. the same exact route or metadata endpoint that was checked before editing still behaves the same unless intentionally changed
+2. one preserved action, state, or permission signal still matches the pre-change baseline
+
+Use `docs/operations/ai-change-baseline-and-regression-rule.md` for the lightweight pre-change and post-change baseline rule.
+
 When frontend freshness matters, also verify:
 
 1. the latest frontend build completed

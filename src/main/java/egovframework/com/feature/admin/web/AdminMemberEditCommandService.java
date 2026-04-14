@@ -2,6 +2,7 @@ package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.dto.request.AdminMemberEditSaveRequestDTO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
+import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
@@ -38,6 +39,7 @@ public class AdminMemberEditCommandService {
     private final AdminMemberPageModelAssembler adminMemberPageModelAssembler;
     private final AdminMemberEditNavigationSupport adminMemberEditNavigationSupport;
     private final AdminMemberEditAuditSupport adminMemberEditAuditSupport;
+    private final AdminRoleAssignmentDbChangeCaptureSupport adminRoleAssignmentDbChangeCaptureSupport;
 
     public ResponseEntity<Map<String, Object>> submitApi(
             AdminMemberEditSaveRequestDTO payload,
@@ -93,8 +95,23 @@ public class AdminMemberEditCommandService {
         }
 
         try {
+            String currentUserAuthorCode = adminAuthorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
             entrprsManageService.updateEntrprsmber(member);
+            UserAuthorityTargetVO beforeAssignment = authGroupManageService.selectUserAuthorityTarget(
+                    safeString(member.getInsttId()),
+                    normalizedMemberId);
             authGroupManageService.updateEnterpriseUserRoleAssignment(normalizedMemberId, context.normalizedAuthorCode);
+            adminRoleAssignmentDbChangeCaptureSupport.captureEnterpriseUserRoleAssignment(
+                    request,
+                    currentUserId,
+                    currentUserAuthorCode,
+                    safeString(member.getInsttId()),
+                    safeString(member.getInsttId()),
+                    normalizedMemberId,
+                    beforeAssignment,
+                    authGroupManageService.selectUserAuthorityTarget(safeString(member.getInsttId()), normalizedMemberId),
+                    "AMENU_MEMBER_EDIT",
+                    "member-edit");
             adminPermissionOverrideService.savePermissionOverrides(
                     safeString(member.getUniqId()),
                     "USR02",
@@ -191,8 +208,23 @@ public class AdminMemberEditCommandService {
         }
 
         try {
+            String currentUserAuthorCode = adminAuthorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
             entrprsManageService.updateEntrprsmber(member);
+            UserAuthorityTargetVO beforeAssignment = authGroupManageService.selectUserAuthorityTarget(
+                    safeString(member.getInsttId()),
+                    normalizedMemberId);
             authGroupManageService.updateEnterpriseUserRoleAssignment(normalizedMemberId, context.normalizedAuthorCode);
+            adminRoleAssignmentDbChangeCaptureSupport.captureEnterpriseUserRoleAssignment(
+                    request,
+                    currentUserId,
+                    currentUserAuthorCode,
+                    safeString(member.getInsttId()),
+                    safeString(member.getInsttId()),
+                    normalizedMemberId,
+                    beforeAssignment,
+                    authGroupManageService.selectUserAuthorityTarget(safeString(member.getInsttId()), normalizedMemberId),
+                    "AMENU_MEMBER_EDIT",
+                    "member-edit");
             adminPermissionOverrideService.savePermissionOverrides(
                     safeString(member.getUniqId()),
                     "USR02",

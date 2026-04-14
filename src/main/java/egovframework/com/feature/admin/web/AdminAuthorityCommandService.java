@@ -8,15 +8,23 @@ import egovframework.com.feature.admin.dto.request.AdminDeptRoleMappingSaveReque
 import egovframework.com.feature.admin.dto.request.AdminDeptRoleMemberSaveRequestDTO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.AuthorRoleProfileVO;
+import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
+import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AuthorRoleProfileService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.auth.service.CurrentUserContextService;
+import egovframework.com.platform.dbchange.model.DbChangeCaptureRequest;
+import egovframework.com.platform.dbchange.service.DbChangeCaptureService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -27,12 +35,17 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AdminAuthorityCommandService {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminAuthorityCommandService.class);
+
     private final AdminReactRouteSupport adminReactRouteSupport;
     private final AuthGroupManageService authGroupManageService;
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
     private final CurrentUserContextService currentUserContextService;
     private final AdminCompanyScopeService adminCompanyScopeService;
+    private final AdminRoleAssignmentDbChangeCaptureSupport adminRoleAssignmentDbChangeCaptureSupport;
+    private final DbChangeCaptureService dbChangeCaptureService;
+    private final ObjectMapper objectMapper;
 
     public CommandResult saveAuthGroupProfile(AdminAuthorRoleProfileSaveRequestDTO payload, HttpServletRequest request, Locale locale) {
         boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
@@ -130,6 +143,7 @@ public class AdminAuthorityCommandService {
                 return badRequest(isEn ? "The role code already exists." : "이미 존재하는 Role 코드입니다.");
             }
             authGroupManageService.insertAuthor(normalizedCode, normalizedName, normalizedDesc);
+            recordAuthorGroupDbChange(request, context, normalizedCode, "INSERT", null, authGroupManageService.selectAuthor(normalizedCode));
             Map<String, Object> data = successBody();
             data.put("authorCode", normalizedCode);
             data.put("roleCategory", selectedRoleCategory);
@@ -179,6 +193,7 @@ public class AdminAuthorityCommandService {
             Set<String> grantableFeatureCodes = adminAuthorityPagePayloadSupport.resolveGrantableFeatureCodeSet(
                     context.getUserId(),
                     context.isWebmaster());
+            List<String> beforeFeatureCodes = authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode);
             authGroupManageService.saveAuthorFeatureRelations(
                     normalizedAuthorCode,
                     mergeRoleFeatureSelection(
@@ -188,6 +203,12 @@ public class AdminAuthorityCommandService {
             List<String> savedFeatureCodes = adminAuthorityPagePayloadSupport.filterFeatureCodesByGrantable(
                     payload == null ? Collections.emptyList() : payload.getFeatureCodes(),
                     grantableFeatureCodes);
+            recordAuthorFeatureRelationDbChange(
+                    request,
+                    context,
+                    normalizedAuthorCode,
+                    beforeFeatureCodes,
+                    authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
             Map<String, Object> data = successBody();
             data.put("authorCode", normalizedAuthorCode);
             data.put("featureCount", savedFeatureCodes.size());
@@ -253,6 +274,16 @@ public class AdminAuthorityCommandService {
             }
             Map<String, String> beforeRole = adminAuthorityPagePayloadSupport.resolveAdminRoleSummary(normalizedEmplyrId);
             authGroupManageService.updateAdminRoleAssignment(normalizedEmplyrId, normalizedAuthorCode);
+            adminRoleAssignmentDbChangeCaptureSupport.captureAdminRoleAssignment(
+                    request,
+                    context.getUserId(),
+                    context.getAuthorCode(),
+                    context.getInsttId(),
+                    normalizedEmplyrId,
+                    beforeRole,
+                    adminAuthorityPagePayloadSupport.buildAuthorSummary(normalizedAuthorCode),
+                    "AMENU_AUTH_CHANGE",
+                    "auth-change");
             Map<String, Object> data = successBody();
             data.put("emplyrId", normalizedEmplyrId);
             data.put("authorCode", normalizedAuthorCode);
@@ -309,12 +340,20 @@ public class AdminAuthorityCommandService {
         }
 
         try {
+            DepartmentRoleMappingVO beforeMapping = authGroupManageService.selectDepartmentRoleMapping(normalizedInsttId, normalizedDeptNm);
             authGroupManageService.saveDepartmentRoleMapping(
                     normalizedInsttId,
                     normalizedCmpnyNm,
                     normalizedDeptNm,
                     normalizedAuthorCode,
                     context.getUserId());
+            recordDepartmentRoleMappingDbChange(
+                    request,
+                    context,
+                    normalizedInsttId,
+                    normalizedDeptNm,
+                    beforeMapping,
+                    authGroupManageService.selectDepartmentRoleMapping(normalizedInsttId, normalizedDeptNm));
             Map<String, Object> data = successBody();
             data.put("insttId", normalizedInsttId);
             data.put("deptNm", normalizedDeptNm);
@@ -375,7 +414,15 @@ public class AdminAuthorityCommandService {
                         ? "You can only assign roles allowed for the selected company."
                         : "선택한 회사에서 허용된 권한만 부여할 수 있습니다.");
             }
+            UserAuthorityTargetVO beforeAssignment = authGroupManageService.selectUserAuthorityTarget(normalizedInsttId, normalizedEntrprsMberId);
             authGroupManageService.updateEnterpriseUserRoleAssignment(normalizedEntrprsMberId, normalizedAuthorCode);
+            recordEnterpriseUserRoleAssignmentDbChange(
+                    request,
+                    context,
+                    normalizedInsttId,
+                    normalizedEntrprsMberId,
+                    beforeAssignment,
+                    authGroupManageService.selectUserAuthorityTarget(normalizedInsttId, normalizedEntrprsMberId));
             Map<String, Object> data = successBody();
             data.put("insttId", normalizedInsttId);
             data.put("entrprsMberId", normalizedEntrprsMberId);
@@ -426,6 +473,179 @@ public class AdminAuthorityCommandService {
 
     private CommandResult serverError(String message) {
         return new CommandResult(HttpStatus.INTERNAL_SERVER_ERROR, failureBody(message));
+    }
+
+    private void recordAuthorGroupDbChange(HttpServletRequest request,
+                                           CurrentUserContextService.CurrentUserContext context,
+                                           String authorCode,
+                                           String changeType,
+                                           AuthorInfoVO before,
+                                           AuthorInfoVO after) {
+        try {
+            DbChangeCaptureRequest captureRequest = new DbChangeCaptureRequest();
+            captureRequest.setProjectId("carbonet");
+            captureRequest.setMenuCode("AMENU_AUTH_GROUP");
+            captureRequest.setPageId("auth-group");
+            captureRequest.setApiPath(request == null ? "" : safeString(request.getRequestURI()));
+            captureRequest.setHttpMethod(request == null ? "" : safeString(request.getMethod()));
+            captureRequest.setActorId(context == null ? "" : safeString(context.getUserId()));
+            captureRequest.setActorRole(context == null ? "" : safeString(context.getAuthorCode()));
+            captureRequest.setActorScopeId(context == null ? "" : safeString(context.getInsttId()));
+            captureRequest.setTargetTableName("COMTNAUTHORINFO");
+            captureRequest.setTargetPkJson(writeJson(singleKeyMap("authorCode", authorCode)));
+            captureRequest.setEntityType("AUTHOR_GROUP");
+            captureRequest.setEntityId(authorCode);
+            captureRequest.setChangeType(changeType);
+            captureRequest.setBeforeSummaryJson(writeJson(before));
+            captureRequest.setAfterSummaryJson(writeJson(after));
+            captureRequest.setChangeSummary("Authority group created: " + authorCode);
+            captureRequest.setPatchFormatCode("JSON_PATCH");
+            captureRequest.setPatchKindCode("ROW_INSERT");
+            captureRequest.setTargetEnv("PROD");
+            captureRequest.setTargetKeysJson(writeJson(singleKeyMap("authorCode", authorCode)));
+            captureRequest.setPatchPayloadJson(writeJson(after));
+            captureRequest.setRenderedSqlPreview("");
+            captureRequest.setRiskLevel("HIGH");
+            captureRequest.setLogicalObjectId("COMTNAUTHORINFO:" + authorCode);
+            captureRequest.setSourceEnv("LOCAL");
+            dbChangeCaptureService.captureChange(captureRequest);
+        } catch (Exception e) {
+            log.warn("Failed to capture authority-group DB change. authorCode={}, changeType={}", authorCode, changeType, e);
+        }
+    }
+
+    private String writeJson(Object value) {
+        if (value == null) {
+            return "";
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            log.warn("Failed to serialize authority-group DB capture payload.", e);
+            return "";
+        }
+    }
+
+    private Map<String, String> singleKeyMap(String key, String value) {
+        Map<String, String> map = new HashMap<>();
+        map.put(key, value);
+        return map;
+    }
+
+    private void recordAuthorFeatureRelationDbChange(HttpServletRequest request,
+                                                     CurrentUserContextService.CurrentUserContext context,
+                                                     String authorCode,
+                                                     List<String> beforeFeatureCodes,
+                                                     List<String> afterFeatureCodes) {
+        try {
+            DbChangeCaptureRequest captureRequest = new DbChangeCaptureRequest();
+            captureRequest.setProjectId("carbonet");
+            captureRequest.setMenuCode("AMENU_AUTH_GROUP");
+            captureRequest.setPageId("auth-group");
+            captureRequest.setApiPath(request == null ? "" : safeString(request.getRequestURI()));
+            captureRequest.setHttpMethod(request == null ? "" : safeString(request.getMethod()));
+            captureRequest.setActorId(context == null ? "" : safeString(context.getUserId()));
+            captureRequest.setActorRole(context == null ? "" : safeString(context.getAuthorCode()));
+            captureRequest.setActorScopeId(context == null ? "" : safeString(context.getInsttId()));
+            captureRequest.setTargetTableName("COMTNAUTHORFUNCTIONRELATE");
+            captureRequest.setTargetPkJson(writeJson(singleKeyMap("authorCode", authorCode)));
+            captureRequest.setEntityType("AUTHOR_FEATURE_RELATION");
+            captureRequest.setEntityId(authorCode);
+            captureRequest.setChangeType("UPDATE");
+            captureRequest.setBeforeSummaryJson(writeJson(beforeFeatureCodes));
+            captureRequest.setAfterSummaryJson(writeJson(afterFeatureCodes));
+            captureRequest.setChangeSummary("Authority feature mapping updated: " + authorCode);
+            captureRequest.setPatchFormatCode("JSON_PATCH");
+            captureRequest.setPatchKindCode("RELATION_REPLACE");
+            captureRequest.setTargetEnv("PROD");
+            captureRequest.setTargetKeysJson(writeJson(singleKeyMap("authorCode", authorCode)));
+            captureRequest.setPatchPayloadJson(writeJson(afterFeatureCodes));
+            captureRequest.setRenderedSqlPreview("");
+            captureRequest.setRiskLevel("HIGH");
+            captureRequest.setLogicalObjectId("COMTNAUTHORFUNCTIONRELATE:" + authorCode);
+            captureRequest.setSourceEnv("LOCAL");
+            dbChangeCaptureService.captureChange(captureRequest);
+        } catch (Exception e) {
+            log.warn("Failed to capture authority-feature relation DB change. authorCode={}", authorCode, e);
+        }
+    }
+
+    private void recordDepartmentRoleMappingDbChange(HttpServletRequest request,
+                                                     CurrentUserContextService.CurrentUserContext context,
+                                                     String insttId,
+                                                     String deptNm,
+                                                     DepartmentRoleMappingVO before,
+                                                     DepartmentRoleMappingVO after) {
+        try {
+            String changeType = before == null ? "INSERT" : "UPDATE";
+            DbChangeCaptureRequest captureRequest = new DbChangeCaptureRequest();
+            captureRequest.setProjectId("carbonet");
+            captureRequest.setMenuCode("AMENU_AUTH_DEPT_ROLE");
+            captureRequest.setPageId("auth-dept-role");
+            captureRequest.setApiPath(request == null ? "" : safeString(request.getRequestURI()));
+            captureRequest.setHttpMethod(request == null ? "" : safeString(request.getMethod()));
+            captureRequest.setActorId(context == null ? "" : safeString(context.getUserId()));
+            captureRequest.setActorRole(context == null ? "" : safeString(context.getAuthorCode()));
+            captureRequest.setActorScopeId(context == null ? "" : safeString(context.getInsttId()));
+            captureRequest.setTargetTableName("COMTNDEPTAUTHORRELATE");
+            captureRequest.setTargetPkJson(writeJson(buildDeptRoleMappingPk(insttId, deptNm)));
+            captureRequest.setEntityType("DEPARTMENT_ROLE_MAPPING");
+            captureRequest.setEntityId(insttId + ":" + deptNm);
+            captureRequest.setChangeType(changeType);
+            captureRequest.setBeforeSummaryJson(writeJson(before));
+            captureRequest.setAfterSummaryJson(writeJson(after));
+            captureRequest.setChangeSummary(buildDepartmentRoleMappingChangeSummary(insttId, deptNm, before, after));
+            captureRequest.setPatchFormatCode("JSON_PATCH");
+            captureRequest.setPatchKindCode("UPSERT_BY_COMPOSITE_KEY");
+            captureRequest.setTargetEnv("PROD");
+            captureRequest.setTargetKeysJson(writeJson(buildDeptRoleMappingPk(insttId, deptNm)));
+            captureRequest.setPatchPayloadJson(writeJson(after));
+            captureRequest.setRenderedSqlPreview("");
+            captureRequest.setRiskLevel("HIGH");
+            captureRequest.setLogicalObjectId("COMTNDEPTAUTHORRELATE:" + insttId + ":" + deptNm);
+            captureRequest.setSourceEnv("LOCAL");
+            dbChangeCaptureService.captureChange(captureRequest);
+        } catch (Exception e) {
+            log.warn("Failed to capture department-role mapping DB change. insttId={}, deptNm={}", insttId, deptNm, e);
+        }
+    }
+
+    private void recordEnterpriseUserRoleAssignmentDbChange(HttpServletRequest request,
+                                                            CurrentUserContextService.CurrentUserContext context,
+                                                            String insttId,
+                                                            String userId,
+                                                            UserAuthorityTargetVO before,
+                                                            UserAuthorityTargetVO after) {
+        adminRoleAssignmentDbChangeCaptureSupport.captureEnterpriseUserRoleAssignment(
+                request,
+                context == null ? "" : context.getUserId(),
+                context == null ? "" : context.getAuthorCode(),
+                context == null ? "" : context.getInsttId(),
+                insttId,
+                userId,
+                before,
+                after,
+                "AMENU_AUTH_DEPT_ROLE",
+                "auth-dept-role-member");
+    }
+
+    private Map<String, String> buildDeptRoleMappingPk(String insttId, String deptNm) {
+        Map<String, String> pk = new LinkedHashMap<>();
+        pk.put("insttId", insttId);
+        pk.put("deptNm", deptNm);
+        return pk;
+    }
+
+    private String buildDepartmentRoleMappingChangeSummary(String insttId,
+                                                           String deptNm,
+                                                           DepartmentRoleMappingVO before,
+                                                           DepartmentRoleMappingVO after) {
+        String beforeAuthorCode = before == null ? "" : safeString(before.getAuthorCode());
+        String afterAuthorCode = after == null ? "" : safeString(after.getAuthorCode());
+        if (beforeAuthorCode.isEmpty()) {
+            return "Department role mapping created: " + insttId + "/" + deptNm + " -> " + afterAuthorCode;
+        }
+        return "Department role mapping updated: " + insttId + "/" + deptNm + " " + beforeAuthorCode + " -> " + afterAuthorCode;
     }
 
     private Map<String, Object> successBody() {

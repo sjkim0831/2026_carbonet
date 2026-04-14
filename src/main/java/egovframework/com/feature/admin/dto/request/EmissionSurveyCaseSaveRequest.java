@@ -13,6 +13,7 @@ public class EmissionSurveyCaseSaveRequest {
     private String ownerActorId;
     private String datasetId;
     private String datasetName;
+    private String productName;
     private String sectionCode;
     private String caseCode;
     private String majorCode;

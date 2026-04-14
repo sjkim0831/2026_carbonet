@@ -4,6 +4,10 @@ Current project-relevant skills:
 
 See also:
 
+- `docs/ai/00-governance/ai-skill-doc-routing-matrix.md` for the default low-token routing gate.
+- `docs/ai/00-governance/ai-reference-reduction-policy.md` for default, conditional, and non-default reference classes.
+- `docs/ai/00-governance/ai-orchestration-doc-retention-inventory.md` for current keep/archive/delete-candidate classification of orchestration docs.
+- `docs/architecture/high-parallel-account-orchestration-playbook.md` for high-account-count Codex/Gemini collaboration and active-vs-standby lane policy.
 - `docs/ai/80-skills/skill-boundaries.md` for overlap rules, grouping, and selection order.
 - `docs/ai/80-skills/skill-gaps.md` for recurring work that still lacks a dedicated skill, including infrastructure topology and shared-runtime operations guidance.
 - `docs/ai/80-skills/workspace-system-skill-doc-backlog.md` for concrete workspace-system skill/doc additions grounded in current `codex-request`, `sr-workbench`, `screen-builder`, and observability code paths.
@@ -17,7 +21,7 @@ See also:
 - `carbonet-common-project-boundary-switcher`
   - Purpose: keep common-platform ownership and project-specific ownership easy to switch later through ports, adapters, wrappers, and definition-plus-binding splits.
   - Group: coordination
-  - Use for: common vs project splitting, common DB vs project DB ownership, menu scope separation, shared jar extraction, theme/common/project separation, builder runtime versus editor split, reusable read-layer extraction, installable business-process packaging, page-by-page systemization, authority-scope-aware page rebinding, project adapter lines, 3-minute bootstrap preparation, installable module packaging, stable adapter versus changeable common-core governance, and requests that explicitly say future conversion should stay fast.
+  - Use for: common vs project splitting, common DB vs project DB ownership, menu scope separation, shared jar extraction, theme/common/project separation, builder runtime versus editor split, reusable read-layer extraction, installable business-process packaging, page-by-page systemization, authority-scope-aware page rebinding, project adapter lines, 3-minute bootstrap preparation, installable module packaging, stable adapter versus changeable common-core governance, system asset-management menu regrouping, and requests that explicitly say future conversion should stay fast.
   - Boundary: use to lock reversible boundary rules first, then hand off concrete repository implementation to `carbonet-feature-builder` or `carbonet-screen-builder`.
   - Builder continuation note: treat `builder-resource-ownership-current-closeout.md` plus `builder-resource-ownership-queue-map.md` as the `single live entry pair` when structure-governance is already closed.
   - Active continuation target: row `3` (`builder observability metadata/resource family`) in blocker-resolution state across rows `3` and `5`.
@@ -28,7 +32,7 @@ See also:
 - `carbonet-screen-builder`
   - Purpose: design and implement the installable Carbonet screen-builder platform and its governed admin consoles.
   - Group: feature implementation
-  - Use for: screen builder authoring/runtime/governance, installable builder productization, page-by-page systemization, authority-scope-complete builder pages, installable screen packaging, reusable read-heavy console flows, stable project-adapter-safe builder evolution, and keeping the current console map aligned: `Menu Registry Console`, `Registry Detail Console`, `Builder Install / Bind Console`, validator-result family, rollback-history family, and `Builder Package Studio`.
+  - Use for: screen builder authoring/runtime/governance, installable builder productization, page-by-page systemization, authority-scope-complete builder pages, installable screen packaging, reusable read-heavy console flows, stable project-adapter-safe builder evolution, deciding whether asset-management work belongs in builder-governed pages versus reused operations pages, and keeping the current console map aligned: `Menu Registry Console`, `Registry Detail Console`, `Builder Install / Bind Console`, validator-result family, rollback-history family, and `Builder Package Studio`.
   - Boundary: use for builder-platform design and implementation, not for generic CRUD unless the builder platform itself is in scope.
   - Builder continuation note: treat `builder-resource-ownership-current-closeout.md` plus `builder-resource-ownership-queue-map.md` as the `single live entry pair` when the task is active builder resource-ownership continuation.
   - Maintenance note: if blocker count, active row, next review target, or partial-closeout wording changes, update both docs in the same turn.
@@ -56,9 +60,9 @@ Builder resource-ownership continuation note:
 - `carbonet-audit-trace-architecture`
   - Purpose: design and extend audit, trace, UI manifest, and operational metadata.
   - Group: cross-cutting architecture
-  - Use for: observability, parameter tracing, component registry, rollout governance, and performance-sensitive algorithm/data-structure decisions on those paths.
+  - Use for: observability, parameter tracing, component registry, rollout governance, system asset inventory/detail/impact/lifecycle modeling, and performance-sensitive algorithm/data-structure decisions on those paths.
   - Boundary: use for system-wide logging, trace, registry, and governance design; page-specific implementation follow-through usually belongs to `carbonet-feature-builder`.
-  - Key references: `docs/architecture/system-observability-audit-trace-design.md`, `docs/architecture/performance-algorithm-upgrade-notes.md`, `docs/ai/60-operations/performance-handoff-prompt-20260318.md`, `docs/ai/60-operations/audit-log-fields.md`
+  - Key references: `docs/architecture/system-observability-audit-trace-design.md`, `docs/architecture/system-asset-management-screen-and-menu-plan.md`, `docs/architecture/performance-algorithm-upgrade-notes.md`, `docs/ai/60-operations/performance-handoff-prompt-20260318.md`, `docs/ai/60-operations/audit-log-fields.md`
 - `carbonet-react-refresh-consistency`
   - Purpose: keep React migration changes visible after refresh while preserving sane cache behavior.
   - Group: delivery consistency
@@ -74,7 +78,7 @@ Builder resource-ownership continuation note:
 - `carbonet-feature-builder`
   - Purpose: implement or extend Carbonet screens, menus, services, mappers, React shell routes, and admin metadata.
   - Group: feature implementation
-  - Use for: page management, feature management, menu metadata, bilingual admin route handling, admin shell bootstrap pages, author-role profile management, `PAGE_CODE_VIEW` authority-chain work, the five-screen admin permission restoration set (`auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account`), and `/admin/system/security-policy` style admin operations consoles where backend rules, React actions, SQL preview/rollback, and runtime remediation must move together.
+  - Use for: page management, feature management, menu metadata, bilingual admin route handling, admin shell bootstrap pages, author-role profile management, `PAGE_CODE_VIEW` authority-chain work, asset-management screens such as inventory/detail/impact/lifecycle/gap consoles, the five-screen admin permission restoration set (`auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account`), and `/admin/system/security-policy` style admin operations consoles where backend rules, React actions, SQL preview/rollback, and runtime remediation must move together.
   - Boundary: this is the default implementation skill for normal app features, but not for Codex runner internals, refresh/cache policy, or system-wide audit architecture.
   - Key references: `.codex/skills/carbonet-feature-builder/references/*`, `docs/ai/40-backend/auth-policy.csv`, `docs/ai/50-data/table-screen-api-map.csv`, `docs/operations/security-policy-ops.md`
 - `carbonet-emission-management-extension`
@@ -86,9 +90,9 @@ Builder resource-ownership continuation note:
 - `admin-screen-unifier`
   - Purpose: normalize existing admin screens to one governed design system across list, detail, edit, create, approve, and authority pages.
   - Group: feature implementation
-  - Use for: button size drift, field height drift, inconsistent search cards, divergent status messages, menu active or hidden-screen consistency issues, and converting placeholder admin pages into clearer registry/detail/install/validator operations surfaces.
+  - Use for: button size drift, field height drift, inconsistent search cards, divergent status messages, menu active or hidden-screen consistency issues, converting placeholder admin pages into clearer registry/detail/install/validator operations surfaces, and auditing whether admin system screens are `COMPLETE`, `PARTIAL`, or `SCAFFOLD`.
   - Boundary: use when the screen already exists and the main problem is design drift rather than feature creation from scratch.
-  - Key references: `.codex/skills/admin-screen-unifier/SKILL.md`, `docs/architecture/screen-context-and-flow.md`, `docs/architecture/screen-family-model.md`, `docs/architecture/installable-builder-admin-console-refactor-plan.md`
+  - Key references: `.codex/skills/admin-screen-unifier/SKILL.md`, `docs/architecture/admin-system-screen-completion-audit.md`, `docs/architecture/screen-context-and-flow.md`, `docs/architecture/screen-family-model.md`, `docs/architecture/installable-builder-admin-console-refactor-plan.md`
 - `carbonet-codex-execution-console`
   - Purpose: continue or extend the Carbonet Codex execution console and SR Workbench execution lifecycle.
   - Group: specialized admin execution

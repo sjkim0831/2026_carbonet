@@ -37,6 +37,7 @@ import type {
   EmissionSurveyAdminPagePayload,
   EmissionSurveyCaseDraftSavePayload,
   EmissionSurveyClassificationLoadResponse,
+  EmissionSurveyDatasetReplacePayload,
   EmissionSurveyDraftSetSavePayload,
   EmissionTierResponse,
   EmissionVariableDefinition,
@@ -147,10 +148,11 @@ export async function deleteEmissionLciClassification(code: string) {
   );
 }
 
-export async function fetchEmissionSurveyAdminPage() {
+export async function fetchEmissionSurveyAdminPage(params?: { productName?: string }) {
   return fetchLocalizedPageJson<EmissionSurveyAdminPagePayload>(
     "/admin/emission/survey-admin/page-data",
-    "/en/admin/emission/survey-admin/page-data"
+    "/en/admin/emission/survey-admin/page-data",
+    { query: buildQueryParams(params) }
   );
 }
 
@@ -270,6 +272,14 @@ export async function replaceEmissionSurveySharedDataset(uploadFile: File) {
   );
 }
 
+export async function replaceEmissionSurveySharedDatasetSections(payload: EmissionSurveyDatasetReplacePayload) {
+  return postEmissionJson<EmissionSurveyAdminPagePayload>(
+    "/admin/api/admin/emission-survey-admin/replace-shared-dataset-sections",
+    "/en/admin/api/admin/emission-survey-admin/replace-shared-dataset-sections",
+    payload
+  );
+}
+
 export async function saveEmissionSurveyCaseDraft(payload: EmissionSurveyCaseDraftSavePayload) {
   return postEmissionJson<Record<string, unknown>>(
     "/admin/api/admin/emission-survey-admin/case-drafts",
@@ -278,19 +288,19 @@ export async function saveEmissionSurveyCaseDraft(payload: EmissionSurveyCaseDra
   );
 }
 
-export async function loadEmissionSurveyCaseDraftsByClassification(lciMajorCode: string, lciMiddleCode: string, lciSmallCode: string, caseCode: string) {
+export async function loadEmissionSurveyCaseDraftsByClassification(lciMajorCode: string, lciMiddleCode: string, lciSmallCode: string, caseCode: string, productName?: string) {
   return fetchEmissionJson<EmissionSurveyClassificationLoadResponse>(
     "/admin/api/admin/emission-survey-admin/case-drafts/by-classification",
     "/en/admin/api/admin/emission-survey-admin/case-drafts/by-classification",
-    buildEmissionQuery({ lciMajorCode, lciMiddleCode, lciSmallCode, caseCode })
+    buildEmissionQuery({ lciMajorCode, lciMiddleCode, lciSmallCode, caseCode, productName })
   );
 }
 
-export async function deleteEmissionSurveyCaseDraft(sectionCode: string, caseCode: string) {
+export async function deleteEmissionSurveyCaseDraft(sectionCode: string, caseCode: string, productName?: string) {
   return deleteEmissionAction<Record<string, unknown>>(
     "/admin/api/admin/emission-survey-admin/case-drafts",
     "/en/admin/api/admin/emission-survey-admin/case-drafts",
-    buildEmissionQuery({ sectionCode, caseCode })
+    buildEmissionQuery({ sectionCode, caseCode, productName })
   );
 }
 
@@ -316,6 +326,10 @@ export function getEmissionSurveyTemplateDownloadUrl() {
 
 export function getEmissionSurveySampleDownloadUrl() {
   return buildLocalizedPath("/admin/api/admin/emission-survey-admin/sample-download", "/en/admin/api/admin/emission-survey-admin/sample-download");
+}
+
+export function getEmissionSurveyAdminBlankTemplateDownloadUrl() {
+  return buildLocalizedPath("/admin/api/admin/emission-survey-admin/admin-template-download", "/en/admin/api/admin/emission-survey-admin/admin-template-download");
 }
 
 export async function saveEmissionManagementElementDefinition(payload: EmissionManagementElementSavePayload) {

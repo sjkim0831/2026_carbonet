@@ -1,7 +1,14 @@
 package egovframework.com.feature.admin.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import egovframework.com.common.trace.TraceContext;
+import egovframework.com.common.trace.TraceContextHolder;
+import egovframework.com.feature.admin.model.vo.ClassCodeVO;
+import egovframework.com.feature.admin.model.vo.CommonCodeVO;
 import egovframework.com.feature.admin.model.vo.DetailCodeVO;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
+import egovframework.com.platform.dbchange.model.DbChangeCaptureRequest;
+import egovframework.com.platform.dbchange.service.DbChangeCaptureService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +30,9 @@ import java.util.Set;
 public class AdminCodeManagementCommandService {
 
     private final AdminCodeManageService adminCodeManageService;
+    private final AdminRequestContextSupport adminRequestContextSupport;
+    private final DbChangeCaptureService dbChangeCaptureService;
+    private final ObjectMapper objectMapper;
 
     public String createClassCode(
             String clCode,
@@ -37,6 +47,7 @@ public class AdminCodeManagementCommandService {
         String name = safeString(clCodeNm);
         String desc = safeString(clCodeDc);
         String use = normalizeUseAt(useAt);
+        String actorId = resolveActorId(request);
         if (code.isEmpty() || name.isEmpty()) {
             return redirectCodeManagementError(request, locale, null,
                     isEn ? "Class code and name are required." : "분류 코드와 분류명은 필수입니다.");
@@ -54,7 +65,8 @@ public class AdminCodeManagementCommandService {
                     isEn ? "Failed to validate class code duplication." : "분류 코드 중복 확인에 실패했습니다.");
         }
         try {
-            adminCodeManageService.insertClassCode(code, name, desc, use, "admin");
+            adminCodeManageService.insertClassCode(code, name, desc, use, actorId);
+            recordClassCodeChange(request, actorId, "INSERT", null, adminCodeManageService.selectClassCode(code));
         } catch (Exception e) {
             log.error("Failed to create class code. clCode={}", code, e);
             return redirectCodeManagementError(request, locale, null,
@@ -77,12 +89,15 @@ public class AdminCodeManagementCommandService {
         String name = safeString(clCodeNm);
         String desc = safeString(clCodeDc);
         String use = normalizeUseAt(useAt);
+        String actorId = resolveActorId(request);
         if (code.isEmpty() || name.isEmpty()) {
             return redirectCodeManagementError(request, locale, null,
                     isEn ? "Class code and name are required." : "분류 코드와 분류명은 필수입니다.");
         }
         try {
-            adminCodeManageService.updateClassCode(code, name, desc, use, "admin");
+            ClassCodeVO before = adminCodeManageService.selectClassCode(code);
+            adminCodeManageService.updateClassCode(code, name, desc, use, actorId);
+            recordClassCodeChange(request, actorId, "UPDATE", before, adminCodeManageService.selectClassCode(code));
         } catch (Exception e) {
             log.error("Failed to update class code. clCode={}", code, e);
             return redirectCodeManagementError(request, locale, null,
@@ -99,6 +114,7 @@ public class AdminCodeManagementCommandService {
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         String code = safeString(clCode).toUpperCase(Locale.ROOT);
+        String actorId = resolveActorId(request);
         if (code.isEmpty()) {
             return redirectCodeManagementError(request, locale, null,
                     isEn ? "Class code is required." : "분류 코드를 입력해 주세요.");
@@ -109,7 +125,9 @@ public class AdminCodeManagementCommandService {
                 return redirectCodeManagementError(request, locale, null,
                         isEn ? "Cannot delete: codes are still linked." : "연결된 코드가 있어 삭제할 수 없습니다.");
             }
+            ClassCodeVO before = adminCodeManageService.selectClassCode(code);
             adminCodeManageService.deleteClassCode(code);
+            recordClassCodeChange(request, actorId, "DELETE", before, null);
         } catch (Exception e) {
             log.error("Failed to delete class code. clCode={}", code, e);
             return redirectCodeManagementError(request, locale, null,
@@ -134,6 +152,7 @@ public class AdminCodeManagementCommandService {
         String desc = safeString(codeIdDc);
         String cl = safeString(clCode).toUpperCase(Locale.ROOT);
         String use = normalizeUseAt(useAt);
+        String actorId = resolveActorId(request);
         if (id.isEmpty() || name.isEmpty() || cl.isEmpty()) {
             return redirectCodeManagementError(request, locale, null,
                     isEn ? "Code ID, name, and class code are required." : "코드 ID, 코드명, 분류 코드는 필수입니다.");
@@ -151,7 +170,8 @@ public class AdminCodeManagementCommandService {
                     isEn ? "Failed to validate code ID duplication." : "코드 ID 중복 확인에 실패했습니다.");
         }
         try {
-            adminCodeManageService.insertCommonCode(id, name, desc, use, cl, "admin");
+            adminCodeManageService.insertCommonCode(id, name, desc, use, cl, actorId);
+            recordCommonCodeChange(request, actorId, "INSERT", null, adminCodeManageService.selectCommonCode(id));
         } catch (Exception e) {
             log.error("Failed to create common code. codeId={}", id, e);
             return redirectCodeManagementError(request, locale, null,
@@ -176,12 +196,15 @@ public class AdminCodeManagementCommandService {
         String desc = safeString(codeIdDc);
         String cl = safeString(clCode).toUpperCase(Locale.ROOT);
         String use = normalizeUseAt(useAt);
+        String actorId = resolveActorId(request);
         if (id.isEmpty() || name.isEmpty() || cl.isEmpty()) {
             return redirectCodeManagementError(request, locale, null,
                     isEn ? "Code ID, name, and class code are required." : "코드 ID, 코드명, 분류 코드는 필수입니다.");
         }
         try {
-            adminCodeManageService.updateCommonCode(id, name, desc, use, cl, "admin");
+            CommonCodeVO before = adminCodeManageService.selectCommonCode(id);
+            adminCodeManageService.updateCommonCode(id, name, desc, use, cl, actorId);
+            recordCommonCodeChange(request, actorId, "UPDATE", before, adminCodeManageService.selectCommonCode(id));
         } catch (Exception e) {
             log.error("Failed to update common code. codeId={}", id, e);
             return redirectCodeManagementError(request, locale, null,
@@ -198,6 +221,7 @@ public class AdminCodeManagementCommandService {
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         String id = safeString(codeId).toUpperCase(Locale.ROOT);
+        String actorId = resolveActorId(request);
         if (id.isEmpty()) {
             return redirectCodeManagementError(request, locale, null,
                     isEn ? "Code ID is required." : "코드 ID를 입력해 주세요.");
@@ -208,7 +232,9 @@ public class AdminCodeManagementCommandService {
                 return redirectCodeManagementError(request, locale, id,
                         isEn ? "Cannot delete: detail codes are linked." : "연결된 상세 코드가 있어 삭제할 수 없습니다.");
             }
+            CommonCodeVO before = adminCodeManageService.selectCommonCode(id);
             adminCodeManageService.deleteCommonCode(id);
+            recordCommonCodeChange(request, actorId, "DELETE", before, null);
         } catch (Exception e) {
             log.error("Failed to delete common code. codeId={}", id, e);
             return redirectCodeManagementError(request, locale, id,
@@ -424,6 +450,172 @@ public class AdminCodeManagementCommandService {
 
     private String safeString(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private String resolveActorId(HttpServletRequest request) {
+        String actorId = adminRequestContextSupport.extractCurrentUserId(request);
+        return actorId.isEmpty() ? "admin" : actorId;
+    }
+
+    private void recordClassCodeChange(HttpServletRequest request, String actorId, String changeType, ClassCodeVO before, ClassCodeVO after) {
+        try {
+            String code = safeString(after == null ? null : after.getClCode());
+            if (code.isEmpty()) {
+                code = safeString(before == null ? null : before.getClCode());
+            }
+            DbChangeCaptureRequest captureRequest = buildBaseCaptureRequest(request, actorId, "COMTCCMMNCLCODE", "CLASS_CODE", code, changeType);
+            captureRequest.setTargetPkJson(jsonOf(Map.of("CL_CODE", code)));
+            captureRequest.setBeforeSummaryJson(jsonOf(classCodeSummary(before)));
+            captureRequest.setAfterSummaryJson(jsonOf(classCodeSummary(after)));
+            captureRequest.setChangeSummary("System code class " + changeType + " " + code);
+            captureRequest.setPatchFormatCode("JSON_PATCH");
+            captureRequest.setPatchKindCode("UPSERT_BY_KEY");
+            captureRequest.setTargetKeysJson(jsonOf(Map.of("CL_CODE", code)));
+            captureRequest.setPatchPayloadJson(jsonOf(classCodeSummary(after)));
+            captureRequest.setRenderedSqlPreview(renderClassCodeSqlPreview(changeType, before, after));
+            captureRequest.setRiskLevel("LOW");
+            captureRequest.setLogicalObjectId("COMTCCMMNCLCODE:" + code);
+            captureRequest.setSourceEnv("LOCAL");
+            captureRequest.setRenameFromKeyJson(jsonOf(renameBeforeKeyMap("CL_CODE", before == null ? null : before.getClCode(), after == null ? null : after.getClCode())));
+            captureRequest.setRenameToKeyJson(jsonOf(renameAfterKeyMap("CL_CODE", before == null ? null : before.getClCode(), after == null ? null : after.getClCode())));
+            dbChangeCaptureService.captureChange(captureRequest);
+        } catch (Exception e) {
+            log.warn("Failed to record class code business change. actorId={}", actorId, e);
+        }
+    }
+
+    private void recordCommonCodeChange(HttpServletRequest request, String actorId, String changeType, CommonCodeVO before, CommonCodeVO after) {
+        try {
+            String codeId = safeString(after == null ? null : after.getCodeId());
+            if (codeId.isEmpty()) {
+                codeId = safeString(before == null ? null : before.getCodeId());
+            }
+            DbChangeCaptureRequest captureRequest = buildBaseCaptureRequest(request, actorId, "COMTCCMMNCODE", "COMMON_CODE", codeId, changeType);
+            captureRequest.setTargetPkJson(jsonOf(Map.of("CODE_ID", codeId)));
+            captureRequest.setBeforeSummaryJson(jsonOf(commonCodeSummary(before)));
+            captureRequest.setAfterSummaryJson(jsonOf(commonCodeSummary(after)));
+            captureRequest.setChangeSummary("System common code " + changeType + " " + codeId);
+            captureRequest.setPatchFormatCode("JSON_PATCH");
+            captureRequest.setPatchKindCode("UPSERT_BY_KEY");
+            captureRequest.setTargetKeysJson(jsonOf(Map.of("CODE_ID", codeId)));
+            captureRequest.setPatchPayloadJson(jsonOf(commonCodeSummary(after)));
+            captureRequest.setRenderedSqlPreview(renderCommonCodeSqlPreview(changeType, before, after));
+            captureRequest.setRiskLevel("LOW");
+            captureRequest.setLogicalObjectId("COMTCCMMNCODE:" + codeId);
+            captureRequest.setSourceEnv("LOCAL");
+            captureRequest.setRenameFromKeyJson(jsonOf(renameBeforeKeyMap("CODE_ID", before == null ? null : before.getCodeId(), after == null ? null : after.getCodeId())));
+            captureRequest.setRenameToKeyJson(jsonOf(renameAfterKeyMap("CODE_ID", before == null ? null : before.getCodeId(), after == null ? null : after.getCodeId())));
+            dbChangeCaptureService.captureChange(captureRequest);
+        } catch (Exception e) {
+            log.warn("Failed to record common code business change. actorId={}", actorId, e);
+        }
+    }
+
+    private DbChangeCaptureRequest buildBaseCaptureRequest(HttpServletRequest request, String actorId, String tableName,
+                                                           String entityType, String entityId, String changeType) {
+        DbChangeCaptureRequest captureRequest = new DbChangeCaptureRequest();
+        TraceContext traceContext = TraceContextHolder.get();
+        captureRequest.setProjectId("carbonet");
+        captureRequest.setPageId("system-code");
+        captureRequest.setMenuCode("A0060201");
+        captureRequest.setApiPath(request == null ? "" : safeString(request.getRequestURI()));
+        captureRequest.setHttpMethod(request == null ? "" : safeString(request.getMethod()));
+        captureRequest.setActorId(actorId);
+        captureRequest.setActorRole("");
+        captureRequest.setActorScopeId("");
+        captureRequest.setTargetTableName(tableName);
+        captureRequest.setEntityType(entityType);
+        captureRequest.setEntityId(entityId);
+        captureRequest.setChangeType(changeType);
+        captureRequest.setTargetEnv("REMOTE_MAIN");
+        if (traceContext != null) {
+            captureRequest.setApiPath(defaultIfBlank(captureRequest.getApiPath(), safeString(traceContext.getRequestUri())));
+        }
+        return captureRequest;
+    }
+
+    private Map<String, Object> classCodeSummary(ClassCodeVO value) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        if (value == null) {
+            return summary;
+        }
+        summary.put("clCode", safeString(value.getClCode()));
+        summary.put("clCodeNm", safeString(value.getClCodeNm()));
+        summary.put("clCodeDc", safeString(value.getClCodeDc()));
+        summary.put("useAt", safeString(value.getUseAt()));
+        return summary;
+    }
+
+    private Map<String, Object> renameBeforeKeyMap(String keyName, Object beforeValue, Object afterValue) {
+        String before = safeString(beforeValue);
+        String after = safeString(afterValue);
+        if (before.isEmpty() || after.isEmpty() || before.equals(after)) {
+            return java.util.Collections.emptyMap();
+        }
+        return Map.of(keyName, before);
+    }
+
+    private Map<String, Object> renameAfterKeyMap(String keyName, Object beforeValue, Object afterValue) {
+        String before = safeString(beforeValue);
+        String after = safeString(afterValue);
+        if (before.isEmpty() || after.isEmpty() || before.equals(after)) {
+            return java.util.Collections.emptyMap();
+        }
+        return Map.of(keyName, after);
+    }
+
+    private Map<String, Object> commonCodeSummary(CommonCodeVO value) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        if (value == null) {
+            return summary;
+        }
+        summary.put("codeId", safeString(value.getCodeId()));
+        summary.put("codeIdNm", safeString(value.getCodeIdNm()));
+        summary.put("codeIdDc", safeString(value.getCodeIdDc()));
+        summary.put("clCode", safeString(value.getClCode()));
+        summary.put("useAt", safeString(value.getUseAt()));
+        return summary;
+    }
+
+    private String renderClassCodeSqlPreview(String changeType, ClassCodeVO before, ClassCodeVO after) {
+        ClassCodeVO target = after == null ? before : after;
+        String code = safeString(target == null ? null : target.getClCode());
+        if ("DELETE".equals(changeType)) {
+            return "DELETE FROM COMTCCMMNCLCODE WHERE CL_CODE = '" + escapeSql(code) + "';";
+        }
+        if ("INSERT".equals(changeType)) {
+            return "UPSERT COMTCCMMNCLCODE BY CL_CODE '" + escapeSql(code) + "';";
+        }
+        return "UPDATE COMTCCMMNCLCODE SET ... WHERE CL_CODE = '" + escapeSql(code) + "';";
+    }
+
+    private String renderCommonCodeSqlPreview(String changeType, CommonCodeVO before, CommonCodeVO after) {
+        CommonCodeVO target = after == null ? before : after;
+        String codeId = safeString(target == null ? null : target.getCodeId());
+        if ("DELETE".equals(changeType)) {
+            return "DELETE FROM COMTCCMMNCODE WHERE CODE_ID = '" + escapeSql(codeId) + "';";
+        }
+        if ("INSERT".equals(changeType)) {
+            return "UPSERT COMTCCMMNCODE BY CODE_ID '" + escapeSql(codeId) + "';";
+        }
+        return "UPDATE COMTCCMMNCODE SET ... WHERE CODE_ID = '" + escapeSql(codeId) + "';";
+    }
+
+    private String jsonOf(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String defaultIfBlank(String value, String fallback) {
+        String normalized = safeString(value);
+        return normalized.isEmpty() ? fallback : normalized;
+    }
+
+    private String escapeSql(String value) {
+        return safeString(value).replace("'", "''");
     }
 
     private String safeStaticString(String value) {

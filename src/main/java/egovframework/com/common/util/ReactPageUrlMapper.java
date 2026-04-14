@@ -107,6 +107,8 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "external-connection-edit", "/admin/external/connection_edit", "/admin/external/connection_edit");
         registerAdmin(adminPathToRoute, adminRouteToPath, "batch-management", "/admin/system/batch", "/admin/system/batch");
         registerAdmin(adminPathToRoute, adminRouteToPath, "scheduler-management", "/admin/system/scheduler", "/admin/system/scheduler");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "db-promotion-policy", "/admin/system/db-promotion-policy", "/admin/system/db-promotion-policy");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "db-sync-deploy", "/admin/system/db-sync-deploy", "/admin/system/db-sync-deploy");
         registerAdmin(adminPathToRoute, adminRouteToPath, "backup-config", "/admin/system/backup_config", "/admin/system/backup_config");
         registerAdmin(adminPathToRoute, adminRouteToPath, "backup-execution", "/admin/system/backup", "/admin/system/backup");
         registerAdmin(adminPathToRoute, adminRouteToPath, "restore-execution", "/admin/system/restore", "/admin/system/restore");
@@ -126,6 +128,11 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "column-management-console", "/admin/system/column-management-console", "/admin/system/column-management-console");
         registerAdmin(adminPathToRoute, adminRouteToPath, "automation-studio", "/admin/system/automation-studio", "/admin/system/automation-studio");
         registerAdmin(adminPathToRoute, adminRouteToPath, "environment-management", "/admin/system/environment-management", "/admin/system/environment-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "asset-inventory", "/admin/system/asset-inventory", "/admin/system/asset-inventory");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "asset-detail", "/admin/system/asset-detail", "/admin/system/asset-detail");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "asset-impact", "/admin/system/asset-impact", "/admin/system/asset-impact");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "asset-lifecycle", "/admin/system/asset-lifecycle", "/admin/system/asset-lifecycle");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "asset-gap", "/admin/system/asset-gap", "/admin/system/asset-gap");
         registerAdmin(adminPathToRoute, adminRouteToPath, "screen-flow-management", "/admin/system/screen-flow-management", "/admin/system/screen-flow-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "screen-menu-assignment-management", "/admin/system/screen-menu-assignment-management", "/admin/system/screen-menu-assignment-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "wbs-management", "/admin/system/wbs-management", "/admin/system/wbs-management");

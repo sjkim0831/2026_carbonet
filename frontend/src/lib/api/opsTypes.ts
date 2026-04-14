@@ -210,6 +210,39 @@ export type SchedulerManagementPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
+export type DbPromotionPolicyPagePayload = Record<string, unknown> & {
+  dbPromotionPolicySummary?: Array<Record<string, string>>;
+  dbPromotionPolicyRows?: Array<Record<string, string>>;
+  dbPromotionPolicyRecentChangeRows?: Array<Record<string, string>>;
+  dbPromotionPolicyGuidance?: Array<Record<string, string>>;
+  dbPromotionPolicyMessage?: string;
+  dbPromotionPolicySelectedTable?: string;
+  isEn?: boolean;
+  success?: boolean;
+  message?: string;
+};
+
+export type DbSyncDeployPagePayload = Record<string, unknown> & {
+  dbSyncDeploySummary?: Array<Record<string, string>>;
+  dbSyncDeployGuardrailRows?: Array<Record<string, string>>;
+  dbSyncDeploySqlFileRows?: Array<Record<string, string>>;
+  dbSyncDeployExecutionContractRows?: Array<Record<string, string>>;
+  dbSyncDeployPolicyValidationRows?: Array<Record<string, string>>;
+  dbSyncDeployScriptChainRows?: Array<Record<string, string>>;
+  dbSyncDeployGuidance?: Array<Record<string, string>>;
+  dbSyncDeployExecutionRows?: Array<Record<string, string>>;
+  dbSyncDeployExecutionLogRows?: Array<Record<string, string>>;
+  dbSyncDeployHistoryRows?: Array<Record<string, string>>;
+  dbSyncDeployScriptPath?: string;
+  dbSyncDeployGeneratedAt?: string;
+  dbSyncDeployAnalyzeMessage?: string;
+  dbSyncDeployValidateMessage?: string;
+  dbSyncDeployExecuteMessage?: string;
+  isEn?: boolean;
+  success?: boolean;
+  message?: string;
+};
+
 export type BatchManagementPagePayload = Record<string, unknown> & {
   refreshedAt?: string;
   batchSummary?: Array<Record<string, string>>;

@@ -10,6 +10,79 @@ import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { AdminInput, AdminSelect } from "../member/common";
 
+type WebhookCloseoutRow = {
+  titleKo: string;
+  titleEn: string;
+  status: "Available" | "Blocked";
+  detailKo: string;
+  detailEn: string;
+};
+
+const WEBHOOK_CLOSEOUT_ROWS: WebhookCloseoutRow[] = [
+  {
+    titleKo: "대상/전달 정책 조회",
+    titleEn: "Target / delivery policy visibility",
+    status: "Available",
+    detailKo: "엔드포인트, 서명 상태, 성공률, 실패 건수, 이벤트별 재시도 정책은 현재 payload로 조회됩니다.",
+    detailEn: "Endpoint, signature state, success rate, failure count, and event retry policy are visible from the current payload."
+  },
+  {
+    titleKo: "엔드포인트 CRUD",
+    titleEn: "Endpoint CRUD",
+    status: "Blocked",
+    detailKo: "생성/수정/비활성화 API, 중복 endpoint 검증, 파트너 scope 검증, 변경 감사가 필요합니다.",
+    detailEn: "Create/update/disable APIs, duplicate endpoint checks, partner-scope validation, and change audit are required."
+  },
+  {
+    titleKo: "서명 Secret 회전",
+    titleEn: "Signing-secret rotation",
+    status: "Blocked",
+    detailKo: "secret 값 마스킹, 이중 secret grace period, 폐기 예약, 회전 이력 저장 계약이 필요합니다.",
+    detailEn: "Secret masking, dual-secret grace period, retirement scheduling, and rotation history contracts are required."
+  },
+  {
+    titleKo: "테스트 발송 / Replay",
+    titleEn: "Test delivery / replay",
+    status: "Blocked",
+    detailKo: "운영 이벤트와 분리된 테스트 발송, 실패 이벤트 replay, 멱등키, 결과 이력이 필요합니다.",
+    detailEn: "Test delivery separated from production events, failed-event replay, idempotency keys, and result history are required."
+  },
+  {
+    titleKo: "실패 정책 저장",
+    titleEn: "Failure policy save",
+    status: "Blocked",
+    detailKo: "timeout, retry, dead-letter, 알림 연동을 저장하고 변경 전후를 감사할 정책 모델이 필요합니다.",
+    detailEn: "A policy model is required to save timeout, retry, dead-letter, notification linkage, and before/after audit."
+  }
+];
+
+const WEBHOOK_ACTION_CONTRACT = [
+  {
+    labelKo: "엔드포인트 추가",
+    labelEn: "Add Endpoint",
+    noteKo: "endpoint CRUD API와 파트너 scope 권한 검증이 필요합니다.",
+    noteEn: "Requires endpoint CRUD APIs and partner-scope authorization."
+  },
+  {
+    labelKo: "Secret 회전",
+    labelEn: "Rotate Secret",
+    noteKo: "마스킹, 이중 secret 기간, 폐기 예약, 회전 감사가 필요합니다.",
+    noteEn: "Requires masking, dual-secret grace window, retirement scheduling, and rotation audit."
+  },
+  {
+    labelKo: "테스트 발송",
+    labelEn: "Test Delivery",
+    noteKo: "운영 발송과 분리된 테스트 API와 결과 이력이 필요합니다.",
+    noteEn: "Requires a test-only API and result history separated from production delivery."
+  },
+  {
+    labelKo: "실패 Replay",
+    labelEn: "Replay Failed",
+    noteKo: "실패 event id, 멱등키, replay 제한, 결과 감사가 필요합니다.",
+    noteEn: "Requires failed event id, idempotency key, replay limits, and result audit."
+  }
+];
+
 function badgeClass(value: string) {
   const upper = value.toUpperCase();
   if (upper.includes("REVIEW") || upper.includes("FAILED")) return "bg-red-100 text-red-700";
@@ -63,6 +136,50 @@ export function ExternalWebhooksMigrationPage() {
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="external-webhooks-summary">
           {summary.map((item, index) => <SummaryMetricCard key={`${stringOf(item, "title")}-${index}`} title={stringOf(item, "title")} value={stringOf(item, "value")} description={stringOf(item, "description")} />)}
+        </section>
+        <section className="gov-card overflow-hidden p-0" data-help-id="external-webhooks-closeout-gate">
+          <div className="px-6 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Closeout Gate" : "완료 게이트"}</p>
+                <h2 className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "What is still missing for webhook operations" : "웹훅 운영 완성을 위해 남은 기능"}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "This page is currently a visibility console for endpoint state and delivery policy. Mutation actions stay disabled until CRUD, secret rotation, test delivery, replay, failure-policy persistence, and audit contracts are implemented."
+                    : "이 화면은 현재 엔드포인트 상태와 전달 정책을 확인하는 조회 콘솔입니다. CRUD, secret 회전, 테스트 발송, replay, 실패 정책 저장, 감사 계약이 구현되기 전까지 변경 조치는 비활성화합니다."}
+                </p>
+              </div>
+              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700">
+                {en ? "PARTIAL / mutation actions blocked" : "PARTIAL / 변경 조치 차단"}
+              </span>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-5">
+              {WEBHOOK_CLOSEOUT_ROWS.map((row) => (
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4" key={row.titleEn}>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${row.status === "Available" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                    {row.status}
+                  </span>
+                  <h3 className="mt-3 text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? row.titleEn : row.titleKo}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{en ? row.detailEn : row.detailKo}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-[var(--kr-gov-border-light)] bg-slate-50 px-6 py-5" data-help-id="external-webhooks-action-contract">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-[var(--kr-gov-text-primary)]">{en ? "Blocked Webhook Mutation Actions" : "차단된 웹훅 변경 조치"}</h3>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Keep read-only diagnostics active; enable these actions only after backend execution, authorization, and audit are connected." : "조회 진단은 유지하되, 백엔드 실행·권한·감사가 연결된 뒤에만 아래 조치를 활성화합니다."}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {WEBHOOK_ACTION_CONTRACT.map((action) => (
+                  <button className="gov-btn gov-btn-outline opacity-60" disabled key={action.labelEn} title={en ? action.noteEn : action.noteKo} type="button">
+                    {en ? action.labelEn : action.labelKo}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </section>
         <CollectionResultPanel data-help-id="external-webhooks-filters" title={en ? "Webhook Filters" : "웹훅 조회 조건"} description={en ? "Narrow targets by keyword, sync mode, or delivery status before opening the connection detail." : "연계 상세로 이동하기 전에 검색어, 연계 방식, 전달 상태 기준으로 범위를 좁힙니다."} icon="tune">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4 xl:w-[68rem]">

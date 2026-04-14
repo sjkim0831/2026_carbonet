@@ -120,16 +120,29 @@
 
     <select id="selectServerDeploymentStateList" parameterType="string" resultType="map">
         SELECT
-            SERVER_ID AS serverId,
-            COALESCE(SERVER_ROLE, '') AS serverRole,
-            RELEASE_UNIT_ID AS activeReleaseUnitId,
-            DEPLOY_TRACE_ID AS deployTraceId,
-            DEPLOYED_AT AS deployedAt,
-            HEALTH_STATUS AS healthStatus,
+            S.SERVER_ID AS serverId,
+            COALESCE(S.SERVER_ROLE, '') AS serverRole,
+            S.RELEASE_UNIT_ID AS activeReleaseUnitId,
+            S.DEPLOY_TRACE_ID AS deployTraceId,
+            S.DEPLOYED_AT AS deployedAt,
+            S.HEALTH_STATUS AS healthStatus,
             0 AS runtimeTruthYn
-        FROM SERVER_DEPLOYMENT_STATE
-        WHERE PROJECT_ID = #{projectId}
-        ORDER BY DEPLOYED_AT DESC
+        FROM SERVER_DEPLOYMENT_STATE S
+        WHERE S.PROJECT_ID = #{projectId}
+          AND NOT EXISTS (
+              SELECT 1
+              FROM SERVER_DEPLOYMENT_STATE S2
+              WHERE S2.PROJECT_ID = S.PROJECT_ID
+                AND S2.SERVER_ID = S.SERVER_ID
+                AND (
+                    S2.DEPLOYED_AT > S.DEPLOYED_AT
+                    OR (
+                        S2.DEPLOYED_AT = S.DEPLOYED_AT
+                        AND S2.SERVER_DEPLOYMENT_ID > S.SERVER_DEPLOYMENT_ID
+                    )
+                )
+          )
+        ORDER BY S.DEPLOYED_AT DESC
     </select>
 
     <select id="selectCandidateArtifactList" parameterType="map" resultType="map">
@@ -173,11 +186,62 @@
         )
     </select>
 
+    <select id="selectArtifactLockList" parameterType="map" resultType="map">
+        SELECT
+            PROJECT_ID AS projectId,
+            RELEASE_UNIT_ID AS releaseUnitId,
+            GROUP_ID AS groupId,
+            ARTIFACT_ID AS artifactId,
+            ARTIFACT_VERSION AS artifactVersion,
+            ARTIFACT_SHA256 AS artifactSha256,
+            LOCK_SOURCE AS lockSource,
+            CREATED_AT AS createdAt
+        FROM ARTIFACT_LOCK
+        WHERE PROJECT_ID = #{projectId}
+        ORDER BY CREATED_AT DESC, RELEASE_UNIT_ID DESC, ARTIFACT_ID ASC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countArtifactLocks" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM ARTIFACT_LOCK
+        WHERE PROJECT_ID = #{projectId}
+    </select>
+
+    <select id="selectCompatibilityRunList" parameterType="map" resultType="map">
+        SELECT
+            RUN_ID AS runId,
+            PROJECT_ID AS projectId,
+            SOURCE_RELEASE_UNIT_ID AS sourceReleaseUnitId,
+            TARGET_COMMON_VERSION AS targetCommonVersion,
+            BUILD_STATUS AS buildStatus,
+            ADAPTER_CONTRACT_STATUS AS adapterContractStatus,
+            DB_DIFF_STATUS AS dbDiffStatus,
+            SMOKE_STATUS AS smokeStatus,
+            COMPATIBILITY_STATUS AS compatibilityStatus,
+            BLOCKING_REASON AS blockingReason,
+            ROLLBACK_RELEASE_UNIT_ID AS rollbackReleaseUnitId,
+            TESTED_AT AS testedAt,
+            TESTED_BY AS testedBy
+        FROM PROJECT_COMPATIBILITY_RUN
+        WHERE PROJECT_ID = #{projectId}
+        ORDER BY TESTED_AT DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countCompatibilityRuns" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM PROJECT_COMPATIBILITY_RUN
+        WHERE PROJECT_ID = #{projectId}
+    </select>
+
     <select id="selectArtifactVersion" parameterType="map" resultType="map">
         SELECT
             ARTIFACT_VERSION_ID AS artifactVersionId,
             ARTIFACT_ID AS artifactId,
+            ARTIFACT_FAMILY AS artifactFamily,
             ARTIFACT_VERSION AS artifactVersion,
+            CHECKSUM_SHA256 AS checksumSha256,
             ADAPTER_CONTRACT_VERSION AS adapterContractVersion,
             API_CONTRACT_VERSION AS apiContractVersion,
             MANIFEST_CONTRACT_VERSION AS manifestContractVersion,
@@ -348,6 +412,68 @@
             #{healthStatus},
             CURRENT_DATETIME,
             #{deployedBy}
+        )
+    </insert>
+
+    <delete id="deleteArtifactLock" parameterType="map">
+        DELETE FROM ARTIFACT_LOCK
+        WHERE PROJECT_ID = #{projectId}
+          AND RELEASE_UNIT_ID = #{releaseUnitId}
+          AND GROUP_ID = #{groupId}
+          AND ARTIFACT_ID = #{artifactId}
+    </delete>
+
+    <insert id="insertArtifactLock" parameterType="map">
+        INSERT INTO ARTIFACT_LOCK (
+            PROJECT_ID,
+            RELEASE_UNIT_ID,
+            GROUP_ID,
+            ARTIFACT_ID,
+            ARTIFACT_VERSION,
+            ARTIFACT_SHA256,
+            LOCK_SOURCE,
+            CREATED_AT
+        ) VALUES (
+            #{projectId},
+            #{releaseUnitId},
+            #{groupId},
+            #{artifactId},
+            #{artifactVersion},
+            #{artifactSha256},
+            #{lockSource},
+            CURRENT_DATETIME
+        )
+    </insert>
+
+    <insert id="insertCompatibilityRun" parameterType="map">
+        INSERT INTO PROJECT_COMPATIBILITY_RUN (
+            RUN_ID,
+            PROJECT_ID,
+            SOURCE_RELEASE_UNIT_ID,
+            TARGET_COMMON_VERSION,
+            BUILD_STATUS,
+            ADAPTER_CONTRACT_STATUS,
+            DB_DIFF_STATUS,
+            SMOKE_STATUS,
+            COMPATIBILITY_STATUS,
+            BLOCKING_REASON,
+            ROLLBACK_RELEASE_UNIT_ID,
+            TESTED_AT,
+            TESTED_BY
+        ) VALUES (
+            #{runId},
+            #{projectId},
+            #{sourceReleaseUnitId},
+            #{targetCommonVersion},
+            #{buildStatus},
+            #{adapterContractStatus},
+            #{dbDiffStatus},
+            #{smokeStatus},
+            #{compatibilityStatus},
+            #{blockingReason},
+            #{rollbackReleaseUnitId},
+            CURRENT_DATETIME,
+            #{testedBy}
         )
     </insert>
 

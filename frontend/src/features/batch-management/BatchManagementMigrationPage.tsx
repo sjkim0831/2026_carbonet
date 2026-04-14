@@ -8,6 +8,13 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 
+type BatchCloseoutItem = {
+  label: string;
+  value: string;
+  ready: boolean;
+  detail: string;
+};
+
 function stringOf(row: Record<string, unknown> | null | undefined, ...keys: string[]) {
   if (!row) {
     return "";
@@ -27,6 +34,80 @@ function stringOf(row: Record<string, unknown> | null | undefined, ...keys: stri
 function parseCount(value: string) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function readyBadgeClass(ready: boolean) {
+  return ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700";
+}
+
+function BatchCloseoutPanel({
+  actionItems,
+  en,
+  items
+}: {
+  actionItems: Array<{ label: string; description: string }>;
+  en: boolean;
+  items: BatchCloseoutItem[];
+}) {
+  return (
+    <section className="gov-card" data-help-id="batch-management-closeout-gate">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Route Closeout Gate" : "라우트 완료 게이트"}</p>
+          <h2 className="mt-1 text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Batch Execution Readiness" : "배치 실행 준비 상태"}</h2>
+          <p className="mt-2 max-w-4xl text-sm text-[var(--kr-gov-text-secondary)]">
+            {en
+              ? "This screen can inspect jobs, queues, worker nodes, and recent runs. Pause, resume, retry, queue drain, and audit mutations remain blocked until named backend endpoints and feature codes are connected."
+              : "현재 이 화면은 잡, 큐, 워커 노드, 최근 실행 이력 점검은 가능합니다. 일시중지, 재개, 재시도, 큐 drain, 감사 변경 이력은 명명된 백엔드 엔드포인트와 기능 코드가 연결될 때까지 차단 상태로 표시합니다."}
+          </p>
+        </div>
+        <span className="inline-flex w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-700">
+          {en ? "PARTIAL" : "부분 완료"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-4">
+        {items.map((item) => (
+          <article key={item.label} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{item.label}</h3>
+              <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${readyBadgeClass(item.ready)}`}>
+                {item.ready ? (en ? "READY" : "준비됨") : (en ? "BLOCKED" : "차단")}
+              </span>
+            </div>
+            <p className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{item.value}</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{item.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-dashed border-amber-300 bg-amber-50 p-4" data-help-id="batch-management-action-contract">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h3 className="text-sm font-black text-amber-900">{en ? "Action Contract Preview" : "실행 계약 미리보기"}</h3>
+            <p className="mt-1 text-sm text-amber-900">
+              {en
+                ? "Buttons are disabled because read-only telemetry cannot prove batch mutations, rollback safety, or audit evidence."
+                : "읽기 전용 관측 데이터만으로는 배치 변경, 롤백 안전성, 감사 증적을 증명할 수 없으므로 버튼은 비활성화했습니다."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {actionItems.map((item) => (
+              <button
+                key={item.label}
+                className="gov-btn gov-btn-outline opacity-60"
+                disabled
+                title={item.description}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function BatchManagementMigrationPage() {
@@ -99,6 +180,61 @@ export function BatchManagementMigrationPage() {
     }
   ]), [en, filteredExecutions, filteredJobs, filteredNodes, filteredQueues]);
 
+  const closeoutItems = useMemo<BatchCloseoutItem[]>(() => {
+    const schedulableJobs = jobs.filter((row) => Boolean(stringOf(row, "jobId") && stringOf(row, "nextRunAt") && stringOf(row, "jobStatus")));
+    const observableQueues = queues.filter((row) => Boolean(stringOf(row, "queueId") && stringOf(row, "backlogCount") && stringOf(row, "consumerNode")));
+    const healthyLinkedNodes = nodes.filter((row) => Boolean(stringOf(row, "nodeId") && stringOf(row, "status") && stringOf(row, "heartbeatAt")));
+    const failureRows = executions.filter((row) => ["FAILED", "REVIEW"].includes(stringOf(row, "result").toUpperCase()));
+    return [
+      {
+        label: en ? "Job Schedule" : "잡 스케줄",
+        value: `${schedulableJobs.length}/${jobs.length}`,
+        ready: jobs.length > 0 && schedulableJobs.length === jobs.length,
+        detail: en ? "Job id, next run, and status are visible before action." : "실행 전 잡 ID, 다음 실행, 상태를 확인할 수 있습니다."
+      },
+      {
+        label: en ? "Queue Backlog" : "큐 적체",
+        value: `${observableQueues.length}/${queues.length}`,
+        ready: queues.length > 0 && observableQueues.length === queues.length,
+        detail: en ? "Queue backlog and consumer ownership are visible." : "큐 적체량과 소비 노드 소유권을 표시합니다."
+      },
+      {
+        label: en ? "Worker Health" : "워커 상태",
+        value: `${healthyLinkedNodes.length}/${nodes.length}`,
+        ready: nodes.length > 0 && healthyLinkedNodes.length === nodes.length,
+        detail: en ? "Worker status and heartbeat are available before reruns." : "재실행 전 워커 상태와 heartbeat를 확인할 수 있습니다."
+      },
+      {
+        label: en ? "Mutation Audit" : "변경 감사",
+        value: failureRows.length > 0 ? (en ? `${failureRows.length} review runs` : `검토 ${failureRows.length}건`) : (en ? "API pending" : "API 대기"),
+        ready: false,
+        detail: en ? "Pause, resume, retry, drain, and failure-detail actions need backend endpoints and audit events." : "일시중지, 재개, 재시도, drain, 실패 상세 액션에는 백엔드 엔드포인트와 감사 이벤트가 필요합니다."
+      }
+    ];
+  }, [en, executions, jobs, nodes, queues]);
+
+  const actionItems = useMemo(
+    () => [
+      {
+        label: en ? "Pause Job" : "잡 일시중지",
+        description: en ? "Requires pause endpoint, permission feature code, and audit record." : "일시중지 엔드포인트, 권한 기능 코드, 감사 기록이 필요합니다."
+      },
+      {
+        label: en ? "Resume Job" : "잡 재개",
+        description: en ? "Requires resume endpoint and next-run recalculation proof." : "재개 엔드포인트와 다음 실행 재계산 증적이 필요합니다."
+      },
+      {
+        label: en ? "Retry Failed Run" : "실패 재시도",
+        description: en ? "Requires retry endpoint, idempotency key, and result evidence." : "재시도 엔드포인트, 멱등 키, 결과 증적이 필요합니다."
+      },
+      {
+        label: en ? "Drain Queue" : "큐 drain",
+        description: en ? "Requires queue drain runner, worker impact check, and rollback policy." : "큐 drain 실행기, 워커 영향 점검, 롤백 정책이 필요합니다."
+      }
+    ],
+    [en]
+  );
+
   logGovernanceScope("PAGE", "batch-management", {
     language: en ? "en" : "ko",
     searchKeyword,
@@ -122,6 +258,8 @@ export function BatchManagementMigrationPage() {
     >
       <AdminWorkspacePageFrame>
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
+
+        <BatchCloseoutPanel actionItems={actionItems} en={en} items={closeoutItems} />
 
         <CollectionResultPanel
           data-help-id="batch-management-filters"

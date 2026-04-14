@@ -58,6 +58,8 @@ export type EmissionGwpValueSavePayload = {
   ar4Value: string;
   ar5Value: string;
   ar6Value: string;
+  source: string;
+  manualInputValue: string;
   note: string;
   sortOrder: number;
 };
@@ -166,11 +168,19 @@ export type EmissionSurveyAdminSection = {
   rows?: EmissionSurveyAdminRow[];
 };
 
+export type EmissionSurveyDatasetReplacePayload = {
+  sourceFileName?: string;
+  sourcePath?: string;
+  targetPath?: string;
+  sections: Array<Record<string, unknown>>;
+};
+
 export type EmissionSurveyClassificationLoadResponse = Record<string, unknown> & {
   lciMajorCode?: string;
   lciMiddleCode?: string;
   lciSmallCode?: string;
   caseCode?: string;
+  productName?: string;
   matchedCount?: number;
   matchedCaseMap?: Record<string, Record<string, unknown>>;
   message?: string;
@@ -190,6 +200,8 @@ export type EmissionSurveyAdminPagePayload = Record<string, unknown> & {
   majorOptions?: Array<Record<string, string>>;
   sectionOptions?: Array<Record<string, string>>;
   caseOptions?: Array<Record<string, string>>;
+  productOptions?: Array<Record<string, string>>;
+  selectedProductName?: string;
   workbookGuidance?: string[];
   sections?: EmissionSurveyAdminSection[];
   savedCaseMap?: Record<string, Record<string, unknown>>;
@@ -202,6 +214,7 @@ export type EmissionSurveyCaseDraftSavePayload = {
   ownerActorId?: string;
   datasetId?: string;
   datasetName?: string;
+  productName?: string;
   sectionCode: string;
   caseCode: string;
   majorCode: string;

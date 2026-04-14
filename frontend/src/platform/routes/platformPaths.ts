@@ -15,6 +15,33 @@ export function buildPlatformStudioPath() {
   return buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio");
 }
 
+export function buildAssetInventoryPath() {
+  return buildLocalizedPath("/admin/system/asset-inventory", "/en/admin/system/asset-inventory");
+}
+
+export function buildAssetDetailPath(assetType = "") {
+  const query = assetType ? `?assetType=${encodeURIComponent(assetType)}` : "";
+  return buildLocalizedPath(`/admin/system/asset-detail${query}`, `/en/admin/system/asset-detail${query}`);
+}
+
+export function buildAssetImpactPath(mode = "") {
+  const query = mode ? `?mode=${encodeURIComponent(mode)}` : "";
+  return buildLocalizedPath(`/admin/system/asset-impact${query}`, `/en/admin/system/asset-impact${query}`);
+}
+
+export function buildAssetLifecyclePath(stage = "") {
+  const query = stage ? `?stage=${encodeURIComponent(stage)}` : "";
+  return buildLocalizedPath(`/admin/system/asset-lifecycle${query}`, `/en/admin/system/asset-lifecycle${query}`);
+}
+
+export function buildAssetGapPath() {
+  return buildLocalizedPath("/admin/system/asset-gap", "/en/admin/system/asset-gap");
+}
+
+export function buildVerificationCenterPath() {
+  return buildLocalizedPath("/admin/system/verification-center", "/en/admin/system/verification-center");
+}
+
 export function buildFullStackManagementPath() {
   return buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management");
 }

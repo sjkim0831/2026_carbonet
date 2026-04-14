@@ -17,6 +17,10 @@ import { buildPageCacheKey, fetchCachedJson, fetchJsonWithoutCache } from "./pag
 import type {
   AuditEventSearchPayload,
   CodexHistoryPayload,
+  DbBusinessChangeLogRow,
+  DbChangeCaptureSummaryPayload,
+  DbDeployablePatchQueueRow,
+  DbDeployablePatchResultRow,
   CodexProvisionPagePayload,
   FunctionManagementPagePayload,
   FullStackGovernanceAutoCollectRequest,
@@ -337,12 +341,92 @@ export async function fetchProjectVersionOperations(params?: {
   });
 }
 
+export async function fetchDbChangeCaptureSummary(params?: {
+  projectId?: string;
+}) {
+  const query = buildQueryString({ projectId: params?.projectId });
+  return fetchJsonWithoutCache<DbChangeCaptureSummaryPayload>({
+    url: `${buildLocalizedPath("/api/platform/db-change/summary", "/en/api/platform/db-change/summary")}${query}`,
+    mapError: (body, status) => String(body.message || `Failed to load DB change summary: ${status}`)
+  });
+}
+
+export async function fetchDbChangeLogList(params?: {
+  projectId?: string;
+  limit?: number;
+}) {
+  const query = buildQueryString({ projectId: params?.projectId, limit: params?.limit });
+  return fetchJsonWithoutCache<DbBusinessChangeLogRow[]>({
+    url: `${buildLocalizedPath("/api/platform/db-change/changes", "/en/api/platform/db-change/changes")}${query}`,
+    mapError: (body, status) => String(body.message || `Failed to load DB change logs: ${status}`)
+  });
+}
+
+export async function fetchDbPatchQueueList(params?: {
+  projectId?: string;
+  limit?: number;
+}) {
+  const query = buildQueryString({ projectId: params?.projectId, limit: params?.limit });
+  return fetchJsonWithoutCache<DbDeployablePatchQueueRow[]>({
+    url: `${buildLocalizedPath("/api/platform/db-change/queue", "/en/api/platform/db-change/queue")}${query}`,
+    mapError: (body, status) => String(body.message || `Failed to load DB patch queue: ${status}`)
+  });
+}
+
+export async function fetchDbPatchResultList(params?: {
+  projectId?: string;
+  limit?: number;
+}) {
+  const query = buildQueryString({ projectId: params?.projectId, limit: params?.limit });
+  return fetchJsonWithoutCache<DbDeployablePatchResultRow[]>({
+    url: `${buildLocalizedPath("/api/platform/db-change/results", "/en/api/platform/db-change/results")}${query}`,
+    mapError: (body, status) => String(body.message || `Failed to load DB patch results: ${status}`)
+  });
+}
+
+export async function queueDbChangeLog(changeLogId: string, payload?: Record<string, unknown>) {
+  return postLocalizedValidatedJson<Record<string, unknown>>(
+    `/api/platform/db-change/changes/${encodeURIComponent(changeLogId)}/queue`,
+    `/en/api/platform/db-change/changes/${encodeURIComponent(changeLogId)}/queue`,
+    payload || {},
+    "Failed to queue DB change log."
+  );
+}
+
+export async function approveDbPatchQueue(queueId: string) {
+  return postLocalizedValidatedJson<Record<string, unknown>>(
+    `/api/platform/db-change/queue/${encodeURIComponent(queueId)}/approve`,
+    `/en/api/platform/db-change/queue/${encodeURIComponent(queueId)}/approve`,
+    {},
+    "Failed to approve DB patch queue."
+  );
+}
+
+export async function rejectDbPatchQueue(queueId: string, reason?: string) {
+  return postLocalizedValidatedJson<Record<string, unknown>>(
+    `/api/platform/db-change/queue/${encodeURIComponent(queueId)}/reject`,
+    `/en/api/platform/db-change/queue/${encodeURIComponent(queueId)}/reject`,
+    { reason: reason || "" },
+    "Failed to reject DB patch queue."
+  );
+}
+
+export async function executeDbPatchQueue(queueId: string, payload?: Record<string, unknown>) {
+  return postLocalizedValidatedJson<Record<string, unknown>>(
+    `/api/platform/db-change/queue/${encodeURIComponent(queueId)}/execute`,
+    `/en/api/platform/db-change/queue/${encodeURIComponent(queueId)}/execute`,
+    payload || {},
+    "Failed to execute DB patch queue."
+  );
+}
+
 export async function runProjectVersionSyncAndDeploy(payload: {
   projectId: string;
   operator: string;
   releaseVersion: string;
   releaseTitle?: string;
   releaseContent: string;
+  remoteDeployMode?: string;
 }) {
   return postProjectVersionJson<ProjectVersionOpsPayload>(
     buildVersionControlApiPath("/operations/sync-and-deploy"),

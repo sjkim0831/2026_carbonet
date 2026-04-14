@@ -18,6 +18,10 @@ public class MenuFeatureManageMapper extends BaseMapperSupport {
         return selectList("MenuFeatureManageMapper.selectMenuFeatureList", params);
     }
 
+    public MenuFeatureVO selectMenuFeature(AdminMenuFeatureCommandDTO params) {
+        return selectOne("MenuFeatureManageMapper.selectMenuFeature", params);
+    }
+
     public int countFeaturesByMenuCode(AdminMenuFeatureCommandDTO params) {
         Integer count = selectOne("MenuFeatureManageMapper.countFeaturesByMenuCode", params);
         return count == null ? 0 : count;
