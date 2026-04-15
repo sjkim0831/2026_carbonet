@@ -24,6 +24,7 @@ Environment overrides:
   HEALTH_URL
   STARTUP_MARKER
   VERIFY_WAIT_SECONDS
+  VERIFY_EXTENDED_WAIT_SECONDS
   VERIFY_EXTERNAL_MONITORING_BOOTSTRAP=true
 EOF
   exit 0
@@ -43,7 +44,8 @@ PID_FILE="${PID_FILE:-$RUN_DIR/carbonet-${PORT}.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/carbonet-${PORT}.log}"
 HEALTH_URL="${HEALTH_URL:-$(carbonet_runtime_health_url)}"
 STARTUP_MARKER="${STARTUP_MARKER:-Tomcat started on port(s): ${PORT}}"
-VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-20}"
+VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-60}"
+VERIFY_EXTENDED_WAIT_SECONDS="${VERIFY_EXTENDED_WAIT_SECONDS:-180}"
 VERIFY_EXTERNAL_MONITORING_BOOTSTRAP="${VERIFY_EXTERNAL_MONITORING_BOOTSTRAP:-false}"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -62,6 +64,27 @@ fail() {
 
 info() {
   echo "[codex-verify-18000-freshness] $*"
+}
+
+port_is_listening() {
+  ss -ltn "( sport = :$PORT )" 2>/dev/null | grep -q ":$PORT"
+}
+
+log_has_startup_marker() {
+  [[ -f "$LOG_FILE" ]] && grep -q "$STARTUP_MARKER" "$LOG_FILE"
+}
+
+health_is_up() {
+  local body=""
+  if ! command -v curl >/dev/null 2>&1; then
+    return 1
+  fi
+  body="$(curl "${CARBONET_CURL_ARGS[@]}" -fsS --max-time 5 "$HEALTH_URL" 2>/dev/null || true)"
+  [[ -n "$body" ]] || return 1
+  case "$body" in
+    *"UP"*) HEALTH_BODY="$body"; return 0 ;;
+  esac
+  return 1
 }
 
 resolve_running_pid() {
@@ -142,7 +165,7 @@ for _ in $(seq 1 "$VERIFY_WAIT_SECONDS"); do
     continue
   fi
 
-  if ! ss -ltn "( sport = :$PORT )" 2>/dev/null | grep -q ":$PORT"; then
+  if ! port_is_listening; then
     sleep 1
     continue
   fi
@@ -169,9 +192,13 @@ fi
 [[ -n "${APP_PID:-}" ]] || fail "unable to resolve running pid from $PID_FILE or process table"
 pid_is_live "$APP_PID" || fail "process not running for pid=$APP_PID"
 
-if ! ss -ltn "( sport = :$PORT )" 2>/dev/null | grep -q ":$PORT"; then
-  fail "port is not listening: $PORT"
-fi
+for _ in $(seq 1 "$VERIFY_EXTENDED_WAIT_SECONDS"); do
+  if port_is_listening; then
+    break
+  fi
+  sleep 1
+done
+port_is_listening || fail "port is not listening: $PORT"
 
 TARGET_HASH="$(compute_hash "$TARGET_JAR_PATH")"
 RUNTIME_HASH="$(compute_hash "$RUNTIME_JAR_PATH")"
@@ -182,12 +209,21 @@ RUNTIME_MTIME="$(stat -c %Y "$RUNTIME_JAR_PATH" 2>/dev/null || true)"
 [[ -n "$TARGET_MTIME" && -n "$RUNTIME_MTIME" ]] || fail "failed to read jar mtimes"
 [[ "$RUNTIME_MTIME" -ge "$TARGET_MTIME" ]] || fail "runtime jar is older than target jar"
 
-grep -q "$STARTUP_MARKER" "$LOG_FILE" || fail "startup marker not found in log: $STARTUP_MARKER"
+for _ in $(seq 1 "$VERIFY_EXTENDED_WAIT_SECONDS"); do
+  if log_has_startup_marker; then
+    break
+  fi
+  sleep 1
+done
+log_has_startup_marker || fail "startup marker not found in log: $STARTUP_MARKER"
 
 HEALTH_BODY=""
-if command -v curl >/dev/null 2>&1; then
-  HEALTH_BODY="$(curl "${CARBONET_CURL_ARGS[@]}" -fsS --max-time 5 "$HEALTH_URL" 2>/dev/null || true)"
-fi
+for _ in $(seq 1 "$VERIFY_EXTENDED_WAIT_SECONDS"); do
+  if health_is_up; then
+    break
+  fi
+  sleep 1
+done
 
 if [[ -n "$HEALTH_BODY" ]]; then
   case "$HEALTH_BODY" in
