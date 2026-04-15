@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,6 +41,19 @@ public class ProjectVersionOpsAutomationService {
     private static final String REMOTE_HOST = "136.117.100.221";
     private static final String EXECUTION_TYPE = "REMOTE_SYNC_DEPLOY_221";
     private static final String DEFAULT_REMOTE_DEPLOY_MODE = "pull";
+    private static final List<String> FAILURE_SUMMARY_MARKERS = Arrays.asList(
+            "ERROR:",
+            "No route to host",
+            "Connection timed out",
+            "Connection refused",
+            "remote DB tunnel did not open local port",
+            "remote DB tunnel failed",
+            "remote DB snapshot failed",
+            "Cannot connect to a broker",
+            "Permission denied",
+            "Host key verification failed",
+            "fatal:",
+            "Exception in thread");
 
     private final ProjectVersionManagementMapper projectVersionManagementMapper;
     private final ConcurrentMap<String, RemoteAutomationJob> jobs = new ConcurrentHashMap<String, RemoteAutomationJob>();
@@ -227,8 +241,24 @@ public class ProjectVersionOpsAutomationService {
             builder.directory(REPOSITORY_ROOT.toFile());
             builder.environment().put("PROJECT_ROOT", REPOSITORY_ROOT.toString());
             builder.environment().put("REMOTE_DEPLOY_MODE", defaultIfBlank(job.remoteDeployMode, DEFAULT_REMOTE_DEPLOY_MODE));
+            builder.environment().put("REMOTE_BATCH_TRANSPORT", "ssh");
+            builder.environment().put("EXECUTION_SOURCE", "page");
+            builder.environment().put("SIGNED_EXECUTION_REQUEST_ID", job.deploymentHistoryId);
+            builder.environment().put("POLICY_CHECK_RESULT", "APPROVED");
+            builder.environment().put("APPROVED_TARGET_HOSTS", job.serverTarget);
+            builder.environment().put("DB_PATCH_ID", "version-sync-" + job.jobId.toLowerCase(Locale.ROOT));
+            builder.environment().put("DB_PATCH_NAME", defaultIfBlank(job.releaseTitle, job.releaseVersion));
+            builder.environment().put("DB_PATCH_SOURCE_ENV", "local");
+            builder.environment().put("DB_PATCH_TARGET_ENV", "remote-main");
+            builder.environment().put("DB_PATCH_DIRECTION", "LOCAL_TO_REMOTE");
+            builder.environment().put("DB_PATCH_RISK_LEVEL", "HIGH");
+            builder.environment().put("COMMIT_MESSAGE", buildCommitMessage(job));
             appendJobLog(job, (isEn ? "Launching deploy script copy: " : "배포 스크립트 복사본 실행: ") + executionScript);
             appendJobLog(job, (isEn ? "Remote deploy mode: " : "원격 배포 모드: ") + defaultIfBlank(job.remoteDeployMode, DEFAULT_REMOTE_DEPLOY_MODE));
+            appendJobLog(job, (isEn ? "Remote batch transport: " : "원격 배치 전송 방식: ") + "ssh");
+            appendJobLog(job, (isEn ? "Execution source contract: " : "실행 소스 계약: ")
+                    + "EXECUTION_SOURCE=page, SIGNED_EXECUTION_REQUEST_ID=" + job.deploymentHistoryId
+                    + ", APPROVED_TARGET_HOSTS=" + job.serverTarget);
             process = builder.start();
             ByteArrayOutputStream stdout = new ByteArrayOutputStream();
             ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -238,7 +268,9 @@ public class ProjectVersionOpsAutomationService {
             stdoutThread.join();
             stderrThread.join();
             if (exitCode != 0) {
-                String failureMessage = lastNonBlank(stderr.toString(StandardCharsets.UTF_8), stdout.toString(StandardCharsets.UTF_8));
+                String failureMessage = summarizeFailure(stderr.toString(StandardCharsets.UTF_8),
+                        stdout.toString(StandardCharsets.UTF_8),
+                        isEn);
                 throw new IllegalStateException(failureMessage.isEmpty()
                         ? (isEn ? "Remote sync/deploy command failed." : "원격 동기화/배포 명령 실행에 실패했습니다.")
                         : failureMessage);
@@ -430,6 +462,44 @@ public class ProjectVersionOpsAutomationService {
         return "";
     }
 
+    private String summarizeFailure(String stderr, String stdout, boolean isEn) {
+        String prioritized = findFailureSummary(stderr, stdout);
+        if (!prioritized.isEmpty()) {
+            return prioritized;
+        }
+        String lastLine = lastNonBlank(stderr, stdout);
+        if (!lastLine.isEmpty()) {
+            return lastLine;
+        }
+        return isEn ? "Remote sync/deploy command failed." : "원격 동기화/배포 명령 실행에 실패했습니다.";
+    }
+
+    private String findFailureSummary(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String marker : FAILURE_SUMMARY_MARKERS) {
+            for (String value : values) {
+                String matched = findLastMatchingLine(value, marker);
+                if (!matched.isEmpty()) {
+                    return matched;
+                }
+            }
+        }
+        return "";
+    }
+
+    private String findLastMatchingLine(String value, String marker) {
+        String[] lines = safe(value).split("\\R");
+        for (int index = lines.length - 1; index >= 0; index--) {
+            String trimmed = safe(lines[index]);
+            if (!trimmed.isEmpty() && trimmed.contains(marker)) {
+                return trimmed;
+            }
+        }
+        return "";
+    }
+
     private String shellQuote(String value) {
         return "'" + safe(value).replace("'", "'\"'\"'") + "'";
     }
@@ -468,6 +538,18 @@ public class ProjectVersionOpsAutomationService {
             return normalized;
         }
         return DEFAULT_REMOTE_DEPLOY_MODE;
+    }
+
+    private String buildCommitMessage(RemoteAutomationJob job) {
+        String releaseVersion = defaultIfBlank(job.releaseVersion, "unspecified-release");
+        String actorId = defaultIfBlank(job.actorId, "system");
+        return "chore: project version sync deploy "
+                + releaseVersion
+                + " by "
+                + actorId
+                + " ["
+                + job.jobId
+                + "]";
     }
 
     private String safe(String value) {
