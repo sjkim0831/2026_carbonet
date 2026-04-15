@@ -138,6 +138,7 @@ SKIP_LOCAL_BUILD_PACKAGE="${SKIP_LOCAL_BUILD_PACKAGE:-false}"
 SKIP_GIT_PUSH="${SKIP_GIT_PUSH:-false}"
 SKIP_REMOTE_DEPLOY="${SKIP_REMOTE_DEPLOY:-false}"
 REMOTE_DEPLOY_MODE="${REMOTE_DEPLOY_MODE:-pull}"
+REMOTE_BATCH_TRANSPORT="${REMOTE_BATCH_TRANSPORT:-auto}"
 EXECUTION_SOURCE="${EXECUTION_SOURCE:-}"
 SIGNED_EXECUTION_REQUEST_ID="${SIGNED_EXECUTION_REQUEST_ID:-}"
 POLICY_CHECK_RESULT="${POLICY_CHECK_RESULT:-}"
@@ -2012,6 +2013,7 @@ run_remote_clone_and_restart() {
 
   local clone_url=""
   local remote_script=""
+  local batch_transport="${REMOTE_BATCH_TRANSPORT:-auto}"
   local mosh_ssh=""
   local mosh_server_cmd=""
   local remote_mode="${REMOTE_DEPLOY_MODE:-pull}"
@@ -2030,6 +2032,16 @@ run_remote_clone_and_restart() {
   require_env "MAIN_REMOTE_PASSWORD"
 
   clone_url="$(build_authenticated_repo_url "$REPO_URL")"
+  if [[ "$batch_transport" == "auto" ]]; then
+    batch_transport="ssh"
+  fi
+  case "$batch_transport" in
+    ssh|mosh)
+      ;;
+    *)
+      fail "unsupported REMOTE_BATCH_TRANSPORT: $batch_transport (supported: auto, ssh, mosh)"
+      ;;
+  esac
   mosh_ssh="sshpass -p '$MAIN_REMOTE_PASSWORD' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $MAIN_REMOTE_PORT"
   if [[ "$remote_mode" == "fresh-clone" ]]; then
     remote_script=$(cat <<EOF
@@ -2158,6 +2170,19 @@ EOF
   fi
 
   log "221 remote deploy started mode=$remote_mode"
+  if [[ "$batch_transport" == "ssh" ]]; then
+    log "221 remote deploy transport=ssh"
+    sshpass -p "$MAIN_REMOTE_PASSWORD" ssh \
+      -o StrictHostKeyChecking=no \
+      -o UserKnownHostsFile=/dev/null \
+      -p "$MAIN_REMOTE_PORT" \
+      "$MAIN_TARGET" \
+      "bash -lc $(printf '%q' "$remote_script")"
+    log "221 deploy completed over ssh mode=$remote_mode"
+    return 0
+  fi
+
+  log "221 remote deploy transport=mosh"
   mosh_server_cmd="bash -lc $(printf '%q' "$remote_script")"
   if MOSH_SSH="$mosh_ssh" mosh --no-init "$MAIN_TARGET" --server="$mosh_server_cmd"; then
     log "221 deploy completed over mosh mode=$remote_mode"
