@@ -1,5 +1,6 @@
 # Build output
 /target/
+**/target/
 
 # Runtime logs
 /var/logs/
