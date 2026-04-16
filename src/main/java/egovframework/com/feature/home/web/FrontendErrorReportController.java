@@ -1,7 +1,7 @@
 package egovframework.com.feature.home.web;
 
 import egovframework.com.common.error.ErrorEventService;
-import egovframework.com.feature.admin.service.SrSelfHealingService;
+import egovframework.com.platform.workbench.service.SrSelfHealingService;
 import egovframework.com.feature.home.dto.request.FrontendErrorReportRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

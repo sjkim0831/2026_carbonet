@@ -737,7 +737,7 @@ export function MonitoringTrackMigrationPage() {
       </header>
 
       <main id="main-content">
-        <section className="bg-[var(--tracer-bg)] py-12 relative min-h-[850px] overflow-hidden">
+        <section className="bg-[var(--tracer-bg)] py-12 relative min-h-[850px] overflow-hidden" data-help-id="monitoring-track-hero">
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
             <svg height="100%" width="100%">
               <pattern height="50" id="tracer-grid" patternUnits="userSpaceOnUse" width="50">
@@ -775,7 +775,7 @@ export function MonitoringTrackMigrationPage() {
             </div>
 
             <div className="flex-1 relative flex flex-col xl:flex-row gap-8">
-              <div className="flex-1 bg-slate-900/50 rounded-2xl border border-white/5 relative p-8 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-8 min-h-[600px]">
+              <div className="flex-1 bg-slate-900/50 rounded-2xl border border-white/5 relative p-8 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-8 min-h-[600px]" data-help-id="monitoring-track-graph">
                 <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
                   <path className="flow-path-active" d="M 180 300 Q 300 300 450 200" fill="none" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="4" />
                   <path className="flow-path-active" d="M 180 300 Q 300 300 450 400" fill="none" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="6" />
@@ -873,7 +873,7 @@ export function MonitoringTrackMigrationPage() {
           </div>
         </section>
 
-        <section className="max-w-[1440px] mx-auto px-4 lg:px-8 -mt-8 relative z-20">
+        <section className="max-w-[1440px] mx-auto px-4 lg:px-8 -mt-8 relative z-20" data-help-id="monitoring-track-queue">
           <div className="bg-white shadow-2xl rounded-xl p-6 flex flex-col md:flex-row gap-6 items-center border border-gray-100">
             <div className="flex items-center gap-4 border-r border-gray-100 pr-6 mr-6">
               <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
@@ -899,7 +899,7 @@ export function MonitoringTrackMigrationPage() {
           </div>
         </section>
 
-        <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-16">
+        <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-16" data-help-id="monitoring-track-sites">
           <div className="flex items-center justify-between mb-8 gap-4">
             <div>
               <h2 className="text-2xl font-black">{content.listTitle}</h2>

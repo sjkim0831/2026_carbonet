@@ -10,7 +10,7 @@ import egovframework.com.common.logging.AccessEventService;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.service.MaintenanceModeService;
 import egovframework.com.common.trace.TraceEventService;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.domain.repository.EnterpriseMemberRepository;
 import egovframework.com.feature.auth.util.JwtTokenProvider;

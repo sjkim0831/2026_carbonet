@@ -331,7 +331,7 @@ export function QnaListMigrationPage() {
       </header>
 
       <main id="main-content">
-        <section className="relative overflow-hidden bg-slate-900 py-16">
+        <section className="relative overflow-hidden bg-slate-900 py-16" data-help-id="qna-list-hero">
           <div className="absolute inset-0 opacity-10">
             <div className="h-full w-full bg-[linear-gradient(90deg,transparent_0,transparent_48%,rgba(255,255,255,0.08)_48%,rgba(255,255,255,0.08)_52%,transparent_52%,transparent_100%)] bg-[length:40px_40px]" />
           </div>
@@ -366,7 +366,7 @@ export function QnaListMigrationPage() {
         </section>
 
         <div className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-          <section>
+          <section data-help-id="qna-list-featured-cards">
             <div className="mb-6 flex items-center gap-2">
               <span className="material-symbols-outlined text-red-500">star</span>
               <h3 className="text-xl font-black text-slate-900">{en ? "Featured Notices and FAQ" : "주요 소식 및 필독 FAQ"}</h3>
@@ -389,7 +389,7 @@ export function QnaListMigrationPage() {
           </section>
 
           <section className="mt-12 grid gap-10 lg:grid-cols-[260px_minmax(0,1fr)]">
-            <aside className="space-y-6">
+            <aside className="space-y-6" data-help-id="qna-list-sidebar">
               <article className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-[var(--kr-gov-border-light)]">
                 <h4 className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{en ? "Categories" : "카테고리"}</h4>
                 <div className="mt-4 space-y-1.5">
@@ -456,7 +456,7 @@ export function QnaListMigrationPage() {
                 </div>
               </article>
 
-              <section>
+              <section data-help-id="qna-list-feed">
                 <div className="mb-4 flex flex-wrap items-center gap-3">
                   <h4 className="text-lg font-black text-slate-900">{en ? "Recently Added Questions and Resources" : "최근 등록된 질문 및 자료"}</h4>
                   <span className="text-sm font-medium text-slate-400">

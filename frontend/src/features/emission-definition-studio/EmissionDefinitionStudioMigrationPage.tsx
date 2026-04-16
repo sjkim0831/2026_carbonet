@@ -1533,6 +1533,7 @@ export function EmissionDefinitionStudioMigrationPage() {
       </div>
 
       <section className="gov-card mb-6" data-help-id="emission-definition-links">
+        <div data-help-id="emission-definition-quick-links">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-bold">{en ? "Direct Links" : "직접 연결 링크"}</h3>
@@ -1557,10 +1558,12 @@ export function EmissionDefinitionStudioMigrationPage() {
             </a>
           ))}
         </div>
+        </div>
       </section>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <section className="gov-card" data-help-id="emission-definition-draft">
+          <div data-help-id="emission-definition-draft-builder">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h3 className="text-lg font-bold">{en ? "Definition Draft Builder" : "정의 초안 빌더"}</h3>
@@ -2219,6 +2222,7 @@ export function EmissionDefinitionStudioMigrationPage() {
             <a className="gov-btn gov-btn-primary" href={buildLocalizedPath("/admin/emission/management", "/en/admin/emission/management")}>
               {en ? "Back to variable management" : "배출 변수 관리로 이동"}
             </a>
+          </div>
           </div>
         </section>
 

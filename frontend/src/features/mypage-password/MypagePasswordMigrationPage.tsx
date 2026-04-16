@@ -189,7 +189,7 @@ export function MypagePasswordMigrationPage() {
         )}
       />
       <main className="min-h-screen pb-20" id="main-content">
-        <section className="relative overflow-hidden bg-slate-900 pb-24 pt-12">
+        <section className="relative overflow-hidden bg-slate-900 pb-24 pt-12" data-help-id="mypage-password-hero">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 opacity-10"
@@ -213,7 +213,7 @@ export function MypagePasswordMigrationPage() {
         </section>
         <section className="relative z-20 mx-auto -mt-12 max-w-[1440px] px-4 lg:px-8">
           <div className="flex flex-col gap-8 lg:flex-row">
-            <aside className="w-full shrink-0 lg:w-72">
+            <aside className="w-full shrink-0 lg:w-72" data-help-id="mypage-password-menu">
               <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-white p-4 shadow-sm">
                 <p className="mb-2 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">{copy.menuTitle}</p>
                 <div className="space-y-1">
@@ -247,7 +247,7 @@ export function MypagePasswordMigrationPage() {
                     </div>
                   </div>
                 </div>
-                <div className="p-8 lg:p-12">
+                <div className="p-8 lg:p-12" data-help-id="mypage-password-form">
                   <div className="mx-auto max-w-xl">
                     <form className="space-y-8" onSubmit={(event) => event.preventDefault()}>
                       <div className="space-y-6">

@@ -1,7 +1,7 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.model.AdminRoleAssignmentVO;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.member.model.vo.CompanyListItemVO;

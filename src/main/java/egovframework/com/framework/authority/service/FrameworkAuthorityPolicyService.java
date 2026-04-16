@@ -1,6 +1,6 @@
 package egovframework.com.framework.authority.service;
 
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

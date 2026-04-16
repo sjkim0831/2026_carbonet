@@ -140,6 +140,7 @@ export function BoardListMigrationPage() {
         </section>
 
         <CollectionResultPanel
+          data-help-id="admin-menu-placeholder-card"
           description={en
             ? "Keep board review separate from the edit form so pinned and urgent notices are compared first."
             : "고정 공지와 긴급 공지를 먼저 비교할 수 있도록 목록 검토와 편집 폼을 분리합니다."}

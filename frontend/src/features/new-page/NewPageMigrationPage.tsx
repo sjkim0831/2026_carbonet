@@ -125,23 +125,23 @@ export function NewPageMigrationPage() {
     >
       <AdminWorkspacePageFrame>
         {pageState.error ? (
-          <PageStatusNotice tone="error">
+          <PageStatusNotice data-help-id="new-page-status" tone="error">
             {pageState.error}
           </PageStatusNotice>
         ) : null}
         {pageState.loading && !page ? (
-          <PageStatusNotice tone="warning">
+          <PageStatusNotice data-help-id="new-page-status" tone="warning">
             {en ? "Loading runtime menu, feature, and manifest metadata for this page." : "이 페이지의 런타임 메뉴, 기능, 매니페스트 메타를 불러오는 중입니다."}
           </PageStatusNotice>
         ) : (
-          <PageStatusNotice tone="success">
+          <PageStatusNotice data-help-id="new-page-status" tone="success">
             {en
               ? "This route now renders against live page-data metadata instead of fixed placeholder values."
               : "이 경로는 이제 고정 placeholder 값이 아니라 실제 page-data 메타를 기준으로 렌더링됩니다."}
           </PageStatusNotice>
         )}
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-4" data-help-id="new-page-summary">
           <SummaryMetricCard
             title={en ? "Menu Code" : "메뉴 코드"}
             description={en ? "Provisioned admin page code" : "등록된 관리자 페이지 코드"}
@@ -349,7 +349,7 @@ export function NewPageMigrationPage() {
                 )}
               />
 
-              <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5">
+              <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5" data-help-id="new-page-checklist">
                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">
                   {en ? "Deliverables" : "구현 산출물"}
                 </p>

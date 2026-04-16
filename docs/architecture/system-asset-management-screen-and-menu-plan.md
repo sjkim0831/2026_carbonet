@@ -373,6 +373,7 @@ Recommended group under `/admin/system`:
 ### 3. Runtime Operations
 
 - Environment management
+- Verification center
 - Scheduler management
 - Batch management
 - Backup config
@@ -456,3 +457,20 @@ Do not call system asset management "complete" until all of these are true:
 - backup and restore evidence can attach to governed runtime assets
 - at least one queue exposes missing owner, orphan, or missing-governance states
 - partial screens above are either upgraded or explicitly documented as aliases/scaffolds
+
+## Verification Center Extension
+
+Use `/admin/system/verification-center` as the operational scanner for governed assets.
+Use `/admin/system/verification-assets` as the direct management console for baseline rows, reusable test accounts, masked datasets, and action-queue closeout.
+
+Minimum responsibilities:
+
+- keep per-page baseline backup snapshots with retention location and owner
+- keep reusable test account and dataset profiles with expiry and reset policy
+- run scheduled daily and weekly smoke or drift sweeps like a maintenance scanner
+- keep run evidence, trace linkage, compare linkage, and rollback linkage together
+- block verification when only production-bound credentials or real datasets remain
+- expose recent run history, stale baseline count, expiring profile count, stale dataset count, and immediate action queue on the page
+- persist verification-center working state such as recent runs and action queue, at minimum in a local governed state file before DB promotion
+
+This page should behave less like a passive documentation page and more like a governed maintenance console.

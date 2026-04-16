@@ -8,6 +8,7 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { MemberButton } from "../admin-ui/common";
 import { KeyValueGridPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { AdminSelect } from "../member/common";
 
 const REQUIRED_FEATURES = [
   "A0060406_VIEW",
@@ -91,6 +92,11 @@ export function DbSyncDeployMigrationPage() {
   const [validating, setValidating] = useState(false);
   const [executing, setExecuting] = useState(false);
 
+  // Governed production deploy state
+  const [ticketNumber, setTicketNumber] = useState("");
+  const [approver, setApprover] = useState("");
+  const [executionSource, setExecutionSource] = useState("page");
+
   const summaryCards = (page?.dbSyncDeploySummary as Array<Record<string, string>> | undefined) || SUMMARY_CARDS[copy];
   const guardrails = (page?.dbSyncDeployGuardrailRows as Array<Record<string, string>> | undefined) || [];
   const executionContract = (page?.dbSyncDeployExecutionContractRows as Array<Record<string, string>> | undefined) || [];
@@ -150,6 +156,32 @@ export function DbSyncDeployMigrationPage() {
       setMessage(String(payload.dbSyncDeployExecuteMessage || (en ? "Server-up test completed." : "서버 올리기 테스트를 완료했습니다.")));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : (en ? "Server-up test failed." : "서버 올리기 테스트에 실패했습니다."));
+    } finally {
+      setExecuting(false);
+    }
+  }
+
+  async function handleProductionDeploy() {
+    if (executionSource === "breakglass" && (!ticketNumber || !approver)) {
+      setMessage(en ? "Ticket Number and Approver are required for breakglass deploy." : "Breakglass 배포 시 티켓 번호와 승인자를 반드시 입력해야 합니다.");
+      return;
+    }
+    if (!window.confirm(en ? "Are you sure you want to execute real DB sync and production deploy?" : "운영 DB 동기화 및 배포를 실제 실행하시겠습니까? 이 작업은 데이터를 변경하고 서버를 재기동합니다.")) {
+      return;
+    }
+    setExecuting(true);
+    setMessage("");
+    try {
+      const payload = await executeDbSyncDeploy({
+        executionMode: "PRODUCTION_SYNC",
+        executionSource,
+        ticketNumber,
+        approver
+      });
+      pageState.setValue(payload);
+      setMessage(String(payload.dbSyncDeployExecuteMessage || (en ? "Production Deploy and DB Sync completed." : "운영 DB 동기화 및 배포를 성공적으로 완료했습니다.")));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : (en ? "Production deploy failed." : "운영 배포에 실패했습니다."));
     } finally {
       setExecuting(false);
     }
@@ -239,22 +271,59 @@ export function DbSyncDeployMigrationPage() {
           </article>
         </section>
 
+        <section className="gov-card mb-6 mt-6 p-0 overflow-hidden" data-help-id="db-sync-deploy-execution">
+          <div className="border-b border-rose-200 bg-rose-50 px-6 py-5">
+            <h3 className="text-lg font-bold text-rose-900">{en ? "Governed Production Deploy" : "운영 환경 배포 및 DB 동기화"}</h3>
+            <p className="mt-1 text-sm text-rose-800">{en ? "Execute real production deploy. All preflight checks must pass unless breakglass is used." : "실제 운영 환경에 배포합니다. 긴급 우회(breakglass)를 제외하고는 모든 사전 점검을 통과해야 합니다."}</p>
+          </div>
+          <div className="px-6 py-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-slate-700">{en ? "Execution Source" : "실행 소스"}</span>
+                <AdminSelect value={executionSource} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setExecutionSource(e.target.value)}>
+                  <option value="page">PAGE (Normal)</option>
+                  <option value="queue">QUEUE (Scheduled)</option>
+                  <option value="breakglass">BREAKGLASS (Emergency)</option>
+                </AdminSelect>
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-slate-700">{en ? "Ticket Number" : "티켓 번호"}</span>
+                <input type="text" className="gov-input" placeholder="e.g. DEPLOY-2026-001" value={ticketNumber} onChange={(e) => setTicketNumber(e.target.value)} disabled={executionSource !== "breakglass" && executionSource !== "page"} />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-slate-700">{en ? "Approver" : "승인자"}</span>
+                <input type="text" className="gov-input" placeholder={en ? "e.g. Lead Engineer" : "예: 배포 책임자"} value={approver} onChange={(e) => setApprover(e.target.value)} disabled={executionSource !== "breakglass" && executionSource !== "page"} />
+              </label>
+            </div>
+            <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+              <span className="text-xs text-rose-600 font-bold mr-2">
+                {en ? "Warning: This action mutates the production database and restarts the application." : "경고: 이 작업은 운영 DB를 변경하고 애플리케이션을 재기동합니다."}
+              </span>
+              <MemberButton type="button" variant="primary" onClick={() => void handleProductionDeploy()} disabled={executing || analyzing || validating}>
+                {executing ? (en ? "Deploying..." : "배포 중...") : (en ? "Execute Production Deploy" : "운영 배포 실행")}
+              </MemberButton>
+            </div>
+          </div>
+        </section>
+
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <KeyValueGridPanel
-            title={en ? "Permission Contract" : "권한 계약"}
-            items={(executionContract.length ? executionContract : REQUIRED_FEATURES.map((feature) => ({
-              label: feature,
-              value: feature
-            }))).map((row) => ({
-              label: row.label,
-              value: (
-                <div>
-                  <div>{row.value}</div>
-                  {"description" in row && row.description ? <div className="mt-1 text-[13px] text-[var(--kr-gov-text-secondary)]">{row.description}</div> : null}
-                </div>
-              )
-            }))}
-          />
+          <div data-help-id="db-sync-deploy-permission-contract">
+            <KeyValueGridPanel
+              title={en ? "Permission Contract" : "권한 계약"}
+              items={(executionContract.length ? executionContract : REQUIRED_FEATURES.map((feature) => ({
+                label: feature,
+                value: feature
+              }))).map((row) => ({
+                label: row.label,
+                value: (
+                  <div>
+                    <div>{row.value}</div>
+                    {"description" in row && row.description ? <div className="mt-1 text-[13px] text-[var(--kr-gov-text-secondary)]">{row.description}</div> : null}
+                  </div>
+                )
+              }))}
+            />
+          </div>
           <article className="gov-card" data-help-id="db-sync-deploy-script-chain">
             <div className="mb-4">
               <h3 className="text-lg font-bold">{en ? "Script Chain" : "스크립트 체인"}</h3>

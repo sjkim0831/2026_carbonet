@@ -4,7 +4,7 @@ import egovframework.com.common.menu.model.SiteMapNode;
 import egovframework.com.common.menu.service.SiteMapService;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import egovframework.com.platform.read.MenuInfoReadPort;

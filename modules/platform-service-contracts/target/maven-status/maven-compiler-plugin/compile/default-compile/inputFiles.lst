@@ -27,7 +27,6 @@
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/common/audit/AuditEventSearchVO.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/observability/model/EmissionResultSummaryView.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/SrWorkbenchPagePort.java
-/opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/feature/admin/service/ScreenCommandCenterService.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/ExternalUsagePayloadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/platform/service/observability/PlatformObservabilityHistoryPagePayloadPort.java
 /opt/projects/carbonet/modules/platform-service-contracts/src/main/java/egovframework/com/feature/admin/model/vo/EmissionResultFilterSnapshot.java

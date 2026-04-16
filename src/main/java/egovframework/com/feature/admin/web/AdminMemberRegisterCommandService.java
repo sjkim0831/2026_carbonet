@@ -1,9 +1,11 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
 import egovframework.com.feature.admin.dto.request.AdminMemberRegisterSaveRequestDTO;
-import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
-import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.model.AuthorInfoVO;
+import egovframework.com.platform.codex.model.UserAuthorityTargetVO;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
 import egovframework.com.feature.member.model.vo.InstitutionStatusVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;

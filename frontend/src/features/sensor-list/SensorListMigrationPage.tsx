@@ -11,6 +11,79 @@ import { AdminInput, AdminSelect, AdminTable, MemberPagination, MemberSectionToo
 
 const PAGE_SIZE = 10;
 
+type SensorCloseoutRow = {
+  titleKo: string;
+  titleEn: string;
+  status: "Available" | "Blocked";
+  detailKo: string;
+  detailEn: string;
+};
+
+const SENSOR_CLOSEOUT_ROWS: SensorCloseoutRow[] = [
+  {
+    titleKo: "모니터링 기반 센서 행",
+    titleEn: "Monitoring-derived sensor rows",
+    status: "Available",
+    detailKo: "보안 모니터링 이벤트, 활동 로그, 차단 후보를 센서 행으로 재구성해 조회/필터/선택 패널을 제공합니다.",
+    detailEn: "Security monitoring events, activity logs, and block candidates are reshaped into rows for search, filters, and focused review."
+  },
+  {
+    titleKo: "상세 화면 이동",
+    titleEn: "Detail navigation",
+    status: "Available",
+    detailKo: "선택 센서는 이벤트 상세, 보안 모니터링, 센서 설정 화면으로 이동할 수 있습니다.",
+    detailEn: "The focused row can move into event detail, security monitoring, and sensor settings screens."
+  },
+  {
+    titleKo: "Live Inventory Source",
+    titleEn: "Live inventory source",
+    status: "Blocked",
+    detailKo: "등록/수정 화면과 동일한 센서 인벤토리 원천, 소유자, 설치 위치, 활성 상태, 갱신 시각 계약이 필요합니다.",
+    detailEn: "The same inventory source as add/edit, owner, installation location, active state, and refreshed-at contract are required."
+  },
+  {
+    titleKo: "상태 새로고침 / Export",
+    titleEn: "Status refresh / export",
+    status: "Blocked",
+    detailKo: "센서별 health refresh API, source timestamp, CSV/Excel export, export 감사가 필요합니다.",
+    detailEn: "Per-sensor health refresh API, source timestamp, CSV/Excel export, and export audit are required."
+  },
+  {
+    titleKo: "Bulk Enable / Disable",
+    titleEn: "Bulk enable / disable",
+    status: "Blocked",
+    detailKo: "선택 행, bulk 활성/비활성 API, 권한 기능 코드, 영향 미리보기, 변경 감사가 필요합니다.",
+    detailEn: "Selected rows, bulk enable/disable API, feature codes, impact preview, and change audit are required."
+  }
+];
+
+const SENSOR_ACTION_CONTRACT = [
+  {
+    labelKo: "상태 새로고침",
+    labelEn: "Refresh Status",
+    noteKo: "live sensor health API와 source timestamp가 필요합니다.",
+    noteEn: "Requires live sensor health API and source timestamp."
+  },
+  {
+    labelKo: "목록 Export",
+    labelEn: "Export List",
+    noteKo: "필터 조건 포함 export API와 감사 이력이 필요합니다.",
+    noteEn: "Requires export API with filter criteria and audit history."
+  },
+  {
+    labelKo: "선택 활성화",
+    labelEn: "Bulk Enable",
+    noteKo: "bulk mutation API, 권한 기능 코드, 영향 미리보기가 필요합니다.",
+    noteEn: "Requires bulk mutation API, feature code, and impact preview."
+  },
+  {
+    labelKo: "선택 비활성화",
+    labelEn: "Bulk Disable",
+    noteKo: "bulk mutation API, 비활성 사유, 변경 감사가 필요합니다.",
+    noteEn: "Requires bulk mutation API, disable reason, and change audit."
+  }
+];
+
 function stringOf(row: Record<string, unknown> | null | undefined, ...keys: string[]) {
   if (!row) {
     return "";
@@ -193,11 +266,57 @@ export function SensorListMigrationPage() {
         <CollectionResultPanel
           title={en ? "Sensor List Operating Rule" : "센서 목록 운영 기준"}
           description={en ? "Keep one list for status, severity, owner note, and block promotion state before moving to event detail." : "상태, 심각도, 담당자 메모, 차단 승격 상태를 한 목록에서 본 뒤 이벤트 상세 화면으로 이동합니다."}
+          data-help-id="sensor-list-operating-rule"
         >
           {en
             ? "This screen keeps the first triage pass lightweight and aligned with the shared admin list pattern."
             : "1차 분류는 가볍게 유지하고, 화면 구조는 기존 관리자 리스트 패턴에 맞춥니다."}
         </CollectionResultPanel>
+
+        <section className="gov-card overflow-hidden p-0" data-help-id="sensor-list-closeout-gate">
+          <div className="px-6 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Closeout Gate" : "완료 게이트"}</p>
+                <h2 className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "What is still missing for sensor inventory operations" : "센서 인벤토리 운영을 위해 남은 기능"}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "This page currently supports monitoring-derived triage and detail navigation. Inventory mutation actions stay disabled until the add/edit inventory source, live refresh, export, bulk enable/disable, authorization, and audit contracts are implemented."
+                    : "이 화면은 현재 모니터링 기반 1차 분류와 상세 이동을 제공합니다. 등록/수정과 같은 인벤토리 원천, live refresh, export, bulk 활성/비활성, 권한, 감사 계약이 구현되기 전까지 변경 조치는 비활성화합니다."}
+                </p>
+              </div>
+              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700">
+                {en ? "PARTIAL / inventory actions blocked" : "PARTIAL / 인벤토리 조치 차단"}
+              </span>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-5">
+              {SENSOR_CLOSEOUT_ROWS.map((row) => (
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4" key={row.titleEn}>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${row.status === "Available" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                    {row.status}
+                  </span>
+                  <h3 className="mt-3 text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? row.titleEn : row.titleKo}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{en ? row.detailEn : row.detailKo}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-[var(--kr-gov-border-light)] bg-slate-50 px-6 py-5" data-help-id="sensor-list-action-contract">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-[var(--kr-gov-text-primary)]">{en ? "Blocked Sensor Inventory Actions" : "차단된 센서 인벤토리 조치"}</h3>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Keep filtering and detail navigation active; enable these actions only after backend inventory, authorization, and audit are connected." : "필터와 상세 이동은 유지하되, 백엔드 인벤토리·권한·감사가 연결된 뒤에만 아래 조치를 활성화합니다."}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {SENSOR_ACTION_CONTRACT.map((action) => (
+                  <button className="gov-btn gov-btn-outline opacity-60" disabled key={action.labelEn} title={en ? action.noteEn : action.noteKo} type="button">
+                    {en ? action.labelEn : action.labelKo}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
 
         <section className="gov-card" data-help-id="sensor-list-filters">
           <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
@@ -476,3 +595,4 @@ export function SensorListMigrationPage() {
     </AdminPageShell>
   );
 }
+// agent note: updated by FreeAgent Ultra

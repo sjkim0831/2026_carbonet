@@ -1,6 +1,6 @@
 package egovframework.com.feature.auth.service;
 
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.entity.EntrprsMber;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;

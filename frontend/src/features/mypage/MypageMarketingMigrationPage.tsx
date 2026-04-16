@@ -350,7 +350,7 @@ export function MypageMarketingMigrationPage() {
           </aside>
 
           <div className="flex-1">
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" data-help-id="mypage-marketing-hero">
               <div className="border-b border-gray-100 p-8">
                 <h1 className="mb-2 text-2xl font-black text-gray-900">{copy.guideTitle}</h1>
                 <p className="text-sm text-[var(--kr-gov-text-secondary)]">{copy.guideDesc}</p>
@@ -374,7 +374,7 @@ export function MypageMarketingMigrationPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="space-y-8">
+                    <div className="space-y-8" data-help-id="mypage-marketing-consent">
                       <ToggleRow
                         checked={marketingEnabled}
                         description={copy.emailDesc}
@@ -402,7 +402,7 @@ export function MypageMarketingMigrationPage() {
             </div>
 
             <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm" data-help-id="mypage-marketing-privacy">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50">
                   <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">privacy_tip</span>
                 </div>

@@ -10,6 +10,60 @@ import { CollectionResultPanel, CopyableCodeBlock, GridToolbar, PageStatusNotice
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { AdminInput, AdminSelect } from "../member/common";
 
+type ExternalSchemaCloseoutRow = {
+  labelKo: string;
+  labelEn: string;
+  status: "available" | "blocked";
+  descriptionKo: string;
+  descriptionEn: string;
+};
+
+const EXTERNAL_SCHEMA_CLOSEOUT_ROWS: ExternalSchemaCloseoutRow[] = [
+  {
+    labelKo: "스키마 레지스트리 / 계약 스냅샷",
+    labelEn: "Schema registry / contract snapshot",
+    status: "available",
+    descriptionKo: "외부 계약 스키마 목록, 필터, 선택 계약 JSON 스냅샷과 복사 기능은 현재 화면에서 사용할 수 있습니다.",
+    descriptionEn: "External contract schema rows, filters, selected contract JSON snapshot, and copy are available in this screen."
+  },
+  {
+    labelKo: "검토 대기열 / 운영 가이드",
+    labelEn: "Review queue / operating guidance",
+    status: "available",
+    descriptionKo: "버전 정합성, 필드 소유권, 마스킹·보존기간 기준과 검토 대기열 확인은 제공됩니다.",
+    descriptionEn: "Version alignment, field ownership, masking/retention guidance, and review queue visibility are available."
+  },
+  {
+    labelKo: "버전 발행",
+    labelEn: "Version publish",
+    status: "blocked",
+    descriptionKo: "발행 workflow, 승인 권한, 하위 파서 영향 검증, 변경 감사 API가 아직 없습니다.",
+    descriptionEn: "Publish workflow, approval permission, downstream parser impact validation, and audit APIs are not wired yet."
+  },
+  {
+    labelKo: "호환성 테스트",
+    labelEn: "Compatibility test",
+    status: "blocked",
+    descriptionKo: "샘플 payload 기반 호환성 검사, 차단 결과 저장, 실패 증적 모델이 필요합니다.",
+    descriptionEn: "Sample-payload compatibility checks, blocking result persistence, and failure evidence models are required."
+  },
+  {
+    labelKo: "롤백 / 엔드포인트 바인딩 / 변경감사",
+    labelEn: "Rollback / endpoint binding / change audit",
+    status: "blocked",
+    descriptionKo: "현재 버전 롤백, endpoint별 스키마 바인딩, 변경 전후 감사 이력 저장 계약이 필요합니다.",
+    descriptionEn: "Current-version rollback, endpoint-specific schema binding, and before/after change audit contracts are required."
+  }
+];
+
+const EXTERNAL_SCHEMA_ACTION_CONTRACT = [
+  { labelKo: "버전 발행", labelEn: "Publish Version" },
+  { labelKo: "호환성 검사", labelEn: "Run Compatibility" },
+  { labelKo: "롤백", labelEn: "Rollback" },
+  { labelKo: "엔드포인트 바인딩", labelEn: "Bind Endpoint" },
+  { labelKo: "변경감사 저장", labelEn: "Record Audit" }
+];
+
 function badgeClass(value: string) {
   const upper = value.toUpperCase();
   if (upper.includes("REVIEW") || upper.includes("DISABLED")) {
@@ -185,6 +239,48 @@ export function ExternalSchemaMigrationPage() {
               description={stringOf(item, "description")}
             />
           ))}
+        </section>
+
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr,0.65fr]">
+          <article className="gov-card" data-help-id="external-schema-closeout-gate">
+            <div className="flex flex-col gap-2 border-b border-[var(--kr-gov-border-light)] pb-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Closeout Gate" : "완료 게이트"}</p>
+              <h2 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Available now vs. blocked schema actions" : "현재 가능 범위와 차단된 스키마 조치"}</h2>
+              <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "The screen is usable for registry review, but publish, compatibility, rollback, binding, and audit actions stay blocked until backend execution contracts exist."
+                  : "이 화면은 레지스트리 검토에는 사용할 수 있지만 발행, 호환성 검사, 롤백, 바인딩, 감사는 백엔드 실행 계약 전까지 차단합니다."}
+              </p>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {EXTERNAL_SCHEMA_CLOSEOUT_ROWS.map((row) => (
+                <article key={row.labelEn} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? row.labelEn : row.labelKo}</h3>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${row.status === "available" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                      {row.status === "available" ? (en ? "Available" : "가능") : (en ? "Blocked" : "차단")}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{en ? row.descriptionEn : row.descriptionKo}</p>
+                </article>
+              ))}
+            </div>
+          </article>
+
+          <article className="gov-card" data-help-id="external-schema-action-contract">
+            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Action Contract" : "실행 계약"}</p>
+            <h2 className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "Disabled until APIs and audit are wired" : "API와 감사 연결 전까지 비활성"}</h2>
+            <div className="mt-4 grid grid-cols-1 gap-2">
+              {EXTERNAL_SCHEMA_ACTION_CONTRACT.map((action) => (
+                <button key={action.labelEn} className="gov-btn gov-btn-outline justify-center opacity-65" type="button" disabled>
+                  {en ? action.labelEn : action.labelKo}
+                </button>
+              ))}
+            </div>
+            <p className="mt-4 text-xs font-bold text-[var(--kr-gov-text-secondary)]">
+              {en ? "Blocked actions must be backed by permission, idempotency, compatibility evidence, and before/after audit records." : "차단된 조치는 권한, 멱등성, 호환성 증적, 변경 전후 감사 이력이 함께 설계되어야 합니다."}
+            </p>
+          </article>
         </section>
 
         <CollectionResultPanel
@@ -394,7 +490,7 @@ export function ExternalSchemaMigrationPage() {
         </section>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr,1fr]">
-          <article className="gov-card overflow-hidden p-0">
+          <article className="gov-card overflow-hidden p-0" data-help-id="external-schema-review-queue">
             <GridToolbar title={en ? "Schema Review Queue" : "스키마 검토 대기열"} meta={en ? "Rows needing follow-up for compatibility, masking, or governance ownership." : "호환성, 마스킹, 거버넌스 담당 확인이 필요한 항목입니다."} />
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm">

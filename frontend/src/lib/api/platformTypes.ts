@@ -742,6 +742,45 @@ export type WbsManagementPagePayload = Record<string, unknown> & {
   today?: string;
 };
 
+export type VerificationCenterPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  serverGeneratedAt?: string;
+  summary?: Record<string, unknown>;
+  quickActions?: Array<Record<string, unknown>>;
+  baselineRegistry?: Array<Record<string, unknown>>;
+  verificationRuns?: Array<Record<string, unknown>>;
+  managedVault?: Record<string, unknown>;
+  actionQueue?: Array<Record<string, unknown>>;
+};
+
+export type VerificationCenterRunResponse = Record<string, unknown> & {
+  success?: boolean;
+  message?: string;
+  runId?: string;
+  traceId?: string;
+  actionType?: string;
+  actorId?: string;
+  result?: string;
+  followupPath?: string;
+  startedAt?: string;
+};
+
+export type VerificationAssetManagementPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  serverGeneratedAt?: string;
+  summary?: Record<string, unknown>;
+  baselineRegistry?: Array<Record<string, unknown>>;
+  managedVault?: Record<string, unknown>;
+  actionQueue?: Array<Record<string, unknown>>;
+};
+
+export type VerificationAssetMutationResponse = Record<string, unknown> & {
+  success?: boolean;
+  message?: string;
+  item?: Record<string, unknown>;
+  itemType?: string;
+};
+
 export type NewPagePagePayload = Record<string, unknown> & {
   isEn?: boolean;
   pageId?: string;
@@ -800,4 +839,112 @@ export type CodexProvisionPagePayload = Record<string, unknown> & {
   executionLaneCount?: number;
   executionLanes?: Array<Record<string, unknown>>;
   isEn?: boolean;
+};
+
+export type SystemAssetInventoryVO = {
+  assetId: string;
+  assetType: string;
+  assetName: string;
+  assetVersion: string;
+  sourcePath: string;
+  sourceSymbol: string;
+  contentHash: string;
+  assetFamily?: string;
+  ownerDomain: string;
+  ownerScope?: string;
+  operatorOwner?: string;
+  serviceOwner?: string;
+  criticality: string;
+  healthStatus: string;
+  lastScanAt: string;
+  activeYn: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SystemAssetCompositionVO = {
+  compositionId: string;
+  parentAssetId: string;
+  childAssetId: string;
+  relationType: string;
+  mappingNotes: string;
+  createdAt: string;
+};
+
+export type SystemAssetScanLogVO = {
+  scanId: string;
+  assetId: string;
+  previousHash: string;
+  currentHash: string;
+  scanResult: string;
+  scanDetails: string;
+  createdAt: string;
+};
+
+export type AssetScanSummary = {
+  total: number;
+  newCount: number;
+  updatedCount: number;
+  driftedCount: number;
+  durationMs: number;
+};
+
+export type SystemAssetDetailPayload = {
+  asset: SystemAssetInventoryVO;
+  compositions: SystemAssetCompositionVO[];
+  scanLogs: SystemAssetScanLogVO[];
+};
+
+export type SystemAssetEnrichedComposition = {
+  composition: SystemAssetCompositionVO;
+  asset: SystemAssetInventoryVO;
+};
+
+export type SystemAssetImpactPayload = {
+  asset: SystemAssetInventoryVO;
+  upstream: SystemAssetEnrichedComposition[];
+  downstream: SystemAssetEnrichedComposition[];
+};
+
+export type SystemAssetGapSummary = {
+  missingOwnerCount: number;
+  missingCriticalityCount: number;
+  driftedCount: number;
+  orphanCount: number;
+};
+
+export type SystemAssetGapPayload = {
+  summary: SystemAssetGapSummary;
+  assets?: SystemAssetInventoryVO[];
+};
+
+export type SystemAssetLifecyclePayload = {
+  activeCount: number;
+  inactiveCount: number;
+  totalCount: number;
+  plans: SystemAssetLifecyclePlanVO[];
+  totalEvidenceCount: number;
+};
+
+export type SystemAssetLifecyclePlanVO = {
+  planId: string;
+  assetId: string;
+  targetStage: string;
+  planStatus: string;
+  requesterId: string;
+  approverId?: string;
+  targetDate?: string;
+  reason: string;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type SystemAssetLifecycleEvidenceVO = {
+  evidenceId: string;
+  planId: string;
+  checkpointKey: string;
+  evidenceType: string;
+  evidenceValue: string;
+  verifiedBy: string;
+  createdAt: string;
 };

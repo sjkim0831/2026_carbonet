@@ -16,33 +16,36 @@ public class AdminAssetInventoryMenuBootstrapSupport {
     private static final String GROUP_CODE = "A00601";
     private static final String GROUP_NAME = "환경";
     private static final String GROUP_NAME_EN = "Environment";
-    private static final String MENU_CODE = "A0060123";
-    private static final String MENU_NAME_KO = "자산 인벤토리";
-    private static final String MENU_NAME_EN = "Asset Inventory";
-    private static final String MENU_URL = "/admin/system/asset-inventory";
-    private static final String MENU_ICON = "inventory_2";
     private static final String ACTOR_ID = "SYSTEM_BOOTSTRAP";
 
     private final PlatformMenuProvisionSupport platformMenuProvisionSupport;
 
     @EventListener(ApplicationReadyEvent.class)
-    public void ensureAssetInventoryMenu() {
+    public void ensureAssetManagementMenus() {
+        provisionMenu("A0060123", "자산 인벤토리", "Asset Inventory", "/admin/system/asset-inventory", "inventory_2");
+        provisionMenu("A0060124", "자산 상세", "Asset Detail", "/admin/system/asset-detail", "info");
+        provisionMenu("A0060125", "자산 영향도", "Asset Impact", "/admin/system/asset-impact", "query_stats");
+        provisionMenu("A0060126", "자산 생명주기", "Asset Lifecycle", "/admin/system/asset-lifecycle", "published_with_changes");
+        provisionMenu("A0060127", "자산 미흡 큐", "Asset Gap", "/admin/system/asset-gap", "running_with_errors");
+    }
+
+    private void provisionMenu(String menuCode, String nameKo, String nameEn, String url, String icon) {
         platformMenuProvisionSupport.provisionAdminMenu(
-                "Asset inventory menu",
-                buildRequest(),
-                MENU_CODE,
-                MENU_NAME_KO,
-                MENU_NAME_EN,
-                MENU_URL,
-                MENU_ICON,
+                nameEn + " menu",
+                buildRequest(menuCode, nameKo, nameEn, url, icon),
+                menuCode,
+                nameKo,
+                nameEn,
+                url,
+                icon,
                 ACTOR_ID);
     }
 
-    private CodexProvisionRequest buildRequest() {
+    private CodexProvisionRequest buildRequest(String menuCode, String nameKo, String nameEn, String url, String icon) {
         return PlatformMenuProvisionSupport.adminMenuRequest(
-                "BOOTSTRAP-ASSET-INVENTORY",
+                "BOOTSTRAP-" + menuCode,
                 ACTOR_ID,
-                MENU_URL,
+                url,
                 PlatformMenuProvisionSupport.pageRequest(
                         DOMAIN_CODE,
                         DOMAIN_NAME,
@@ -50,24 +53,24 @@ public class AdminAssetInventoryMenuBootstrapSupport {
                         GROUP_CODE,
                         GROUP_NAME,
                         GROUP_NAME_EN,
-                        MENU_CODE,
-                        MENU_NAME_KO,
-                        MENU_NAME_EN,
-                        MENU_URL,
-                        MENU_ICON
+                        menuCode,
+                        nameKo,
+                        nameEn,
+                        url,
+                        icon
                 ),
                 new CodexProvisionRequest.FeatureRequest[]{
                         PlatformMenuProvisionSupport.featureRequest(
-                                MENU_CODE,
-                                MENU_CODE + "_VIEW",
-                                MENU_NAME_KO + " 조회",
-                                "View Asset Inventory",
-                                "System asset inventory page access")
+                                menuCode,
+                                menuCode + "_VIEW",
+                                nameKo + " 조회",
+                                "View " + nameEn,
+                                nameEn + " page access")
                 },
                 new CodexProvisionRequest.AuthorRequest[]{
-                        PlatformMenuProvisionSupport.authorRequest("ROLE_SYSTEM_MASTER", "시스템 마스터", "System Master", MENU_CODE + "_VIEW"),
-                        PlatformMenuProvisionSupport.authorRequest("ROLE_SYSTEM_ADMIN", "시스템 관리자", "System Administrator", MENU_CODE + "_VIEW"),
-                        PlatformMenuProvisionSupport.authorRequest("ROLE_ADMIN", "일반 관리자", "General Administrator", MENU_CODE + "_VIEW")
+                        PlatformMenuProvisionSupport.authorRequest("ROLE_SYSTEM_MASTER", "시스템 마스터", "System Master", menuCode + "_VIEW"),
+                        PlatformMenuProvisionSupport.authorRequest("ROLE_SYSTEM_ADMIN", "시스템 관리자", "System Administrator", menuCode + "_VIEW"),
+                        PlatformMenuProvisionSupport.authorRequest("ROLE_ADMIN", "일반 관리자", "General Administrator", menuCode + "_VIEW")
                 }
         );
     }

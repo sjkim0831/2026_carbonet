@@ -4,7 +4,7 @@ import egovframework.com.common.mapper.ObservabilityMapper;
 import egovframework.com.common.trace.FrontendTelemetryEvent;
 import egovframework.com.common.trace.TraceContext;
 import egovframework.com.common.trace.TraceIdGenerator;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.entity.EntrprsMber;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;

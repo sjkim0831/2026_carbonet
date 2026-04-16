@@ -1,8 +1,8 @@
 package egovframework.com.common.interceptor;
 
 import egovframework.com.common.util.ReactPageUrlMapper;
-import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.model.UserFeatureOverrideVO;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.service.CurrentUserContextService;

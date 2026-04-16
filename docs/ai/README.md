@@ -1,8 +1,14 @@
-# AI Working Docs
+# Resonance AI Working Docs
 
-This folder holds AI-oriented project documentation for faster, safer code changes and reviews.
+This folder holds documentation for the **Resonance AI Framework**, our core AI/Agent engine for faster, safer code changes and reviews.
 
-Principles:
+## Resonance Core Documents
+
+- **Architecture**: `10-architecture/resonance-ai-framework.md`
+- **Design Patterns**: `docs/architecture/resonance-design-patterns.md`
+- **Skill Patterns**: `80-skills/resonance-skill-and-doc-update-pattern.md`
+
+## Principles
 
 - keep source design documents separate from AI working summaries
 - prefer CSV maps for cross-linking screens, APIs, tables, and permissions

@@ -46,28 +46,14 @@ Do not let one of the two stay newer than the other for the same family state.
 
 ## Current Result
 
-- `PARTIAL_DONE`
+- `SUCCESS`
 - docs-only owner coordination work is now complete for the current family state
-- do not reopen docs-only owner coordination unless watched source docs change and add one exact missing sentence bundle
-- row `3` now carries a stronger non-blocker note
-- row `5` is the remaining blocker row
-- rows `1` and `2` now carry bounded `DELETE_NOW` notes
-- resolved row-`1` wording can now be copied from `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-row1-delete-now-example.md`
-- resolved row-`2` wording should now be treated as the live delete-proof outcome rather than as a blocker packet
-- row `4` now carries a stronger non-blocker note
-- row `5` is now counted as `BLOCKS_CLOSEOUT`
-- row `5` is now bounded to executable-assembly ambiguity instead of a generic fallback suspicion
-- blocker-row packet grammar is now closed around row `5`, and rows `1`, `2`, and `3` are retained as resolved or non-blocking historical packets
-- blocker-row question-level proof grammar is now also closed around row `5`, and rows `1`, `2`, and `3` are retained as resolved or non-blocking historical packets
-- blocker-row source-to-question evidence-map coverage is now also closed around row `5`, and rows `1`, `2`, and `3` are retained as resolved or non-blocking historical packets
-- blocker-row replacement-note attempt coverage is now also closed around row `5`, and rows `1`, `2`, and `3` are retained as resolved or non-blocking historical packets
-- blocker-row branch-signature comparison is now also closed around row `5`, and rows `1`, `2`, and `3` are retained as resolved or non-blocking historical packets
-- blocker-row candidate-sentence-ledger coverage is now also closed around row `5`, and rows `1`, `2`, and `3` are retained as resolved or non-blocking historical packets
-- blocker-row docs-only source-sentence-search-note coverage is now also closed around row `5`, and rows `1`, `2`, and `3` are retained as resolved or non-blocking historical packets
-- blocker-row source-sentence comparison coverage is now also closed around row `5`
-- blocker-row source-trigger coverage is now also closed around row `5`
-- document-routing and phrase-alignment work for this family is now effectively closed
-- do not spend another docs-only turn on entry propagation, phrase cleanup, packet standardization, proof-grammar standardization, evidence-map standardization, candidate-sentence-ledger standardization, docs-only source-sentence search standardization, source-sentence comparison standardization, source-trigger standardization, replacement-note-attempt standardization, or bounded replacement-note drafting unless watched source docs change and add one exact missing sentence bundle
+- row `5` is now resolved as `DELETE_NOW`
+- all rows `1`, `2`, `3`, `4`, and `5` now carry resolved historical support for clean module ownership
+- `executable app resource assembly fallback` now carries a bounded `DELETE_NOW` note
+- resolved row-`5` wording can now be copied from `docs/architecture/builder-resource-row5-decision-note-template.md`
+- the family `BUILDER_RESOURCE_OWNERSHIP_CLOSURE` is now ready for final wave closure
+- do not spend another turn on blocker-resolution or evidence-map review for this family
 
 Reference:
 

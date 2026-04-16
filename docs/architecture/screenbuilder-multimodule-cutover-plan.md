@@ -68,7 +68,9 @@ Current transition reason:
 - adapter-local source interfaces now cover menu, command-page, authority, runtime-compare, metadata, observability, API-response, and audit entrypoints
 - `apps/carbonet-app` still compiles directly from the legacy root source tree, but it has now started excluding builder-owned root paths that are supplied by dedicated modules
 - `apps/carbonet-app` now also excludes builder-owned root resources that are supplied by dedicated modules, so future root reintroduction does not silently leak into the executable jar
-- MyBatis mapper/resource ownership is only partially moved, so the adapter still assumes shared root runtime wiring for part of the flow
+- MyBatis mapper/resource ownership for builder-owned resources is now fully moved to dedicated modules, and `apps/carbonet-app` excludes these resources from its root resource import
+- executable-app success no longer depends on any shared-root-backed runtime closure for builder-resource assembly
+- executable-app success is now attributable cleanly to dedicated-module builder-resource assembly rather than mixed assembly success
 
 ## Recommended Cutover Shape
 

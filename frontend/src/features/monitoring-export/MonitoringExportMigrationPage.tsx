@@ -598,7 +598,7 @@ export function MonitoringExportMigrationPage() {
       </header>
 
       <main className="mx-auto max-w-[1440px] px-4 py-8 lg:px-8" id="main-content">
-        <section className="overflow-hidden rounded-[28px] bg-slate-900 px-6 py-8 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] lg:px-8">
+        <section className="overflow-hidden rounded-[28px] bg-slate-900 px-6 py-8 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] lg:px-8" data-help-id="monitoring-export-hero">
           <div className="mb-6 max-w-3xl">
             <PageStatusNotice tone="warning">{content.pageStatusMessage}</PageStatusNotice>
           </div>
@@ -655,7 +655,7 @@ export function MonitoringExportMigrationPage() {
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-[1.45fr_0.95fr]" data-help-id="monitoring-export-controls">
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4" data-help-id="monitoring-export-summary-cards">
             {content.metrics.map((metric) => (
               <article
                 className={`rounded-3xl border border-gray-200 border-t-4 ${metric.accentClassName} bg-white p-6 shadow-sm ${metric.key === "sites" ? "bg-slate-900 text-white" : ""}`}

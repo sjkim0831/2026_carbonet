@@ -767,7 +767,7 @@ export function PaymentVirtualAccountMigrationPage() {
       </header>
 
       <main id="main-content">
-        <section className="relative overflow-hidden border-b border-slate-800 bg-slate-900 py-10">
+        <section className="relative overflow-hidden border-b border-slate-800 bg-slate-900 py-10" data-help-id="payment-virtual-account-hero">
           <div className="pointer-events-none absolute inset-0 opacity-10">
             <svg height="100%" width="100%">
               <pattern height="60" id="virtual-account-dots" patternUnits="userSpaceOnUse" width="60">
@@ -932,6 +932,7 @@ export function PaymentVirtualAccountMigrationPage() {
           </div>
         </section>
 
+        <div data-help-id="payment-virtual-account-search">
         <PaymentSearchBar
           buttonLabel={content.issueButtonLabel}
           onIssue={() => navigate(localizedPath("/payment/virtual_account"))}
@@ -939,8 +940,9 @@ export function PaymentVirtualAccountMigrationPage() {
           placeholder={content.searchPlaceholder}
           query={query}
         />
+        </div>
 
-        <section className="mx-auto max-w-[1440px] px-4 py-12 lg:px-8">
+        <section className="mx-auto max-w-[1440px] px-4 py-12 lg:px-8" data-help-id="payment-virtual-account-managed">
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="flex items-center gap-2 text-2xl font-black">
@@ -1040,7 +1042,7 @@ export function PaymentVirtualAccountMigrationPage() {
         </section>
 
         {!en ? (
-          <section className="mx-auto max-w-[1440px] px-4 pb-16 lg:px-8">
+          <section className="mx-auto max-w-[1440px] px-4 pb-16 lg:px-8" data-help-id="payment-virtual-account-sites">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-700">
                 {content.siteSectionTitle}
@@ -1085,7 +1087,7 @@ export function PaymentVirtualAccountMigrationPage() {
           </section>
         ) : null}
 
-        <section className="border-y border-gray-200 bg-white py-16">
+        <section className="border-y border-gray-200 bg-white py-16" data-help-id="payment-virtual-account-report">
           <div className="mx-auto max-w-[1440px] px-4 lg:px-8">
             <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>

@@ -196,7 +196,7 @@ export function DownloadListMigrationPage() {
       />
 
       <main id="main-content">
-        <section className="relative overflow-hidden bg-slate-900 py-16">
+        <section className="relative overflow-hidden bg-slate-900 py-16" data-help-id="download-list-hero">
           <div className="absolute inset-0 opacity-10">
             <svg height="100%" width="100%">
               <pattern height="60" id="download-grid" patternUnits="userSpaceOnUse" width="60">
@@ -283,7 +283,7 @@ export function DownloadListMigrationPage() {
 
         <section className="mx-auto grid max-w-7xl gap-8 px-4 py-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
           <div className="space-y-6">
-            <article className="rounded-[26px] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm">
+            <article className="rounded-[26px] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm" data-help-id="download-list-cards">
               <div className="flex flex-col gap-3 border-b border-[var(--kr-gov-border-light)] pb-5 md:flex-row md:items-end md:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{en ? "Download List" : "자료 목록"}</p>
@@ -357,7 +357,7 @@ export function DownloadListMigrationPage() {
           </div>
 
           <aside className="space-y-6">
-            <article className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+            <article className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm" data-help-id="download-list-support-desk">
               <div className="bg-[var(--kr-gov-blue)] p-6 text-white">
                 <h3 className="text-xl font-black">{en ? "Support Desk" : "고객센터 안내"}</h3>
                 <p className="mt-1 text-xs text-blue-100">{en ? "Need additional help?" : "도움이 더 필요하신가요?"}</p>
@@ -388,7 +388,7 @@ export function DownloadListMigrationPage() {
               </div>
             </article>
 
-            <article className="rounded-[24px] border border-indigo-100 bg-indigo-50 p-6 shadow-sm">
+            <article className="rounded-[24px] border border-indigo-100 bg-indigo-50 p-6 shadow-sm" data-help-id="download-list-urgent-notices">
               <h3 className="flex items-center gap-2 text-lg font-black text-indigo-900">
                 <span className="material-symbols-outlined text-[20px]">campaign</span>
                 {en ? "Urgent Notices" : "시스템 긴급 공지"}

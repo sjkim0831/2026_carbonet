@@ -42,6 +42,10 @@ export function buildVerificationCenterPath() {
   return buildLocalizedPath("/admin/system/verification-center", "/en/admin/system/verification-center");
 }
 
+export function buildVerificationAssetsPath() {
+  return buildLocalizedPath("/admin/system/verification-assets", "/en/admin/system/verification-assets");
+}
+
 export function buildFullStackManagementPath() {
   return buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management");
 }

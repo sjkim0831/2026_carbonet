@@ -124,10 +124,9 @@ Current remaining cutover gaps:
 - `modules/carbonet-web-support`
 - `modules/carbonet-contract-metadata`
 - `modules/carbonet-builder-observability`
-- adapter MyBatis/resource ownership is still partial:
-- `modules/screenbuilder-carbonet-adapter/src/main/resources/egovframework/mapper/com/feature/admin/framework/builder/FrameworkBuilderCompatibilityMapper.xml`
-- `apps/carbonet-app` still compiles the broader non-builder runtime from the legacy root tree
-- `apps/carbonet-app` has only started excluding builder-owned root source paths; source removal from the legacy tree is not started yet
+- adapter MyBatis/resource ownership for builder-owned resources is now fully moved to dedicated modules, and `apps/carbonet-app` excludes these resources from its root resource import
+- executable-app success no longer depends on any shared-root-backed runtime closure for builder-resource assembly
+- executable-app success is now attributable cleanly to dedicated-module builder-resource assembly rather than mixed assembly success
 
 ## App Candidates
 

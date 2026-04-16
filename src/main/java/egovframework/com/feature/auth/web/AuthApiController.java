@@ -1,6 +1,6 @@
 package egovframework.com.feature.auth.web;
 
-import egovframework.com.feature.admin.service.AdminLoginHistoryService;
+import egovframework.com.platform.observability.service.AdminLoginHistoryService;
 import egovframework.com.feature.auth.dto.internal.LoginIncorrectDTO;
 import egovframework.com.feature.auth.dto.internal.LoginPolicyDTO;
 import egovframework.com.feature.auth.dto.request.LoginRequestDTO;

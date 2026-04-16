@@ -126,6 +126,9 @@ export async function validateDbSyncDeployPolicy() {
 export async function executeDbSyncDeploy(payload?: {
   executionMode?: string;
   targetRoute?: string;
+  executionSource?: string;
+  ticketNumber?: string;
+  approver?: string;
 }) {
   return postLocalizedOpsAction<DbSyncDeployPagePayload>(
     "/admin/system/db-sync-deploy/execute",
@@ -156,6 +159,23 @@ export async function fetchExternalKeysPage() {
     "/admin/external/keys/page-data",
     "/en/admin/external/keys/page-data",
     { fallbackMessage: "Failed to load external keys page" }
+  );
+}
+
+export async function mutateExternalKey(
+  action: "issue" | "rotate" | "revoke",
+  payload: {
+    connectionId: string;
+    credentialLabel: string;
+    reason?: string;
+    approver?: string;
+  }
+) {
+  return postLocalizedOpsAction<{ success: boolean; message?: string }>(
+    `/admin/external/keys/${action}`,
+    `/en/admin/external/keys/${action}`,
+    payload,
+    `Failed to ${action} external key.`
   );
 }
 

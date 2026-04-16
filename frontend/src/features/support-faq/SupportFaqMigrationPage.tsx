@@ -182,7 +182,7 @@ export function SupportFaqMigrationPage() {
       />
 
       <main id="main-content">
-        <section className="relative overflow-hidden bg-slate-900 pb-20 pt-16">
+        <section className="relative overflow-hidden bg-slate-900 pb-20 pt-16" data-help-id="support-faq-hero">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <svg width="100%" height="100%">
               <pattern id="faq-dots" width="60" height="60" patternUnits="userSpaceOnUse">
@@ -223,7 +223,7 @@ export function SupportFaqMigrationPage() {
 
         <section className="relative z-20 mx-auto -mt-10 max-w-[1440px] px-4 pb-20 lg:px-8">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-            <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-xl lg:col-span-7">
+            <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-xl lg:col-span-7" data-help-id="support-faq-accordion">
               <div className="mb-8 flex items-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-[var(--kr-gov-blue)]">
                   <span className="material-symbols-outlined">help_center</span>
@@ -258,7 +258,7 @@ export function SupportFaqMigrationPage() {
             </div>
 
             <div className="flex flex-col gap-8 lg:col-span-5">
-              <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-8 shadow-xl">
+              <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-8 shadow-xl" data-help-id="support-faq-announcements">
                 <div className="mb-8 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
@@ -288,7 +288,7 @@ export function SupportFaqMigrationPage() {
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl bg-indigo-600 p-8 text-white shadow-xl">
+              <div className="relative overflow-hidden rounded-2xl bg-indigo-600 p-8 text-white shadow-xl" data-help-id="support-faq-quick-support">
                 <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10" />
                 <div className="relative z-10">
                   <h2 className="text-2xl font-black">{copy.quickTitle}</h2>

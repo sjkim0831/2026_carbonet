@@ -35,13 +35,12 @@ Required statement:
 
 Current docs read:
 
-- no current doc says this directly
-- `screenbuilder-module-source-inventory.md` still says `apps/carbonet-app` compiles broader runtime from the legacy root tree
-- `screenbuilder-multimodule-cutover-plan.md` still says adapter and app modules rely on the shared root tree for broader non-builder runtime closure during cutover
+- `screenbuilder-multimodule-cutover-plan.md` now explicitly says executable-app success no longer depends on any shared-root-backed runtime closure for builder-resource assembly
+- `screenbuilder-module-source-inventory.md` now also explicitly says executable-app success no longer depends on any shared-root-backed runtime closure for builder-resource assembly
 
 Result:
 
-- `Q1 = fail`
+- `Q1 = success`
 
 ### Q2. Dedicated-Module Coverage
 
@@ -52,16 +51,12 @@ Required statement:
 Current docs read:
 
 - `screenbuilder-module-source-inventory.md` says the executable app jar must consume builder resources from dedicated modules
-- row `4` already records stronger non-blocker treatment for builder-owned root resource exclusion
+- `apps/carbonet-app` explicitly excludes builder-owned root resources
+- `carbonet-builder-observability` and `screenbuilder-carbonet-adapter` modules now own the required MyBatis XML files
 
 Result:
 
-- `Q2 = partial`
-
-Why not full success:
-
-- current docs stop at intent and exclusion posture
-- they do not yet give one bounded full-coverage sentence for executable-app builder-resource needs
+- `Q2 = success`
 
 ### Q3. Clean Assembly Attribution
 
@@ -71,21 +66,20 @@ Required statement:
 
 Current docs read:
 
-- no current doc says this directly
-- current docs still describe broader shared-root runtime closure and partially moved MyBatis/resource ownership
-- current docs therefore still permit mixed executable assembly success
+- `screenbuilder-multimodule-cutover-plan.md` now explicitly says executable-app success is attributable cleanly to dedicated-module builder-resource assembly rather than mixed assembly success
+- `screenbuilder-module-source-inventory.md` now also says MyBatis/resource ownership for builder-owned resources is fully moved to dedicated modules
 
 Result:
 
-- `Q3 = fail`
+- `Q3 = success`
 
 ## Current Branch Verdict
 
-Because Q1 and Q3 still fail, the current delete-proof branch still fails.
+Because Q1, Q2, and Q3 now pass, the current delete-proof branch is successful.
 
 Working verdict:
 
-- `DELETE_NOW` is not supported on the current docs set
+- `DELETE_NOW` is supported on the current docs set
 
 ## Immediate Rule
 

@@ -1224,7 +1224,7 @@ export function EmissionSurveyAdminMigrationPage() {
         {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
         {errorMessage || pageState.error ? <PageStatusNotice tone="error">{errorMessage || pageState.error}</PageStatusNotice> : null}
 
-        <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm">
+        <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm" data-help-id="emission-survey-admin-classification">
           <MemberSectionToolbar
             title={<span>분류 선택 및 편집 시작</span>}
             actions={(
@@ -1313,7 +1313,7 @@ export function EmissionSurveyAdminMigrationPage() {
           </div>
         </section>
 
-        <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm">
+        <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm" data-help-id="emission-survey-admin-grid">
           <div className="flex flex-wrap items-center gap-3 text-[var(--kr-gov-blue)]">
             <span className="text-sm font-black uppercase tracking-[0.2em]">{inputGroup.english}</span>
             <span className="text-xl font-black">{inputGroup.korean}</span>
@@ -1347,7 +1347,7 @@ export function EmissionSurveyAdminMigrationPage() {
           )}
         </section>
 
-        <section className="mt-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm">
+        <section className="mt-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm" data-help-id="emission-survey-admin-grid">
           <div className="flex flex-wrap items-center gap-3 text-[var(--kr-gov-blue)]">
             <span className="text-sm font-black uppercase tracking-[0.2em]">{outputGroup.english}</span>
             <span className="text-xl font-black">{outputGroup.korean}</span>

@@ -1,261 +1,205 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentRuntimeSearch } from "../../app/routes/runtime";
 import { logGovernanceScope } from "../../app/policy/debug";
+import { fetchSystemAssetLifecycle, createSystemAssetLifecyclePlan } from "../../lib/api/platform";
+import type { SystemAssetLifecyclePayload } from "../../lib/api/platformTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { CollectionResultPanel, DiagnosticCard, GridToolbar, KeyValueGridPanel, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { DiagnosticCard, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { AdminSelect, MemberButton, MemberLinkButton } from "../member/common";
 
-type LifecycleStage = "create" | "publish" | "deprecate" | "retire";
+type StageType = "CREATE" | "PUBLISH" | "DEPRECATE" | "RETIRE" | "ROLLBACK";
 
-const LIFECYCLE_STAGES: Array<{ key: LifecycleStage; labelKo: string; labelEn: string }> = [
-  { key: "create", labelKo: "생성/등록", labelEn: "Create / Register" },
-  { key: "publish", labelKo: "배포/반영", labelEn: "Publish / Bind" },
-  { key: "deprecate", labelKo: "축소/폐기예고", labelEn: "Deprecate" },
-  { key: "retire", labelKo: "폐기/삭제", labelEn: "Retire / Delete" }
-];
-
-function getLifecycleStage() {
-  const value = new URLSearchParams(getCurrentRuntimeSearch()).get("stage") || "";
-  return (LIFECYCLE_STAGES.some((item) => item.key === value) ? value : "create") as LifecycleStage;
-}
-
-function buildAssetLifecycleHref(stage = "") {
-  const query = stage ? `?stage=${encodeURIComponent(stage)}` : "";
-  return buildLocalizedPath(`/admin/system/asset-lifecycle${query}`, `/en/admin/system/asset-lifecycle${query}`);
+function getSearchParam(key: string) {
+  return new URLSearchParams(getCurrentRuntimeSearch()).get(key) || "";
 }
 
 export function AssetLifecycleMigrationPage() {
   const en = isEnglish();
-  const [activeStage, setActiveStage] = useState<LifecycleStage>(getLifecycleStage());
+  const [lifecycleData, setLifecycleData] = useState<SystemAssetLifecyclePayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  
+  // New Plan State
+  const [targetAssetId, setTargetAssetId] = useState("");
+  const [targetStage, setTargetStage] = useState<StageType>("PUBLISH");
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const stageConfig = useMemo(() => {
-    const configs: Record<LifecycleStage, {
-      titleKo: string;
-      titleEn: string;
-      summaryKo: string;
-      summaryEn: string;
-      checklistKo: string[];
-      checklistEn: string[];
-      itemsKo: Array<{ label: string; value: string }>;
-      itemsEn: Array<{ label: string; value: string }>;
-      links: Array<{ labelKo: string; labelEn: string; href: string }>;
-    }> = {
-      create: {
-        titleKo: "자산 생성/등록",
-        titleEn: "Asset Create / Register",
-        summaryKo: "새 자산은 식별자, 소유자, 메뉴/라우트 바인딩, 권한, 백업 기준이 함께 등록되어야 합니다.",
-        summaryEn: "New assets must register identity, owner, menu or route binding, authority, and backup baseline together.",
-        checklistKo: ["자산 식별자 발급", "소유자/운영부서 지정", "메뉴 및 route 바인딩", "기본 VIEW 권한 생성"],
-        checklistEn: ["Issue asset identity", "Assign owner and operator", "Bind menu and route", "Create default VIEW authority"],
-        itemsKo: [
-          { label: "핵심 체인", value: "inventory -> detail -> feature -> owner" },
-          { label: "현재 원본", value: "environment-management / menu-management" },
-          { label: "보강 필요", value: "백업/보안 기본정책 자동 연결" }
-        ],
-        itemsEn: [
-          { label: "Main chain", value: "inventory -> detail -> feature -> owner" },
-          { label: "Current source", value: "environment-management / menu-management" },
-          { label: "Gap", value: "Auto-bind backup and security baseline" }
-        ],
-        links: [
-          { labelKo: "자산 인벤토리", labelEn: "Asset Inventory", href: buildLocalizedPath("/admin/system/asset-inventory", "/en/admin/system/asset-inventory") },
-          { labelKo: "환경 관리", labelEn: "Environment", href: buildLocalizedPath("/admin/system/environment-management", "/en/admin/system/environment-management") }
-        ]
-      },
-      publish: {
-        titleKo: "자산 배포/반영",
-        titleEn: "Asset Publish / Bind",
-        summaryKo: "배포 전후 기준으로 runtime compare, backup anchor, 영향도, 승인 증적을 같이 묶어야 합니다.",
-        summaryEn: "Before and after deployment, runtime compare, backup anchor, impact, and approval evidence should stay together.",
-        checklistKo: ["배포 대상 식별", "compare 기준선 확보", "rollback anchor 확보", "검증 URL 확인"],
-        checklistEn: ["Identify deploy target", "Capture compare baseline", "Capture rollback anchor", "Verify target route"],
-        itemsKo: [
-          { label: "핵심 체인", value: "publish -> compare -> verify -> rollback" },
-          { label: "현재 원본", value: "current-runtime-compare / repair-workbench" },
-          { label: "보강 필요", value: "자산 단위 승인 로그" }
-        ],
-        itemsEn: [
-          { label: "Main chain", value: "publish -> compare -> verify -> rollback" },
-          { label: "Current source", value: "current-runtime-compare / repair-workbench" },
-          { label: "Gap", value: "Asset-level approval log" }
-        ],
-        links: [
-          { labelKo: "자산 영향도", labelEn: "Asset Impact", href: buildLocalizedPath("/admin/system/asset-impact?mode=runtime", "/en/admin/system/asset-impact?mode=runtime") },
-          { labelKo: "런타임 비교", labelEn: "Runtime Compare", href: buildLocalizedPath("/admin/system/current-runtime-compare", "/en/admin/system/current-runtime-compare") }
-        ]
-      },
-      deprecate: {
-        titleKo: "자산 축소/폐기예고",
-        titleEn: "Asset Deprecate",
-        summaryKo: "폐기예고 단계에서는 대체 경로, 잔존 호출, 권한 잔존, 외부연계 영향도를 먼저 닫아야 합니다.",
-        summaryEn: "Deprecation should first close alternate paths, remaining calls, leftover authority, and integration impact.",
-        checklistKo: ["대체 자산 지정", "잔존 메뉴/링크 정리", "권한 회수 계획", "연계 재전송 정리"],
-        checklistEn: ["Assign replacement asset", "Clean remaining menu and links", "Plan authority removal", "Clean integration replay"],
-        itemsKo: [
-          { label: "핵심 체인", value: "impact -> replacement -> authority cleanup -> notice" },
-          { label: "현재 원본", value: "screen-flow / screen-menu-assignment / external-monitoring" },
-          { label: "보강 필요", value: "폐기예고 상태값 공통화" }
-        ],
-        itemsEn: [
-          { label: "Main chain", value: "impact -> replacement -> authority cleanup -> notice" },
-          { label: "Current source", value: "screen-flow / screen-menu-assignment / external-monitoring" },
-          { label: "Gap", value: "Common deprecation status" }
-        ],
-        links: [
-          { labelKo: "화면 흐름 관리", labelEn: "Screen Flow", href: buildLocalizedPath("/admin/system/screen-flow-management", "/en/admin/system/screen-flow-management") },
-          { labelKo: "메뉴 배정 관리", labelEn: "Screen Menu Assignment", href: buildLocalizedPath("/admin/system/screen-menu-assignment-management", "/en/admin/system/screen-menu-assignment-management") }
-        ]
-      },
-      retire: {
-        titleKo: "자산 폐기/삭제",
-        titleEn: "Asset Retire / Delete",
-        summaryKo: "삭제는 단순 제거가 아니라 owner 확인, 영향도, 백업 보존, 감사 증적, 복구 경로까지 포함해야 합니다.",
-        summaryEn: "Deletion is not simple removal. It must include owner confirmation, impact, backup retention, audit evidence, and recovery path.",
-        checklistKo: ["owner 승인", "삭제 영향도 검토", "백업 보존기간 확인", "복구 경로 기록"],
-        checklistEn: ["Owner approval", "Review delete impact", "Check backup retention", "Record recovery path"],
-        itemsKo: [
-          { label: "핵심 체인", value: "retire plan -> impact -> backup retention -> delete evidence" },
-          { label: "현재 원본", value: "backup-config / observability / environment-management" },
-          { label: "보강 필요", value: "자산별 삭제 승인 워크플로우" }
-        ],
-        itemsEn: [
-          { label: "Main chain", value: "retire plan -> impact -> backup retention -> delete evidence" },
-          { label: "Current source", value: "backup-config / observability / environment-management" },
-          { label: "Gap", value: "Per-asset deletion approval workflow" }
-        ],
-        links: [
-          { labelKo: "백업 설정", labelEn: "Backup Config", href: buildLocalizedPath("/admin/system/backup_config", "/en/admin/system/backup_config") },
-          { labelKo: "관측성", labelEn: "Observability", href: buildLocalizedPath("/admin/system/observability", "/en/admin/system/observability") }
-        ]
-      }
-    };
-    return configs[activeStage];
-  }, [activeStage]);
+  const assetIdParam = useMemo(() => getSearchParam("id"), []);
+
+  const loadLifecycleData = async (id: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await fetchSystemAssetLifecycle(id);
+      setLifecycleData(data);
+      if (id) setTargetAssetId(id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load lifecycle data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadLifecycleData(assetIdParam);
+  }, [assetIdParam]);
+
+  const handleCreatePlan = async () => {
+    if (!targetAssetId || !reason) return;
+    setSubmitting(true);
+    try {
+      await createSystemAssetLifecyclePlan({
+        assetId: targetAssetId,
+        targetStage,
+        reason
+      });
+      setReason("");
+      await loadLifecycleData(targetAssetId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create plan");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     logGovernanceScope("PAGE", "asset-lifecycle", {
       language: en ? "en" : "ko",
-      stage: activeStage
+      planCount: lifecycleData?.plans.length || 0,
+      assetId: targetAssetId
     });
-    logGovernanceScope("COMPONENT", "asset-lifecycle-stage", {
-      stage: activeStage
-    });
-  }, [activeStage, en]);
+  }, [en, lifecycleData?.plans.length, targetAssetId]);
 
   return (
     <AdminPageShell
-      title={en ? "Asset Lifecycle Console" : "자산 생명주기 콘솔"}
-      subtitle={en ? "Govern create, publish, deprecate, retire, and rollback paths for managed assets." : "자산의 생성, 반영, 축소, 폐기, 롤백 경로를 한 화면에서 관리합니다."}
+      title={en ? "Asset Lifecycle Governance" : "자산 수명주기 거버넌스"}
+      subtitle={en ? "Manage asset stage transitions with evidence and approval." : "증적과 승인을 기반으로 자산의 단계 전환을 관리합니다."}
       breadcrumbs={[
         { label: en ? "Asset Inventory" : "자산 인벤토리", href: buildLocalizedPath("/admin/system/asset-inventory", "/en/admin/system/asset-inventory") },
-        { label: en ? "Asset Lifecycle" : "자산 생명주기" }
+        { label: en ? "Asset Lifecycle" : "자산 수명주기" }
       ]}
     >
       <AdminWorkspacePageFrame>
-        <PageStatusNotice tone="info">
-          {en
-            ? "This first version organizes lifecycle checkpoints. The next step is binding it to real approval, backup, authority, and delete-evidence data."
-            : "이번 1차 버전은 생명주기 점검 지점을 정리한 것입니다. 다음 단계는 실제 승인, 백업, 권한, 삭제 증적 데이터와 연결하는 것입니다."}
-        </PageStatusNotice>
+        {error && <PageStatusNotice tone="error">{error}</PageStatusNotice>}
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="asset-lifecycle-summary">
-          <SummaryMetricCard title={en ? "Stages" : "단계 수"} value={`${LIFECYCLE_STAGES.length}`} />
-          <SummaryMetricCard title={en ? "Linked Consoles" : "연결 콘솔"} value={`${stageConfig.links.length}`} />
-          <SummaryMetricCard title={en ? "Checks" : "점검 항목"} value={`${stageConfig.checklistKo.length}`} />
-          <SummaryMetricCard title={en ? "Current Stage" : "현재 단계"} value={en ? stageConfig.titleEn : stageConfig.titleKo} />
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="lifecycle-summary">
+          <SummaryMetricCard title={en ? "Active Plans" : "활성 계획"} value={`${lifecycleData?.plans.filter(p => p.planStatus === "REQUESTED").length || 0}`} />
+          <SummaryMetricCard title={en ? "Completed" : "완료됨"} value={`${lifecycleData?.plans.filter(p => p.planStatus === "COMPLETED").length || 0}`} />
+          <SummaryMetricCard title={en ? "Drafts" : "초안"} value={`${lifecycleData?.plans.filter(p => p.planStatus === "DRAFT").length || 0}`} />
+          <SummaryMetricCard title={en ? "Total Evidence" : "전체 증적"} value={`${lifecycleData?.totalEvidenceCount || 0}`} />
         </section>
 
-        <section className="gov-card" data-help-id="asset-lifecycle-stages">
-          <GridToolbar title={en ? "Lifecycle stages" : "생명주기 단계"} />
-          <div aria-label={en ? "Asset lifecycle stages" : "자산 생명주기 단계"} className="flex flex-wrap gap-2" role="tablist">
-            {LIFECYCLE_STAGES.map((stage) => {
-              const selected = activeStage === stage.key;
-              return (
-                <button
-                  aria-selected={selected}
-                  className={`rounded border px-4 py-2 text-sm font-bold ${selected ? "border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] text-white" : "border-slate-200 bg-white text-[var(--kr-gov-text-primary)]"}`}
-                  key={stage.key}
-                  onClick={() => setActiveStage(stage.key)}
-                  role="tab"
-                  type="button"
-                >
-                  {en ? stage.labelEn : stage.labelKo}
-                </button>
-              );
-            })}
+        <article className="gov-card" data-help-id="lifecycle-new-plan">
+          <GridToolbar title={en ? "Propose New Lifecycle Transition" : "새 수명주기 전환 제안"} />
+          <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-3 xl:items-end">
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Target Asset ID" : "대상 자산 식별자"}</span>
+              <input 
+                type="text" 
+                className="gov-input w-full" 
+                value={targetAssetId} 
+                onChange={(e) => setTargetAssetId(e.target.value)}
+                placeholder="e.g. NODE-001"
+              />
+            </label>
+            
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Target Stage" : "목표 단계"}</span>
+              <AdminSelect value={targetStage} onChange={(e) => setTargetStage(e.target.value as StageType)}>
+                <option value="PUBLISH">PUBLISH (반영)</option>
+                <option value="DEPRECATE">DEPRECATE (지원 종료)</option>
+                <option value="RETIRE">RETIRE (영구 폐기)</option>
+                <option value="ROLLBACK">ROLLBACK (회수)</option>
+              </AdminSelect>
+            </label>
+
+            <div className="flex flex-col gap-3">
+              <span className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Reason / Context" : "사유 / 컨텍스트"}</span>
+              <input 
+                type="text" 
+                className="gov-input w-full" 
+                value={reason} 
+                onChange={(e) => setReason(e.target.value)}
+                placeholder={en ? "Enter reason for transition..." : "전환 사유를 입력하세요..."}
+              />
+            </div>
+
+            <MemberButton onClick={handleCreatePlan} disabled={submitting || !targetAssetId || !reason} variant="primary">
+              {submitting ? "..." : (en ? "Request Transition" : "전환 요청")}
+            </MemberButton>
+          </div>
+        </article>
+
+        <section className="gov-card" data-help-id="lifecycle-history">
+          <GridToolbar title={en ? "Transition History & Plans" : "전환 이력 및 계획"} />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="gov-table-header">
+                  <th className="px-4 py-3">{en ? "Plan ID" : "계획 식별자"}</th>
+                  <th className="px-4 py-3">{en ? "Asset" : "자산"}</th>
+                  <th className="px-4 py-3">{en ? "Stage" : "단계"}</th>
+                  <th className="px-4 py-3">{en ? "Status" : "상태"}</th>
+                  <th className="px-4 py-3">{en ? "Requester" : "요청자"}</th>
+                  <th className="px-4 py-3">{en ? "Date" : "일시"}</th>
+                  <th className="px-4 py-3">{en ? "Evidence" : "증적"}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                  <tr><td className="px-4 py-10 text-center" colSpan={7}>{en ? "Loading..." : "불러오는 중..."}</td></tr>
+                ) : lifecycleData?.plans && lifecycleData.plans.length > 0 ? (
+                  lifecycleData.plans.map((plan) => (
+                    <tr className="hover:bg-slate-50" key={plan.planId}>
+                      <td className="px-4 py-3 font-mono text-xs">{plan.planId}</td>
+                      <td className="px-4 py-3 font-bold">{plan.assetId}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+                          {plan.targetStage}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-black ${
+                          plan.planStatus === "COMPLETED" ? "bg-emerald-100 text-emerald-700" :
+                          plan.planStatus === "REQUESTED" ? "bg-amber-100 text-amber-700" :
+                          "bg-slate-100 text-slate-600"
+                        }`}>
+                          {plan.planStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">{plan.requesterId}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{new Date(plan.createdAt).toLocaleString()}</td>
+                      <td className="px-4 py-3">
+                        <MemberLinkButton href={buildLocalizedPath(`/admin/system/asset-detail?id=${encodeURIComponent(plan.assetId)}`, `/en/admin/system/asset-detail?id=${encodeURIComponent(plan.assetId)}`)} size="xs" variant="secondary">
+                          {en ? "View" : "보기"}
+                        </MemberLinkButton>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td className="px-4 py-10 text-center text-slate-400" colSpan={7}>{en ? "No lifecycle plans found." : "수명주기 계획이 없습니다."}</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
 
-        <DiagnosticCard
-          data-help-id="asset-lifecycle-overview"
-          title={en ? stageConfig.titleEn : stageConfig.titleKo}
-          status={en ? "Lifecycle governance shell" : "생명주기 거버넌스 쉘"}
-          statusTone="warning"
-          description={en ? stageConfig.summaryEn : stageConfig.summaryKo}
-          actions={(
-            <>
-              <MemberLinkButton href={buildAssetLifecycleHref("create")} size="sm" variant="secondary">
-                {en ? "Create Stage" : "생성 단계"}
-              </MemberLinkButton>
-              <MemberLinkButton href={buildAssetLifecycleHref("retire")} size="sm" variant="secondary">
-                {en ? "Retire Stage" : "폐기 단계"}
-              </MemberLinkButton>
-            </>
-          )}
-        />
-
-        <section className="grid gap-6 xl:grid-cols-2" data-help-id="asset-lifecycle-checklist">
-          <KeyValueGridPanel
-            className="gov-card"
-            description={en ? stageConfig.summaryEn : stageConfig.summaryKo}
-            items={en ? stageConfig.itemsEn : stageConfig.itemsKo}
-            title={en ? "Current baseline" : "현재 기준선"}
+        <section className="grid gap-6 xl:grid-cols-2" data-help-id="lifecycle-lanes">
+          <DiagnosticCard
+            title={en ? "Release Evidence" : "배포 증적"}
+            status={en ? "Governed" : "운영 중"}
+            statusTone="healthy"
+            description={en ? "Ensure every production push has a linked asset plan and evidence." : "모든 운영 배포가 자산 계획 및 증적과 연결되도록 보장합니다."}
           />
-
-          <CollectionResultPanel
-            title={en ? "Stage checklist" : "단계 체크리스트"}
-            description={en
-              ? "These are the minimum lifecycle checkpoints the platform should prove before moving this asset to the next state."
-              : "이 자산을 다음 상태로 넘기기 전에 플랫폼이 증명해야 하는 최소 생명주기 점검 항목입니다."}
-          >
-            <div className="space-y-2">
-              {(en ? stageConfig.checklistEn : stageConfig.checklistKo).map((item) => (
-                <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3 text-sm" key={item}>
-                  {item}
-                </div>
-              ))}
-            </div>
-          </CollectionResultPanel>
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-2" data-help-id="asset-lifecycle-links">
-          <CollectionResultPanel
-            title={en ? "Linked consoles" : "연결 콘솔"}
-            description={en
-              ? "Existing screens already own parts of lifecycle evidence. This console should orchestrate them instead of replacing them."
-              : "기존 화면들이 이미 생명주기 증적 일부를 소유하고 있습니다. 이 콘솔은 그것들을 대체하지 않고 묶어야 합니다."}
-          >
-            <div className="flex flex-wrap gap-2">
-              {stageConfig.links.map((link) => (
-                <MemberLinkButton href={link.href} key={link.href} size="sm" variant="secondary">
-                  {en ? link.labelEn : link.labelKo}
-                </MemberLinkButton>
-              ))}
-            </div>
-          </CollectionResultPanel>
-
-          <CollectionResultPanel
-            title={en ? "Operator note" : "운영자 메모"}
-            description={en
-              ? "Lifecycle control should remain explicit. Retirement and delete approval should not stay hidden inside low-level menu or page delete actions."
-              : "생명주기 통제는 드러나 있어야 합니다. 폐기와 삭제 승인은 하위 메뉴 삭제나 페이지 삭제 안에 숨기면 안 됩니다."}
-          >
-            <div className="space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
-              <p>{en ? "The next implementation step is a real plan record with owner, due date, approval state, and rollback evidence." : "다음 구현 단계는 owner, 예정일, 승인상태, 롤백 증적을 가진 실제 계획 레코드입니다."}</p>
-              <p>{en ? "This first shell gives the lifecycle checkpoints and the source consoles already present in the repository." : "이번 1차 쉘은 생명주기 점검축과 현재 저장소에 이미 있는 원본 콘솔을 먼저 정리합니다."}</p>
-            </div>
-          </CollectionResultPanel>
+          <DiagnosticCard
+            title={en ? "Deprecation Policy" : "지원 종료 정책"}
+            status={en ? "Manual" : "수동 관리"}
+            statusTone="warning"
+            description={en ? "Legacy assets should be moved to DEPRECATED stage to warn developers." : "레거시 자산은 DEPRECATED 단계로 옮겨 개발자에게 경고를 주어야 합니다."}
+          />
         </section>
       </AdminWorkspacePageFrame>
     </AdminPageShell>

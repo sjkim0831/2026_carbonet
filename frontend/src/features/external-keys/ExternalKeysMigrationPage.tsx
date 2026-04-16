@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchExternalKeysPage } from "../../lib/api/ops";
+import { fetchExternalKeysPage, mutateExternalKey } from "../../lib/api/ops";
 import type { ExternalKeysPagePayload } from "../../lib/api/opsTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { stringOf } from "../admin-system/adminSystemShared";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
-import { AdminInput, AdminSelect } from "../member/common";
+import { AdminInput, AdminSelect, MemberButton } from "../member/common";
 
 type ExternalKeyCloseoutItem = {
   label: string;
@@ -122,6 +122,38 @@ export function ExternalKeysMigrationPage() {
   const [keyword, setKeyword] = useState("");
   const [authMethod, setAuthMethod] = useState("ALL");
   const [rotationStatus, setRotationStatus] = useState("ALL");
+
+  const [mutatingKey, setMutatingKey] = useState<string | null>(null);
+  const [mutationMessage, setMutationMessage] = useState("");
+  const [mutationError, setMutationError] = useState("");
+
+  const handleKeyMutation = async (action: "issue" | "rotate" | "revoke", row: Record<string, unknown>) => {
+    const connectionId = stringOf(row, "connectionId");
+    const credentialLabel = stringOf(row, "credentialLabel");
+    
+    if (!window.confirm(en 
+      ? `Are you sure you want to ${action} the key for ${connectionId} / ${credentialLabel}?\nThis action will be audited and may affect downstream systems.`
+      : `정말로 ${connectionId} / ${credentialLabel} 의 키를 ${action === "issue" ? "발급" : action === "rotate" ? "교체(회전)" : "폐기"}하시겠습니까?\n이 작업은 감사 로그에 기록되며 하위 시스템에 영향을 줄 수 있습니다.`
+    )) return;
+
+    setMutatingKey(`${connectionId}-${credentialLabel}`);
+    setMutationMessage("");
+    setMutationError("");
+    try {
+      const response = await mutateExternalKey(action, {
+        connectionId,
+        credentialLabel,
+        reason: "Admin forced mutation from governed console",
+        approver: "Admin"
+      });
+      setMutationMessage(response.message || (en ? `Successfully performed ${action} action.` : `성공적으로 ${action} 작업을 수행했습니다.`));
+      await pageState.reload();
+    } catch (err) {
+      setMutationError(err instanceof Error ? err.message : (en ? `Failed to ${action} key.` : `키 ${action} 작업에 실패했습니다.`));
+    } finally {
+      setMutatingKey(null);
+    }
+  };
 
   const filteredRows = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
@@ -252,6 +284,8 @@ export function ExternalKeysMigrationPage() {
     >
       <AdminWorkspacePageFrame>
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
+        {mutationError ? <PageStatusNotice tone="error">{mutationError}</PageStatusNotice> : null}
+        {mutationMessage ? <PageStatusNotice tone="success">{mutationMessage}</PageStatusNotice> : null}
         {urgentRows.length > 0 ? (
           <PageStatusNotice tone="warning">
             {en
@@ -331,10 +365,14 @@ export function ExternalKeysMigrationPage() {
                   <th className="px-4 py-3">{en ? "Expires" : "만료 예정"}</th>
                   <th className="px-4 py-3">{en ? "Rotation" : "교체 상태"}</th>
                   <th className="px-4 py-3">{en ? "Owner" : "담당"}</th>
+                  <th className="px-4 py-3 text-right">{en ? "Actions" : "관리 조치"}</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row, index) => (
+                {filteredRows.map((row, index) => {
+                  const keyId = `${stringOf(row, "connectionId")}-${stringOf(row, "credentialLabel")}`;
+                  const isMutating = mutatingKey === keyId;
+                  return (
                   <tr key={`${stringOf(row, "connectionId")}-${index}`} className="border-t border-[var(--kr-gov-border-light)]">
                     <td className="px-4 py-3">
                       <a className="font-bold text-[var(--kr-gov-blue)] underline-offset-2 hover:underline" href={stringOf(row, "targetRoute")}>
@@ -357,11 +395,32 @@ export function ExternalKeysMigrationPage() {
                       <div>{stringOf(row, "ownerName") || "-"}</div>
                       <div className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row, "ownerContact") || "-"}</div>
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-2">
+                        <MemberButton
+                          size="sm"
+                          variant="secondary"
+                          disabled={isMutating || mutatingKey !== null}
+                          onClick={() => handleKeyMutation("rotate", row)}
+                        >
+                          {en ? "Rotate" : "교체(회전)"}
+                        </MemberButton>
+                        <MemberButton
+                          size="sm"
+                          variant="secondary"
+                          disabled={isMutating || mutatingKey !== null}
+                          onClick={() => handleKeyMutation("revoke", row)}
+                        >
+                          {en ? "Revoke" : "폐기"}
+                        </MemberButton>
+                      </div>
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {filteredRows.length === 0 ? (
                   <tr className="border-t border-[var(--kr-gov-border-light)]">
-                    <td className="px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]" colSpan={8}>
+                    <td className="px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]" colSpan={9}>
                       {en ? "No external credentials match the current filters." : "현재 조건에 맞는 외부 인증키가 없습니다."}
                     </td>
                   </tr>

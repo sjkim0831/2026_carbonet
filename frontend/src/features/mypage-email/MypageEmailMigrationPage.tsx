@@ -89,13 +89,13 @@ export function MypageEmailMigrationPage() {
 
       <main className="py-12" id="main-content">
         <div className="mx-auto max-w-[800px] px-4">
-          <div className="mb-10">
+          <div className="mb-10" data-help-id="mypage-email-hero">
             <h2 className="text-3xl font-black text-slate-900">{copy.title}</h2>
             <p className="mt-2 text-sm text-slate-500">{copy.subtitle}</p>
           </div>
 
           <div className="space-y-8">
-            <section className="rounded-[10px] border border-slate-200 bg-white p-8 shadow-sm">
+            <section className="rounded-[10px] border border-slate-200 bg-white p-8 shadow-sm" data-help-id="mypage-email-form">
               <div className="mb-6 flex items-center gap-3">
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">lock</span>
                 <h3 className="text-xl font-bold">{copy.passwordSection}</h3>

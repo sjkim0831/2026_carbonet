@@ -174,6 +174,11 @@ require_nonempty_value() {
   [[ -n "$value" ]] || fail "missing required value: $label"
 }
 
+local_port_accepts_tcp() {
+  local port="$1"
+  bash -lc "exec 3<>/dev/tcp/127.0.0.1/${port}" >/dev/null 2>&1
+}
+
 enforce_execution_contract() {
   case "$EXECUTION_SOURCE" in
     page|queue)
@@ -202,10 +207,15 @@ enforce_execution_contract() {
 }
 
 cleanup() {
+  close_remote_db_tunnel
+}
+
+close_remote_db_tunnel() {
   if [[ -n "${REMOTE_DB_SSH_PID:-}" ]] && kill -0 "$REMOTE_DB_SSH_PID" 2>/dev/null; then
     kill "$REMOTE_DB_SSH_PID" 2>/dev/null || true
     wait "$REMOTE_DB_SSH_PID" 2>/dev/null || true
   fi
+  REMOTE_DB_SSH_PID=""
 }
 
 trap cleanup EXIT
@@ -1489,6 +1499,7 @@ run_java_diff_tool() {
   local remote_to_local_file="$2"
   local remote_url="jdbc:cubrid:127.0.0.1:${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8"
 
+  ensure_remote_db_tunnel
   CARBONET_LOCAL_DB_URL="$LOCAL_DB_URL" \
   CARBONET_LOCAL_DB_USER="$LOCAL_DB_USER" \
   CARBONET_LOCAL_DB_PASSWORD="$LOCAL_DB_PASSWORD" \
@@ -1674,6 +1685,7 @@ backup_remote_snapshot() {
   while (( attempt <= REMOTE_DB_SNAPSHOT_ATTEMPTS )); do
     tmp_snapshot="${output_file}.tmp.$$.$attempt"
     rm -f "$tmp_snapshot"
+    ensure_remote_db_tunnel
     log "${label} started attempt ${attempt}/${REMOTE_DB_SNAPSHOT_ATTEMPTS}"
     if run_java_tool dump "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$tmp_snapshot"; then
       mv "$tmp_snapshot" "$output_file"
@@ -1726,6 +1738,7 @@ generate_db_schema_diff() {
 
   log "DB patch history ensure started"
   ensure_patch_history "$LOCAL_DB_URL" "$LOCAL_DB_USER" "$LOCAL_DB_PASSWORD"
+  ensure_remote_db_tunnel
   ensure_patch_history "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD"
   log "DB patch history ensure completed"
 
@@ -1740,6 +1753,7 @@ apply_generated_db_diff_patches() {
   local risk_level=""
 
   if [[ "$APPLY_DB_DIFF_TO_REMOTE" == "true" ]]; then
+    ensure_remote_db_tunnel
     [[ -f "$DB_DIFF_LOCAL_TO_REMOTE_FILE" ]] || fail "local->remote DB diff file not found: $DB_DIFF_LOCAL_TO_REMOTE_FILE"
     risk_level="AUTO"
     if has_untracked_destructive_diff "$DB_DIFF_LOCAL_TO_REMOTE_FILE"; then
@@ -1841,6 +1855,14 @@ verify_db_schema_diff_closed() {
 }
 
 open_remote_db_tunnel() {
+  if [[ -n "${REMOTE_DB_SSH_PID:-}" ]] && kill -0 "$REMOTE_DB_SSH_PID" 2>/dev/null; then
+    if local_port_accepts_tcp "$REMOTE_DB_TUNNEL_PORT"; then
+      return 0
+    fi
+    log "remote DB tunnel process exists but local port ${REMOTE_DB_TUNNEL_PORT} is closed; reopening tunnel"
+    close_remote_db_tunnel
+  fi
+
   require_env "REMOTE_DB_SSH_USER"
   require_env "REMOTE_DB_SSH_HOST"
   require_env "REMOTE_DB_SSH_PASSWORD"
@@ -1850,6 +1872,9 @@ open_remote_db_tunnel() {
     -N \
     -L "${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_HOST}:${REMOTE_DB_PORT}" \
     -o ExitOnForwardFailure=yes \
+    -o ServerAliveInterval=10 \
+    -o ServerAliveCountMax=3 \
+    -o TCPKeepAlive=yes \
     -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
     -p "$REMOTE_DB_SSH_PORT" \
@@ -1857,10 +1882,31 @@ open_remote_db_tunnel() {
   REMOTE_DB_SSH_PID=$!
   sleep 3
   kill -0 "$REMOTE_DB_SSH_PID" 2>/dev/null || fail "remote DB tunnel failed"
+  for _ in $(seq 1 10); do
+    if local_port_accepts_tcp "$REMOTE_DB_TUNNEL_PORT"; then
+      return 0
+    fi
+    sleep 1
+  done
+  fail "remote DB tunnel did not open local port 127.0.0.1:${REMOTE_DB_TUNNEL_PORT}; check SSH reachability to ${REMOTE_DB_SSH_HOST}:${REMOTE_DB_SSH_PORT} and remote broker ${REMOTE_DB_HOST}:${REMOTE_DB_PORT}"
+}
+
+ensure_remote_db_tunnel() {
+  if [[ -n "${REMOTE_DB_SSH_PID:-}" ]] && kill -0 "$REMOTE_DB_SSH_PID" 2>/dev/null; then
+    if local_port_accepts_tcp "$REMOTE_DB_TUNNEL_PORT"; then
+      return 0
+    fi
+    log "remote DB tunnel port ${REMOTE_DB_TUNNEL_PORT} is closed; reopening tunnel"
+  else
+    log "remote DB tunnel process is not running; reopening tunnel"
+  fi
+  close_remote_db_tunnel
+  open_remote_db_tunnel
 }
 
 apply_snapshot_to_remote_db() {
   local remote_url="jdbc:cubrid:127.0.0.1:${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8"
+  ensure_remote_db_tunnel
   log "remote DB apply started"
   run_java_tool run "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" "$SNAPSHOT_FILE"
   log "remote DB apply completed"
@@ -1869,6 +1915,7 @@ apply_snapshot_to_remote_db() {
 remote_table_exists() {
   local table_name="$1"
   local remote_url="jdbc:cubrid:127.0.0.1:${REMOTE_DB_TUNNEL_PORT}:${REMOTE_DB_NAME}:::?charset=UTF-8"
+  ensure_remote_db_tunnel
   if run_java_tool table-exists "$remote_url" "$REMOTE_DB_USER" "$REMOTE_DB_PASSWORD" /dev/null "$table_name" >/dev/null 2>&1; then
     return 0
   fi
@@ -1906,6 +1953,7 @@ apply_configured_sql_files_to_remote_db() {
   local patch_id=""
   local patch_name=""
 
+  ensure_remote_db_tunnel
   parse_sql_file_list
   for sql_file in "${SQL_FILES[@]}"; do
     [[ -f "$sql_file" ]] || fail "SQL file not found: $sql_file"

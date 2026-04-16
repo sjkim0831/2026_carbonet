@@ -361,7 +361,7 @@ export function MypageNotificationMigrationPage() {
           </aside>
 
           <section className="space-y-8">
-            <section className="overflow-hidden rounded-[28px] bg-slate-900 text-white shadow-xl">
+            <section className="overflow-hidden rounded-[28px] bg-slate-900 text-white shadow-xl" data-help-id="mypage-notification-hero">
               <div className="grid gap-8 p-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-10">
                 <div>
                   <div className="inline-flex items-center gap-3 rounded-full border border-indigo-400/30 bg-indigo-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.26em] text-indigo-200">
@@ -382,7 +382,7 @@ export function MypageNotificationMigrationPage() {
               </div>
             </section>
 
-            <section className="grid gap-4 md:grid-cols-3">
+            <section className="grid gap-4 md:grid-cols-3" data-help-id="mypage-notification-summary">
               {copy.summaryLabels.map((label, index) => (
                 <div className="rounded-[22px] border border-slate-200 bg-white p-6 shadow-sm" key={label}>
                   <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">{label}</p>
@@ -410,7 +410,7 @@ export function MypageNotificationMigrationPage() {
               </section>
             ) : (
               <>
-                <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+                <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm" data-help-id="mypage-notification-settings">
                   <div className="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <h2 className="text-lg font-black text-slate-900">{copy.settingsTitle}</h2>
@@ -443,7 +443,7 @@ export function MypageNotificationMigrationPage() {
                 </section>
 
                 <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-                  <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+                  <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm" data-help-id="mypage-notification-marketing">
                     <h2 className="text-lg font-black text-slate-900">{copy.marketingTitle}</h2>
                     <p className="mt-2 text-sm leading-6 text-slate-500">{copy.marketingDesc}</p>
                     <div className="mt-6 flex items-center justify-between rounded-[20px] border border-slate-200 bg-slate-50 px-5 py-5">

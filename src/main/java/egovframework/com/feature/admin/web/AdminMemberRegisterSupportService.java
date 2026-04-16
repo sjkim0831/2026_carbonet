@@ -1,7 +1,9 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
+import egovframework.com.platform.codex.model.AuthorInfoVO;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

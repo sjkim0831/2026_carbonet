@@ -1,18 +1,20 @@
 # Latest Handoff
 
-Updated on `2026-04-09`.
+Updated on `2026-04-15`.
 
 ## Current Position
 
 - boundary rules are already established
 - the repository is in the implementation phase, not the idea phase
 - the highest-value unfinished area is still control-plane composition under `feature/admin`
-- builder structure-governance closure for the current wave is now frozen in `docs/architecture/builder-structure-wave-20260409-closure.md`
+- builder structure-governance closure for the current wave is frozen in `docs/architecture/builder-structure-wave-20260409-closure.md`
+- builder resource-ownership closure for the current wave is now frozen in `docs/architecture/builder-resource-ownership-wave-20260415-closure.md`
 - app assembly, package, runtime, and asset freshness closure for the current owner wave is now frozen around `apps/carbonet-app`
 
 ## Current Closed Family
 
 - `BUILDER_STRUCTURE_GOVERNANCE`
+- `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`
 - `APP_ASSEMBLY_BUILD_RUNTIME_CLOSURE`
 
 This means the following are now frozen for the current wave:
@@ -21,6 +23,8 @@ This means the following are now frozen for the current wave:
 - which builder paths are source of truth
 - when a legacy builder path may stay as a shim
 - how `large-move-completion-contract.md` should be interpreted for this wave
+- builder-owned resources are consumed from dedicated modules
+- executable-app success is attributable cleanly to dedicated-module assembly
 - which app assembly path is canonical
 - which packaged jar path is canonical
 - which closure and runtime-proof scripts are the standard operator path
@@ -28,6 +32,7 @@ This means the following are now frozen for the current wave:
 Operator-ready closeout note:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-structure-wave-closeout.md`
+- `docs/architecture/builder-resource-ownership-wave-20260415-closure.md`
 - `ops/scripts/app-closure-help.sh`
 - `ops/scripts/verify-app-closure-all.sh`
 - `ops/scripts/codex-verify-18000-freshness.sh`
@@ -304,28 +309,14 @@ When Session B or Session C delivers a runtime-affecting change, Session D close
 
 ## Builder Resource Ownership Current State
 
-For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, the single live entry pair remains:
+- `BUILDER_RESOURCE_OWNERSHIP_CLOSURE` is now CLOSED
+- all 5 rows resolved as `DELETE_NOW` or carry non-blocking notes
+- success phrase: `SUCCESS: builder resource ownership closure is now complete across all five rows, with row 5 resolved as DELETE_NOW following explicit root exclusion and fully moved MyBatis/resource ownership.`
 
-- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
-- `docs/architecture/builder-resource-ownership-queue-map.md`
+## Next Family Kickoff
 
-Current canonical state:
-
-- active family: `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`
-- blocker count: `1`
-- active row: `5`
-- next review target: `executable app resource assembly fallback`
-- row `3`: stronger non-blocker
-- row `5`: `BLOCKS_CLOSEOUT`
-- row `4`: stronger non-blocker
-- rows `1` and `2`: `DELETE_NOW`
-- remaining docs-only valid work:
-  - watched source docs changed or not
-  - that change added one exact missing sentence bundle or not
-
-Canonical partial-closeout wording:
-
-- `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
+- start with `BUILDER_COMPATIBILITY_SHIM_REMOVAL`
+- the plan for this family should now be established in `docs/architecture/builder-compatibility-shim-removal-plan.md`
 
 Do not reopen row-grammar cleanup, bounded replacement-note drafting, or phrase-only propagation on the current docs set.
 

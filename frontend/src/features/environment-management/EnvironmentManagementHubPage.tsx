@@ -8,6 +8,7 @@ import {
   deleteEnvironmentFeature,
   fetchEnvironmentFeatureImpact,
   fetchEnvironmentManagedPageImpact,
+  fetchSystemAssetList,
   updateEnvironmentFeature,
   updateEnvironmentManagedPage
 } from "../../lib/api/platform";
@@ -147,6 +148,26 @@ export function EnvironmentManagementHubPage() {
   const [metadataExpanded, setMetadataExpanded] = useState(false);
   const [selectedSummaryRebuildBusy, setSelectedSummaryRebuildBusy] = useState(false);
   const [allSummaryRebuildBusy, setAllSummaryRebuildBusy] = useState(false);
+  const [systemAssetSummary, setSystemAssetSummary] = useState<{ total: number; health: string; active: number; infraCount: number; serviceCount: number } | null>(null);
+
+  const loadSystemAssetSummary = async () => {
+    try {
+      const data = await fetchSystemAssetList();
+      setSystemAssetSummary({
+        total: data.length,
+        health: data.every(a => a.healthStatus === "OK") ? "Healthy" : "Check",
+        active: data.filter(a => a.activeYn === "Y").length,
+        infraCount: data.filter(a => a.assetFamily === "INFRA").length,
+        serviceCount: data.filter(a => a.assetFamily === "SERVICE").length
+      });
+    } catch (err) {
+      console.error("Failed to load system asset summary", err);
+    }
+  };
+
+  useEffect(() => {
+    void loadSystemAssetSummary();
+  }, []);
 
   const resolveManagedPageId = (menuCode: string, pageId?: string | null) => pageId || menuCode.toLowerCase();
 
@@ -1224,6 +1245,9 @@ export function EnvironmentManagementHubPage() {
       setActionError(environmentAuthority.getActionReason("execute", en));
       return;
     }
+    if (!window.confirm(en ? "Are you sure you want to rebuild this menu's summary projection?" : "이 메뉴의 요약 프로젝션을 재생성하시겠습니까?")) {
+      return;
+    }
     setActionError("");
     setActionMessage("");
     setSelectedSummaryRebuildBusy(true);
@@ -1242,6 +1266,9 @@ export function EnvironmentManagementHubPage() {
     if (!environmentAuthority.allowsAction("execute")) {
       environmentAuthority.logAuthorityDenied("execute", { component: "environment-management-rebuild-all-summaries" });
       setActionError(environmentAuthority.getActionReason("execute", en));
+      return;
+    }
+    if (!window.confirm(en ? "Are you sure you want to rebuild all summary projections? This might take some time depending on the number of menus." : "전체 요약 프로젝션을 재생성하시겠습니까? 메뉴 수에 따라 시간이 다소 소요될 수 있습니다.")) {
       return;
     }
     setActionError("");
@@ -1360,6 +1387,62 @@ export function EnvironmentManagementHubPage() {
       }
     >
       <AdminWorkspacePageFrame>
+        <section className="grid gap-4 xl:grid-cols-6 mb-6" data-help-id="environment-management-asset-root">
+          <DiagnosticCard
+            title={en ? "Asset inventory root" : "자산 인벤토리 루트"}
+            status={systemAssetSummary ? (en ? `${systemAssetSummary.total} Assets (${systemAssetSummary.health})` : `${systemAssetSummary.total}개 자산 (${systemAssetSummary.health})`) : (en ? "Loading..." : "불러오는 중...")}
+            statusTone={systemAssetSummary?.health === "Healthy" ? "healthy" : "warning"}
+            description={en
+              ? `Grouped inventory: ${systemAssetSummary?.infraCount || 0} Infra, ${systemAssetSummary?.serviceCount || 0} Service, and other assets.`
+              : `자산 분류: 인프라 ${systemAssetSummary?.infraCount || 0}개, 서비스 ${systemAssetSummary?.serviceCount || 0}개 및 기타 자산이 등록되어 있습니다.`}
+            actions={<MemberLinkButton href={buildAssetInventoryPath()} size="sm" variant="secondary">{en ? "Open inventory" : "인벤토리 열기"}</MemberLinkButton>}
+          />
+          <DiagnosticCard
+            title={en ? "Asset detail" : "자산 상세"}
+            status={en ? "Ready" : "준비 완료"}
+            statusTone="healthy"
+            description={en
+              ? "Open the detail view to inspect real asset identifiers, owners, and runtime drift states."
+              : "상세 뷰를 열어 실제 자산 식별자, 소유자, 런타임 변동 상태를 확인합니다."}
+            actions={<MemberLinkButton href={buildLocalizedPath("/admin/system/asset-detail?assetType=service-registry", "/en/admin/system/asset-detail?assetType=service-registry")} size="sm" variant="secondary">{en ? "Open detail" : "상세 열기"}</MemberLinkButton>}
+          />
+          <DiagnosticCard
+            title={en ? "Asset impact review" : "자산 영향 검토"}
+            status={en ? "Unified shell" : "통합 쉘"}
+            statusTone="warning"
+            description={en
+              ? "Page delete impact, feature authority impact, runtime compare, and integration maintenance impact should be reviewed from one entry."
+              : "페이지 삭제 영향, 기능 권한 영향, 런타임 비교, 연계 점검 영향을 하나의 진입점에서 검토하도록 만듭니다."}
+            actions={<MemberLinkButton href={buildAssetImpactPath("page")} size="sm" variant="secondary">{en ? "Open impact" : "영향도 열기"}</MemberLinkButton>}
+          />
+          <DiagnosticCard
+            title={en ? "Asset lifecycle root" : "자산 생명주기 루트"}
+            status={en ? "Governed shell" : "거버넌스 쉘"}
+            statusTone="warning"
+            description={en
+              ? "Create, publish, deprecate, retire, and rollback checkpoints should remain explicit instead of staying hidden inside delete or deploy actions."
+              : "생성, 반영, 축소, 폐기, 롤백 점검은 삭제나 배포 동작 안에 숨기지 말고 분리해서 관리해야 합니다."}
+            actions={<MemberLinkButton href={buildAssetLifecyclePath("create")} size="sm" variant="secondary">{en ? "Open lifecycle" : "생명주기 열기"}</MemberLinkButton>}
+          />
+          <DiagnosticCard
+            title={en ? "Asset gap queue" : "자산 미흡 큐"}
+            status={en ? "Backlog shell" : "백로그 쉘"}
+            statusTone="warning"
+            description={en
+              ? "Missing owner, missing binding, missing policy, and orphan assets should converge into one operational queue."
+              : "소유자 누락, 바인딩 누락, 정책 누락, 고아 자산은 하나의 운영 큐로 모아야 합니다."}
+            actions={<MemberLinkButton href={buildAssetGapPath()} size="sm" variant="secondary">{en ? "Open gap queue" : "미흡 큐 열기"}</MemberLinkButton>}
+          />
+          <DiagnosticCard
+            title={en ? "Verification center" : "운영 검증 센터"}
+            status={en ? "Baseline shell" : "baseline 쉘"}
+            statusTone="warning"
+            description={en
+              ? "Record preserved page baselines, smoke scenarios, test accounts, and run evidence before they stay scattered in tickets or chat."
+              : "페이지 baseline, smoke 시나리오, 테스트 계정, 실행 증거를 티켓이나 대화에 흩어두지 않고 한 곳에 기록합니다."}
+            actions={<MemberLinkButton href={buildVerificationCenterPath()} size="sm" variant="secondary">{en ? "Open verification" : "검증 센터 열기"}</MemberLinkButton>}
+          />
+        </section>
       {pagePermissionDenied ? (
         <MemberStateCard
           description={en
@@ -1498,63 +1581,6 @@ export function EnvironmentManagementHubPage() {
           title={en ? "Install / Bind Workspace" : "설치 / 바인딩 작업공간"}
         />
       </div>
-
-      <section className="grid gap-4 xl:grid-cols-5" data-help-id="environment-management-asset-root">
-        <DiagnosticCard
-          title={en ? "Asset inventory root" : "자산 인벤토리 루트"}
-          status={en ? "New entry" : "신규 진입점"}
-          statusTone="healthy"
-          description={en
-            ? "Use the grouped inventory to classify current screens as service, runtime, security, integration, and recovery assets."
-            : "현재 화면을 서비스, 런타임, 보안, 연계, 복구 자산으로 묶어서 분류할 때 사용합니다."}
-          actions={<MemberLinkButton href={buildAssetInventoryPath()} size="sm" variant="secondary">{en ? "Open inventory" : "인벤토리 열기"}</MemberLinkButton>}
-        />
-        <DiagnosticCard
-          title={en ? "Asset detail shell" : "자산 상세 쉘"}
-          status={en ? "Type-based" : "유형 기반"}
-          statusTone="warning"
-          description={en
-            ? "Open the detail shell first, then attach real asset identifiers and owners in the next step."
-            : "상세 쉘을 먼저 열고, 다음 단계에서 실제 자산 식별자와 소유자를 연결합니다."}
-          actions={<MemberLinkButton href={buildLocalizedPath("/admin/system/asset-detail?assetType=service-registry", "/en/admin/system/asset-detail?assetType=service-registry")} size="sm" variant="secondary">{en ? "Open detail" : "상세 열기"}</MemberLinkButton>}
-        />
-        <DiagnosticCard
-          title={en ? "Asset impact review" : "자산 영향 검토"}
-          status={en ? "Unified shell" : "통합 쉘"}
-          statusTone="warning"
-          description={en
-            ? "Page delete impact, feature authority impact, runtime compare, and integration maintenance impact should be reviewed from one entry."
-            : "페이지 삭제 영향, 기능 권한 영향, 런타임 비교, 연계 점검 영향을 하나의 진입점에서 검토하도록 만듭니다."}
-          actions={<MemberLinkButton href={buildAssetImpactPath("page")} size="sm" variant="secondary">{en ? "Open impact" : "영향도 열기"}</MemberLinkButton>}
-        />
-        <DiagnosticCard
-          title={en ? "Asset lifecycle root" : "자산 생명주기 루트"}
-          status={en ? "Governed shell" : "거버넌스 쉘"}
-          statusTone="warning"
-          description={en
-            ? "Create, publish, deprecate, retire, and rollback checkpoints should remain explicit instead of staying hidden inside delete or deploy actions."
-            : "생성, 반영, 축소, 폐기, 롤백 점검은 삭제나 배포 동작 안에 숨기지 말고 분리해서 관리해야 합니다."}
-          actions={<MemberLinkButton href={buildAssetLifecyclePath("create")} size="sm" variant="secondary">{en ? "Open lifecycle" : "생명주기 열기"}</MemberLinkButton>}
-        />
-        <DiagnosticCard
-          title={en ? "Asset gap queue" : "자산 미흡 큐"}
-          status={en ? "Backlog shell" : "백로그 쉘"}
-          statusTone="warning"
-          description={en
-            ? "Missing owner, missing binding, missing policy, and orphan assets should converge into one operational queue."
-            : "소유자 누락, 바인딩 누락, 정책 누락, 고아 자산은 하나의 운영 큐로 모아야 합니다."}
-          actions={<MemberLinkButton href={buildAssetGapPath()} size="sm" variant="secondary">{en ? "Open gap queue" : "미흡 큐 열기"}</MemberLinkButton>}
-        />
-        <DiagnosticCard
-          title={en ? "Verification center" : "운영 검증 센터"}
-          status={en ? "Baseline shell" : "baseline 쉘"}
-          statusTone="warning"
-          description={en
-            ? "Record preserved page baselines, smoke scenarios, test accounts, and run evidence before they stay scattered in tickets or chat."
-            : "페이지 baseline, smoke 시나리오, 테스트 계정, 실행 증거를 티켓이나 대화에 흩어두지 않고 한 곳에 기록합니다."}
-          actions={<MemberLinkButton href={buildVerificationCenterPath()} size="sm" variant="secondary">{en ? "Open verification" : "검증 센터 열기"}</MemberLinkButton>}
-        />
-      </section>
 
       <section className="gov-card mb-6" data-help-id="environment-management-engines">
         <GridToolbar

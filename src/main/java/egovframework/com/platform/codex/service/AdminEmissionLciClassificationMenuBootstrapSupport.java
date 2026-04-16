@@ -1,6 +1,6 @@
 package egovframework.com.platform.codex.service;
 
-import egovframework.com.feature.admin.mapper.AuthGroupManageMapper;
+import egovframework.com.platform.codex.mapper.AuthGroupManageMapper;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
 import egovframework.com.platform.codex.model.CodexProvisionResponse;
 import egovframework.com.platform.request.codex.CodexProvisionRequest;

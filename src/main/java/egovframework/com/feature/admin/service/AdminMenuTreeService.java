@@ -1,5 +1,7 @@
 package egovframework.com.feature.admin.service;
 
+import egovframework.com.platform.codex.service.AuthGroupManageService;
+
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.dto.response.AdminMenuDomainDTO;
 import egovframework.com.feature.admin.dto.response.AdminMenuGroupDTO;
@@ -277,6 +279,8 @@ public class AdminMenuTreeService {
                 || "/admin/content/menu".equals(value)
                 || "/admin/system/screen-flow-management".equals(value)
                 || "/admin/system/screen-menu-assignment-management".equals(value)
+                || "/admin/system/verification-center".equals(value)
+                || "/admin/system/verification-assets".equals(value)
                 || "/admin/system/sr-workbench".equals(value)
                 || "/admin/system/wbs-management".equals(value)
                 || "/admin/system/new-page".equals(value)

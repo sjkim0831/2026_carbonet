@@ -320,7 +320,7 @@ export function FaqMenuManagementMigrationPage() {
         </section>
 
         <CollectionResultPanel
-          data-help-id="faq-menu-management-search"
+          data-help-id="admin-menu-placeholder-card"
           description={en ? "This screen handles the A004 FAQ-management menu tree. Reordering is limited to sibling menus under the same parent." : "이 화면은 A004 FAQ 관리 메뉴 트리를 다룹니다. 순서 이동은 같은 부모 메뉴 하위에서만 가능합니다."}
           icon="folder_managed"
           title={en ? "FAQ Menu Scope and Search" : "FAQ 메뉴 범위와 검색"}

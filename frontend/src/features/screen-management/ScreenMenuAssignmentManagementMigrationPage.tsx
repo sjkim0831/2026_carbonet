@@ -30,6 +30,60 @@ type AssignmentRow = {
   status: "assigned" | "unassigned";
 };
 
+type ScreenMenuAssignmentCloseoutRow = {
+  labelKo: string;
+  labelEn: string;
+  status: "available" | "blocked";
+  descriptionKo: string;
+  descriptionEn: string;
+};
+
+const SCREEN_MENU_ASSIGNMENT_CLOSEOUT_ROWS: ScreenMenuAssignmentCloseoutRow[] = [
+  {
+    labelKo: "메뉴 인벤토리 / 귀속 목록",
+    labelEn: "Menu inventory / assignment list",
+    status: "available",
+    descriptionKo: "관리자/홈 메뉴 수집, 귀속/미귀속 필터, 선택 메뉴 메타데이터 확인은 현재 화면에서 제공합니다.",
+    descriptionEn: "Admin/home menu collection, assigned/unassigned filtering, and selected menu metadata are available."
+  },
+  {
+    labelKo: "단일 메뉴 매핑 저장",
+    labelEn: "Single menu mapping save",
+    status: "available",
+    descriptionKo: "선택 메뉴를 screen command page에 단건 매핑하는 저장 흐름은 연결되어 있습니다.",
+    descriptionEn: "A single selected menu can be mapped to a screen command page through the current save flow."
+  },
+  {
+    labelKo: "중복 / 충돌 검증",
+    labelEn: "Duplicate / conflict detection",
+    status: "blocked",
+    descriptionKo: "동일 route/pageId/menuCode 중복, 관리자/홈 scope 충돌, 기존 귀속 교체 검증 계약이 필요합니다.",
+    descriptionEn: "Duplicate route/pageId/menuCode checks, admin/home scope conflict checks, and replacement validation contracts are required."
+  },
+  {
+    labelKo: "권한 영향도 Preview",
+    labelEn: "Authority impact preview",
+    status: "blocked",
+    descriptionKo: "매핑 저장 전에 feature, role, user override, required VIEW 영향도를 계산하는 preview가 필요합니다.",
+    descriptionEn: "A preview is required before save to calculate feature, role, user override, and required VIEW impact."
+  },
+  {
+    labelKo: "Rollback / 감사 증적",
+    labelEn: "Rollback / audit evidence",
+    status: "blocked",
+    descriptionKo: "변경 전후 귀속 상태, rollback anchor, 승인자, 실행자를 감사 증적으로 남기는 계약이 필요합니다.",
+    descriptionEn: "Before/after assignment state, rollback anchor, approver, and actor must be stored as audit evidence."
+  }
+];
+
+const SCREEN_MENU_ASSIGNMENT_ACTION_CONTRACT = [
+  { labelKo: "충돌 검사", labelEn: "Check Conflicts" },
+  { labelKo: "권한 영향도 Preview", labelEn: "Preview Authority Impact" },
+  { labelKo: "Bulk 매핑", labelEn: "Bulk Mapping" },
+  { labelKo: "Rollback", labelEn: "Rollback" },
+  { labelKo: "감사 증적 내보내기", labelEn: "Export Audit Evidence" }
+];
+
 function isPageMenu(row: Record<string, unknown>) {
   return stringOf(row, "code").trim().length === 8 && stringOf(row, "menuUrl").trim() !== "";
 }
@@ -234,6 +288,48 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
           ]}
         />
 
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr,0.65fr]">
+          <article className="gov-card" data-help-id="screen-menu-assignment-closeout-gate">
+            <div className="flex flex-col gap-2 border-b border-[var(--kr-gov-border-light)] pb-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Closeout Gate" : "완료 게이트"}</p>
+              <h2 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Current mapping support vs. blocked governance actions" : "현재 매핑 지원 범위와 차단된 거버넌스 조치"}</h2>
+              <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "Single menu mapping is available, but conflict checks, authority impact preview, rollback, and audit evidence remain blocked governance work."
+                  : "단일 메뉴 매핑은 가능하지만 충돌 검증, 권한 영향도 preview, rollback, 감사 증적은 아직 차단된 거버넌스 작업입니다."}
+              </p>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {SCREEN_MENU_ASSIGNMENT_CLOSEOUT_ROWS.map((row) => (
+                <article key={row.labelEn} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? row.labelEn : row.labelKo}</h3>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${row.status === "available" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                      {row.status === "available" ? (en ? "Available" : "가능") : (en ? "Blocked" : "차단")}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{en ? row.descriptionEn : row.descriptionKo}</p>
+                </article>
+              ))}
+            </div>
+          </article>
+
+          <article className="gov-card" data-help-id="screen-menu-assignment-action-contract">
+            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Action Contract" : "실행 계약"}</p>
+            <h2 className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "Disabled until governance APIs exist" : "거버넌스 API 연결 전까지 비활성"}</h2>
+            <div className="mt-4 grid grid-cols-1 gap-2">
+              {SCREEN_MENU_ASSIGNMENT_ACTION_CONTRACT.map((action) => (
+                <button key={action.labelEn} className="gov-btn gov-btn-outline justify-center opacity-65" type="button" disabled>
+                  {en ? action.labelEn : action.labelKo}
+                </button>
+              ))}
+            </div>
+            <p className="mt-4 text-xs font-bold text-[var(--kr-gov-text-secondary)]">
+              {en ? "These actions require conflict rules, authority impact calculation, rollback state, and audit persistence." : "이 조치들은 충돌 규칙, 권한 영향 계산, rollback 상태, 감사 저장이 연결되어야 합니다."}
+            </p>
+          </article>
+        </section>
+
         <section className="gov-card p-6">
           <GridToolbar
             meta={en ? "Collect menu inventory from menu management and switch between admin and home sources." : "메뉴 관리 기준으로 메뉴 인벤토리를 수집하고 관리자/홈 소스를 전환합니다."}
@@ -277,28 +373,41 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
           />
 
           <div className="space-y-6">
-            <ScreenManagementSelectionOverview
-              badges={selectedAssignment ? (
-                <>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${selectedAssignment.status === "assigned" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-                    {selectedAssignment.status === "assigned" ? (en ? "Screen linked" : "화면 연결됨") : (en ? "No linked screen" : "연결된 화면 없음")}
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                    {`${en ? "Use" : "사용"} ${selectedAssignment.useAt} / ${en ? "Expose" : "노출"} ${selectedAssignment.expsrAt}`}
-                  </span>
-                </>
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <ScreenManagementSelectionOverview
+                className="flex-1"
+                badges={selectedAssignment ? (
+                  <>
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${selectedAssignment.status === "assigned" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                      {selectedAssignment.status === "assigned" ? (en ? "Screen linked" : "화면 연결됨") : (en ? "No linked screen" : "연결된 화면 없음")}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                      {`${en ? "Use" : "사용"} ${selectedAssignment.useAt} / ${en ? "Expose" : "노출"} ${selectedAssignment.expsrAt}`}
+                    </span>
+                  </>
+                ) : null}
+                description={selectedAssignment?.menuUrl || "-"}
+                metaDescription={en ? "The selected menu's runtime path and linked page identity." : "선택 메뉴의 runtime 경로와 연결 화면 식별자입니다."}
+                metaItems={[
+                  { label: en ? "Menu Code" : "메뉴 코드", value: selectedAssignment?.menuCode || "-" },
+                  { label: en ? "Page ID" : "페이지 ID", value: selectedAssignment?.pageId || "-" },
+                  { label: en ? "Route" : "경로", value: selectedAssignment?.routePath || "-" },
+                  { label: en ? "Linked Components" : "연결 컴포넌트", value: detailMetrics.componentCount }
+                ]}
+                metaTitle={en ? "Selected Assignment Metadata" : "선택 귀속 메타데이터"}
+                title={selectedAssignment?.menuName || (en ? "Select a menu" : "메뉴를 선택하세요")}
+              />
+              {selectedAssignment?.pageId ? (
+                <div className="shrink-0 pt-1 pl-1">
+                  <a
+                    href={buildLocalizedPath(`/admin/system/asset-detail?id=UI-${selectedAssignment.pageId}`, `/en/admin/system/asset-detail?id=UI-${selectedAssignment.pageId}`)}
+                    className="inline-flex items-center justify-center rounded-[var(--kr-gov-radius)] border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[var(--kr-gov-blue)] focus:ring-offset-1"
+                  >
+                    {en ? "View Asset details" : "자산 거버넌스 상세"}
+                  </a>
+                </div>
               ) : null}
-              description={selectedAssignment?.menuUrl || "-"}
-              metaDescription={en ? "The selected menu's runtime path and linked page identity." : "선택 메뉴의 runtime 경로와 연결 화면 식별자입니다."}
-              metaItems={[
-                { label: en ? "Menu Code" : "메뉴 코드", value: selectedAssignment?.menuCode || "-" },
-                { label: en ? "Page ID" : "페이지 ID", value: selectedAssignment?.pageId || "-" },
-                { label: en ? "Route" : "경로", value: selectedAssignment?.routePath || "-" },
-                { label: en ? "Linked Components" : "연결 컴포넌트", value: detailMetrics.componentCount }
-              ]}
-              metaTitle={en ? "Selected Assignment Metadata" : "선택 귀속 메타데이터"}
-              title={selectedAssignment?.menuName || (en ? "Select a menu" : "메뉴를 선택하세요")}
-            />
+            </div>
 
             <section className="gov-card overflow-hidden p-0" data-help-id="screen-menu-assignment-detail">
               <GridToolbar
@@ -417,4 +526,3 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
     </AdminPageShell>
   );
 }
-// agent note: updated by FreeAgent Ultra

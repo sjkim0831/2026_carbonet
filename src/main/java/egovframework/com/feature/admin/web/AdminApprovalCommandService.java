@@ -1,5 +1,7 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.platform.codex.service.AdminApprovalPagePayloadService;
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
@@ -145,7 +147,7 @@ public class AdminApprovalCommandService {
                 request,
                 currentUserId,
                 currentUserAuthorCode,
-                "AMENU_MEMBER_APPROVE",
+                "A0010103",
                 "member-approve",
                 "MEMBER_APPROVAL_" + ("P".equals(result.getTargetStatus()) ? "APPROVE" : "REJECT"),
                 "MEMBER",
@@ -179,7 +181,7 @@ public class AdminApprovalCommandService {
                 request,
                 currentUserId,
                 currentUserAuthorCode,
-                "AMENU_COMPANY_APPROVE",
+                "A0010202",
                 "company-approve",
                 "COMPANY_APPROVAL_" + ("P".equals(result.getTargetStatus()) ? "APPROVE" : "REJECT"),
                 "COMPANY",

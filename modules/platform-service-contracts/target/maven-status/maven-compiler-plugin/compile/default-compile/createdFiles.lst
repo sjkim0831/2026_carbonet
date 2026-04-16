@@ -1,4 +1,3 @@
-egovframework/com/feature/admin/service/ScreenCommandCenterService.class
 egovframework/com/feature/admin/model/vo/SecurityAuditSnapshot.class
 egovframework/com/platform/service/audit/AuditTrailPort.class
 egovframework/com/common/audit/AuditEventSearchVO.class

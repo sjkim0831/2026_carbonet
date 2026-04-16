@@ -1,9 +1,9 @@
 package egovframework.com.feature.admin.service.impl;
 
-import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
-import egovframework.com.feature.admin.screenbuilder.support.CarbonetScreenBuilderAuthoritySource;
-import egovframework.com.feature.admin.screenbuilder.support.model.ScreenBuilderAuthorityDecision;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.model.UserFeatureOverrideVO;
+import egovframework.com.platform.screenbuilder.support.CarbonetScreenBuilderAuthoritySource;
+import egovframework.com.platform.screenbuilder.support.model.ScreenBuilderAuthorityDecision;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.service.CurrentUserContextService;
 import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;
 import egovframework.com.framework.authority.service.FrameworkAuthorityContractService;

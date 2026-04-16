@@ -665,10 +665,10 @@ export function MonitoringDashboardMigrationPage() {
         </header>
 
         <main id="main-content">
-          <section className="monitoring-dashboard-hero relative overflow-hidden">
+          <section className="monitoring-dashboard-hero relative overflow-hidden" data-help-id="monitoring-dashboard-hero">
             <div className="relative z-10 mx-auto max-w-[1440px] px-4 py-12 lg:px-8">
               <div className="grid gap-10 lg:grid-cols-[360px_minmax(0,1fr)]">
-                <aside className="flex flex-col justify-between">
+                <aside className="flex flex-col justify-between" data-help-id="monitoring-dashboard-status">
                   <div>
                     <div className="mb-6 flex items-center gap-4">
                       <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-400/30 bg-indigo-600 shadow-[0_18px_50px_rgba(79,70,229,0.35)]">
@@ -704,7 +704,7 @@ export function MonitoringDashboardMigrationPage() {
                   </div>
                 </aside>
 
-                <section>
+                <section data-help-id="monitoring-dashboard-summary">
                   <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.24em] text-slate-400">
                       <span className="material-symbols-outlined text-[18px] text-indigo-300">list_alt</span>
@@ -787,7 +787,7 @@ export function MonitoringDashboardMigrationPage() {
 
           <section className="mx-auto max-w-[1440px] px-4 py-12 lg:px-8">
             <div className="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
-              <article className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+              <article className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]" data-help-id="monitoring-dashboard-workflow">
                 <div className="mb-8 flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-black text-slate-950">{content.workflowTitle}</h2>
@@ -811,7 +811,7 @@ export function MonitoringDashboardMigrationPage() {
                 </div>
               </article>
 
-              <article className="rounded-[28px] bg-slate-950 p-8 text-white shadow-[0_20px_60px_rgba(15,23,42,0.18)]">
+              <article className="rounded-[28px] bg-slate-950 p-8 text-white shadow-[0_20px_60px_rgba(15,23,42,0.18)]" data-help-id="monitoring-dashboard-board">
                 <h2 className="text-2xl font-black">{content.timelineTitle}</h2>
                 <p className="mt-2 text-sm leading-7 text-slate-300">{content.timelineBody}</p>
                 <div className="mt-8 space-y-5">
@@ -835,13 +835,13 @@ export function MonitoringDashboardMigrationPage() {
             </div>
           </section>
 
-          <section className="border-y border-slate-100 bg-white">
+          <section className="border-y border-slate-100 bg-white" data-help-id="monitoring-dashboard-guidance">
             <div className="mx-auto max-w-[1440px] px-4 py-14 lg:px-8">
               <div className="mb-8">
                 <h2 className="text-2xl font-black text-slate-950">{content.guidanceTitle}</h2>
                 <p className="mt-2 text-sm leading-7 text-slate-500">{content.guidanceBody}</p>
               </div>
-              <div className="grid gap-6 lg:grid-cols-3">
+              <div className="grid gap-6 lg:grid-cols-3" data-help-id="monitoring-dashboard-queue">
                 {content.guidanceCards.map((card) => (
                   <article className="rounded-[24px] border border-slate-200 bg-slate-50 p-6 shadow-[0_20px_45px_rgba(15,23,42,0.06)]" key={card.key}>
                     <div className="mb-4 flex items-center justify-between">

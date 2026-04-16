@@ -335,7 +335,7 @@ export function EduContentMigrationPage() {
       />
 
       <main id="main-content">
-        <section className="relative overflow-hidden border-b border-slate-800 bg-slate-900 py-10">
+        <section className="relative overflow-hidden border-b border-slate-800 bg-slate-900 py-10" data-help-id="edu-content-hero">
           <div className="absolute inset-0 opacity-10">
             <svg className="h-full w-full" aria-hidden="true">
               <pattern id="edu-content-dots" width="60" height="60" patternUnits="userSpaceOnUse">
@@ -375,7 +375,7 @@ export function EduContentMigrationPage() {
                     <HomeInput className="border-white/10 bg-white/5 text-white placeholder:text-slate-500" onChange={(event) => setQuery(event.target.value)} placeholder={copy.searchPlaceholder} value={query} />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3" data-help-id="edu-content-renewal">
                   {renewalCards.map((item) => (
                     <article className={`flex flex-col rounded-r-lg border border-white/10 border-l-4 bg-white/5 p-5 backdrop-blur-md transition hover:bg-white/10 ${item.toneClassName}`} key={item.id}>
                       <div className="mb-3 flex items-start justify-between">
@@ -419,7 +419,7 @@ export function EduContentMigrationPage() {
                     <button className="rounded bg-[var(--kr-gov-blue)] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[var(--kr-gov-blue-hover)]" onClick={() => navigate(buildLocalizedPath("/edu/apply", "/en/edu/apply"))} type="button">{copy.applyTraining}</button>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2" data-help-id="edu-content-linked-courses">
                   {LINKED_COURSES.map((course) => (
                     <article className={`flex h-full flex-col rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm ${course.toneClassName}`} key={course.id}>
                       <div className="mb-4 flex items-start justify-between">
@@ -453,7 +453,7 @@ export function EduContentMigrationPage() {
                 </div>
               </div>
 
-              <section className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white shadow-sm">
+              <section className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white shadow-sm" data-help-id="edu-content-ledger">
                 <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/60 px-6 py-4">
                   <h3 className="flex items-center gap-2 font-bold">
                     <span className="material-symbols-outlined text-gray-500">badge</span>
@@ -495,7 +495,7 @@ export function EduContentMigrationPage() {
             </div>
 
             <div className="space-y-8 lg:col-span-4">
-              <section className="relative overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 p-6 shadow-sm">
+              <section className="relative overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 p-6 shadow-sm" data-help-id="edu-content-roadmap">
                 <div className="relative z-10">
                   <h3 className="mb-6 flex items-center gap-2 text-lg font-black">
                     <span className="material-symbols-outlined text-amber-500">schedule</span>
@@ -521,7 +521,7 @@ export function EduContentMigrationPage() {
                 </div>
               </section>
 
-              <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm">
+              <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm" data-help-id="edu-content-compliance">
                 <h3 className="mb-6 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-600">
                   <span className="material-symbols-outlined text-[18px]">verified</span>
                   {copy.complianceTitle}

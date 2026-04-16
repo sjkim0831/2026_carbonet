@@ -226,6 +226,7 @@ export function SensorAddMigrationPage() {
           </section>
 
           <SectionCard
+            data-help-id="sensor-add-basic-profile"
             title={en ? "Basic Sensor Profile" : "기본 센서 정보"}
             description={en ? "Define the identity and placement of the new sensor asset." : "신규 센서 자산의 기본 식별 정보와 설치 위치를 정의합니다."}
           >
@@ -258,6 +259,7 @@ export function SensorAddMigrationPage() {
           </SectionCard>
 
           <SectionCard
+            data-help-id="sensor-add-policy"
             title={en ? "Collection And Alert Policy" : "수집 및 경보 정책"}
             description={en ? "Choose the data collection path and define warning thresholds for operational response." : "데이터 수집 경로와 운영 대응을 위한 경보 임계값을 설정합니다."}
           >
@@ -302,6 +304,7 @@ export function SensorAddMigrationPage() {
           </SectionCard>
 
           <SectionCard
+            data-help-id="sensor-add-ops-notes"
             title={en ? "Ownership And Ops Notes" : "담당 체계 및 운영 메모"}
             description={en ? "Set the responsible owner and leave handover notes for the monitoring team." : "책임 담당자와 모니터링팀 인수인계 메모를 함께 남깁니다."}
           >

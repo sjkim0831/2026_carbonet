@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.help.HelpContentService;
 import egovframework.com.common.help.HelpManagementSaveRequest;
 import egovframework.com.common.trace.UiManifestRegistryPort;
-import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import egovframework.com.platform.service.audit.AuditTrailPort;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,7 +38,7 @@ public class HelpManagementApiController {
 
     private final HelpContentService helpContentService;
     private final AuditTrailPort auditTrailPort;
-    private final ScreenCommandCenterService screenCommandCenterService;
+    private final ObjectProvider<Object> screenCommandCenterServiceProvider;
     private final UiManifestRegistryPort uiManifestRegistryPort;
     private final ObjectMapper objectMapper;
 
@@ -51,7 +51,7 @@ public class HelpManagementApiController {
     @GetMapping("/screen-command/page")
     public ResponseEntity<Map<String, Object>> getScreenCommandPage(
             @RequestParam(value = "pageId", required = false) String pageId) throws Exception {
-        return ResponseEntity.ok(screenCommandCenterService.getScreenCommandPage(pageId));
+        return ResponseEntity.ok(invokeScreenCommandPage(pageId));
     }
 
     @PostMapping("/save")
@@ -94,7 +94,7 @@ public class HelpManagementApiController {
             return ResponseEntity.badRequest().body(errorResponse("pageId, menuCode, menuUrl은 필수입니다."));
         }
 
-        Map<String, Object> beforeState = screenCommandCenterService.getScreenCommandPage(pageId);
+        Map<String, Object> beforeState = invokeScreenCommandPage(pageId);
         Map<String, Object> page = safeMap(beforeState.get("page"));
         page.putAll(orderedMap(
                 "pageId", pageId,
@@ -104,7 +104,7 @@ public class HelpManagementApiController {
                 "domainCode", domainCode,
                 "menuLookupUrl", menuUrl));
         Map<String, Object> registry = uiManifestRegistryPort.syncPageRegistry(page);
-        Map<String, Object> afterState = screenCommandCenterService.getScreenCommandPage(pageId);
+        Map<String, Object> afterState = invokeScreenCommandPage(pageId);
 
         auditTrailPort.record(
                 resolveActorId(httpServletRequest),
@@ -217,6 +217,19 @@ public class HelpManagementApiController {
     private Map<String, Object> safeMap(Object value) {
         if (value instanceof Map) {
             return new LinkedHashMap<>((Map<String, Object>) value);
+        }
+        return new LinkedHashMap<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> invokeScreenCommandPage(String pageId) throws Exception {
+        Object service = screenCommandCenterServiceProvider.getIfAvailable();
+        if (service == null) {
+            return new LinkedHashMap<>();
+        }
+        Object response = service.getClass().getMethod("getScreenCommandPage", String.class).invoke(service, pageId);
+        if (response instanceof Map) {
+            return new LinkedHashMap<>((Map<String, Object>) response);
         }
         return new LinkedHashMap<>();
     }

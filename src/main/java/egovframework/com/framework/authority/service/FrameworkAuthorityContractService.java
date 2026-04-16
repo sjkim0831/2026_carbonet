@@ -1,7 +1,7 @@
 package egovframework.com.framework.authority.service;
 
-import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.model.AuthorInfoVO;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.framework.authority.model.FrameworkAuthorityContractVO;
 import egovframework.com.framework.authority.model.FrameworkAuthorityOptionVO;
 import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;

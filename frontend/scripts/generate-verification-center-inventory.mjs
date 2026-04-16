@@ -217,6 +217,182 @@ const governedTestProfiles = [
   }
 ];
 
+const baselineRegistry = [
+  {
+    pageId: "environment-management",
+    routePath: "/admin/system/environment-management",
+    baselineId: "BL-ENV-2026-04-14",
+    snapshotPath: "var/baselines/environment-management/2026-04-14",
+    owner: "PLATFORM_ADMIN",
+    lastVerifiedAt: "2026-04-14T09:10:00+09:00",
+    stale: false,
+    requiredScenarioIds: ["ROUTE_HEAD", "SCREEN_COMMAND_METADATA", "PRIMARY_ACTION_BAR"]
+  },
+  {
+    pageId: "asset-inventory",
+    routePath: "/admin/system/asset-inventory",
+    baselineId: "BL-AINV-2026-04-14",
+    snapshotPath: "var/baselines/asset-inventory/2026-04-14",
+    owner: "PLATFORM_ADMIN",
+    lastVerifiedAt: "2026-04-14T09:18:00+09:00",
+    stale: false,
+    requiredScenarioIds: ["ROUTE_HEAD", "SUMMARY_COUNT", "DETAIL_LINKS"]
+  },
+  {
+    pageId: "asset-impact",
+    routePath: "/admin/system/asset-impact",
+    baselineId: "BL-AIMP-2026-04-13",
+    snapshotPath: "var/baselines/asset-impact/2026-04-13",
+    owner: "PLATFORM_ADMIN",
+    lastVerifiedAt: "2026-04-13T19:05:00+09:00",
+    stale: true,
+    requiredScenarioIds: ["ROUTE_HEAD", "MODE_SWITCH", "LINKED_CONSOLES"]
+  },
+  {
+    pageId: "verification-center",
+    routePath: "/admin/system/verification-center",
+    baselineId: "BL-VC-2026-04-14",
+    snapshotPath: "var/baselines/verification-center/2026-04-14",
+    owner: "OPS_AUDIT",
+    lastVerifiedAt: "2026-04-14T09:25:00+09:00",
+    stale: false,
+    requiredScenarioIds: ["ROUTE_HEAD", "FULL_LISTS", "RISK_SCOPE"]
+  }
+];
+
+const verificationRuns = [
+  {
+    runId: "VR-2026-04-15-001",
+    runType: "DAILY_SWEEP",
+    targetScope: "system-governed-pages",
+    baselineId: "BL-ENV-2026-04-14",
+    result: "WARN",
+    startedAt: "2026-04-15T06:00:00+09:00",
+    finishedAt: "2026-04-15T06:12:00+09:00",
+    traceId: "trace-verification-daily-001",
+    profileId: "EXPIRY_MONITORING_RULE",
+    datasetId: "MASKED_PAYMENT_FIXTURE",
+    failureCount: 2,
+    driftCount: 1,
+    followupPath: "/admin/system/current-runtime-compare"
+  },
+  {
+    runId: "VR-2026-04-14-POST-DEPLOY",
+    runType: "POST_DEPLOY_SMOKE",
+    targetScope: "asset-inventory,asset-detail,asset-impact",
+    baselineId: "BL-AINV-2026-04-14",
+    result: "PASS",
+    startedAt: "2026-04-14T22:11:00+09:00",
+    finishedAt: "2026-04-14T22:16:00+09:00",
+    traceId: "trace-verification-postdeploy-014",
+    profileId: "PLATFORM_ADMIN_SANDBOX",
+    datasetId: "SYSTEM_ASSET_SEED_PACK",
+    failureCount: 0,
+    driftCount: 0,
+    followupPath: "/admin/system/verification-center"
+  },
+  {
+    runId: "VR-2026-04-14-EXPIRY",
+    runType: "WEEKLY_PROFILE_AUDIT",
+    targetScope: "sandbox-accounts-and-datasets",
+    baselineId: "BL-VC-2026-04-14",
+    result: "TODO",
+    startedAt: "2026-04-14T07:30:00+09:00",
+    finishedAt: "2026-04-14T07:37:00+09:00",
+    traceId: "trace-verification-expiry-002",
+    profileId: "TOKEN_ROTATION_SANDBOX",
+    datasetId: "MASKED_IDENTITY_FIXTURE",
+    failureCount: 0,
+    driftCount: 3,
+    followupPath: "/admin/system/security-policy"
+  }
+];
+
+const managedVault = {
+  accounts: [
+    {
+      profileId: "PLATFORM_ADMIN_SANDBOX",
+      role: "SYSTEM_ADMIN",
+      status: "READY",
+      expiresAt: "2026-05-15T00:00:00+09:00",
+      resetOwner: "ops-admin",
+      allowedRoutes: ["/admin/system/environment-management", "/admin/system/asset-inventory"]
+    },
+    {
+      profileId: "TOKEN_ROTATION_SANDBOX",
+      role: "INTEGRATION_SANDBOX",
+      status: "EXPIRING_SOON",
+      expiresAt: "2026-04-20T00:00:00+09:00",
+      resetOwner: "external-auth-ops",
+      allowedRoutes: ["/admin/external/keys", "/admin/system/verification-center"]
+    },
+    {
+      profileId: "PAYMENT_SANDBOX_OPERATOR",
+      role: "PAYMENT_QA",
+      status: "READY",
+      expiresAt: "2026-05-01T00:00:00+09:00",
+      resetOwner: "payment-ops",
+      allowedRoutes: ["/payment/pay", "/payment/refund"]
+    }
+  ],
+  datasets: [
+    {
+      datasetId: "SYSTEM_ASSET_SEED_PACK",
+      type: "WORKFLOW",
+      status: "READY",
+      lastRefreshedAt: "2026-04-14T18:00:00+09:00",
+      retentionPolicy: "30d",
+      maskingPolicy: "FULL_MASK"
+    },
+    {
+      datasetId: "MASKED_IDENTITY_FIXTURE",
+      type: "IDENTITY",
+      status: "STALE",
+      lastRefreshedAt: "2026-03-20T12:00:00+09:00",
+      retentionPolicy: "60d",
+      maskingPolicy: "PARTIAL_MASK"
+    },
+    {
+      datasetId: "MASKED_PAYMENT_FIXTURE",
+      type: "PAYMENT",
+      status: "READY",
+      lastRefreshedAt: "2026-04-10T10:30:00+09:00",
+      retentionPolicy: "30d",
+      maskingPolicy: "FULL_MASK"
+    }
+  ]
+};
+
+const actionQueue = [
+  {
+    actionId: "QA-001",
+    severity: "HIGH",
+    category: "STALE_BASELINE",
+    title: "asset-impact baseline snapshot refresh",
+    owner: "platform-admin",
+    targetId: "asset-impact",
+    recommendedAction: "Recapture baseline and rerun mode-switch smoke"
+  },
+  {
+    actionId: "QA-002",
+    severity: "HIGH",
+    category: "PROFILE_EXPIRY",
+    title: "token rotation sandbox expires within 5 days",
+    owner: "external-auth-ops",
+    targetId: "TOKEN_ROTATION_SANDBOX",
+    recommendedAction: "Reissue credential and record reset evidence"
+  },
+  {
+    actionId: "QA-003",
+    severity: "MEDIUM",
+    category: "DATASET_DRIFT",
+    title: "masked identity fixture refresh overdue",
+    owner: "ops-audit",
+    targetId: "MASKED_IDENTITY_FIXTURE",
+    recommendedAction: "Refresh dataset and rerun external-auth smoke"
+  }
+];
+
 function gatherRiskTags(values) {
   const haystack = values
     .filter(Boolean)
@@ -359,7 +535,14 @@ const payload = {
     backendTestCount: backendTests.length,
     highRiskPageCount: highRiskPages.length,
     highRiskApiCount: highRiskApis.length,
-    governedTestProfileCount: governedTestProfiles.length
+    governedTestProfileCount: governedTestProfiles.length,
+    baselineRegistryCount: baselineRegistry.length,
+    staleBaselineCount: baselineRegistry.filter((item) => item.stale).length,
+    verificationRunCount: verificationRuns.length,
+    failingRunCount: verificationRuns.filter((item) => item.result !== "PASS").length,
+    expiringProfileCount: managedVault.accounts.filter((item) => item.status !== "READY").length,
+    staleDatasetCount: managedVault.datasets.filter((item) => item.status !== "READY").length,
+    actionQueueCount: actionQueue.length
   },
   pages: pageInventory,
   apis: apiInventory,
@@ -369,6 +552,10 @@ const payload = {
     apis: highRiskApis
   },
   testProfiles: governedTestProfiles,
+  baselineRegistry,
+  verificationRuns,
+  managedVault,
+  actionQueue,
   tests: {
     frontendE2e: frontendTests,
     backend: backendTests

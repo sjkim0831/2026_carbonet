@@ -58,4 +58,13 @@ require_fresh_source_jar() {
 
 require_fresh_source_jar
 bash "$ROOT_DIR/ops/scripts/stop-18000.sh"
-tmux new-session -d -s carbonet18000 "cd '$ROOT_DIR' && bash '$ROOT_DIR/ops/scripts/run-18000-supervised.sh'"
+if command -v tmux >/dev/null 2>&1; then
+  if tmux new-session -d -s carbonet18000 "cd '$ROOT_DIR' && bash '$ROOT_DIR/ops/scripts/run-18000-supervised.sh'"; then
+    exit 0
+  fi
+  echo "[restart-18000-runtime] tmux launch failed. falling back to direct start-18000.sh" >&2
+else
+  echo "[restart-18000-runtime] tmux is unavailable. falling back to direct start-18000.sh" >&2
+fi
+
+bash "$ROOT_DIR/ops/scripts/start-18000.sh"

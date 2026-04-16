@@ -24,6 +24,89 @@ type WbsEditorState = {
   codexInstruction: string;
 };
 
+type WbsCloseoutRow = {
+  labelKo: string;
+  labelEn: string;
+  stateKo: string;
+  stateEn: string;
+  tone: "ready" | "blocked";
+  notesKo: string;
+  notesEn: string;
+};
+
+const WBS_CLOSEOUT_ROWS: WbsCloseoutRow[] = [
+  {
+    labelKo: "메뉴 기반 WBS 인벤토리",
+    labelEn: "Menu-backed WBS inventory",
+    stateKo: "가능",
+    stateEn: "Available",
+    tone: "ready",
+    notesKo: "HOME/ADMIN 메뉴 트리를 기준으로 페이지 메뉴별 WBS 행을 생성합니다.",
+    notesEn: "Builds WBS rows from the HOME/ADMIN DB menu tree."
+  },
+  {
+    labelKo: "계획/실적 일정 저장",
+    labelEn: "Planned and actual schedule save",
+    stateKo: "가능",
+    stateEn: "Available",
+    tone: "ready",
+    notesKo: "담당자, 상태, 진행률, 예상/실적 시작·종료일, 메모, Codex 지시문을 파일 저장소에 upsert합니다.",
+    notesEn: "Upserts owner, status, progress, planned/actual dates, notes, and Codex instruction into the file-backed registry."
+  },
+  {
+    labelKo: "편차/지연/정시율 산출",
+    labelEn: "Variance, overdue, and on-time metrics",
+    stateKo: "가능",
+    stateEn: "Available",
+    tone: "ready",
+    notesKo: "저장된 일정에서 편차일, 지연 여부, 평균 편차, 정시 완료율, 주간 타임라인을 계산합니다.",
+    notesEn: "Derives variance days, overdue state, average variance, on-time rate, and weekly timeline from stored dates."
+  },
+  {
+    labelKo: "Codex 작업 지시문",
+    labelEn: "Codex work instruction",
+    stateKo: "부분 가능",
+    stateEn: "Partially available",
+    tone: "ready",
+    notesKo: "화면/메뉴/권한/API 메타와 추가 지시를 합쳐 복사 가능한 지시문을 만들고 Codex 요청 화면으로 이동합니다.",
+    notesEn: "Builds a copyable instruction from screen/menu/permission/API metadata and links to the Codex request console."
+  },
+  {
+    labelKo: "저장 감사 기록",
+    labelEn: "Save audit record",
+    stateKo: "가능",
+    stateEn: "Available",
+    tone: "ready",
+    notesKo: "단일 WBS 저장 시 AuditTrailService에 실행자, 메뉴, 전후 payload를 기록합니다.",
+    notesEn: "Records actor, menu, and saved payload through AuditTrailService on single-entry save."
+  },
+  {
+    labelKo: "SR 티켓 직접 연결",
+    labelEn: "Direct SR ticket linkage",
+    stateKo: "차단",
+    stateEn: "Blocked",
+    tone: "blocked",
+    notesKo: "현재는 Codex 요청 화면 이동까지만 제공하며, WBS 행에서 SR 티켓을 생성·연결·상태 동기화하는 API는 없습니다.",
+    notesEn: "The page only opens the Codex request console; no API creates, links, or syncs SR tickets from a WBS row yet."
+  },
+  {
+    labelKo: "Bulk update / 감사 export",
+    labelEn: "Bulk update / audit export",
+    stateKo: "차단",
+    stateEn: "Blocked",
+    tone: "blocked",
+    notesKo: "여러 WBS 행 일괄 변경, 부분 실패 처리, 감사 증적 조회·내보내기 UI/API가 필요합니다.",
+    notesEn: "Bulk row mutation, partial-failure handling, and audit evidence query/export UI/API are still needed."
+  }
+];
+
+const WBS_ACTION_CONTRACT = [
+  { labelKo: "SR 티켓 생성", labelEn: "Create SR Ticket" },
+  { labelKo: "SR 링크 동기화", labelEn: "Sync SR Link" },
+  { labelKo: "Bulk 일정 업데이트", labelEn: "Bulk Schedule Update" },
+  { labelKo: "감사 증적 내보내기", labelEn: "Export Audit Evidence" }
+];
+
 function editorFromRow(row: Record<string, unknown> | null): WbsEditorState {
   return {
     owner: stringOf(row, "owner"),
@@ -236,6 +319,47 @@ export function WbsManagementMigrationPage() {
         <SummaryMetricCard title={en ? "On-time Rate" : "정시 완료율"} value={`${numberOf(inventorySummary, "onTimeCompletionRate")}%`} />
         <SummaryMetricCard title={en ? "Avg Variance" : "평균 편차"} value={`${numberOf(inventorySummary, "averageVarianceDays")}d`} />
         <SummaryMetricCard title={en ? "Missing Plan" : "예상일정 미입력"} value={numberOf(inventorySummary, "noPlannedDate")} />
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <article className="gov-card min-w-0 overflow-hidden p-0" data-help-id="wbs-closeout-gate">
+          <GridToolbar
+            meta={en ? "Separates implemented WBS behavior from the remaining SR/bulk/audit-export contracts." : "이미 구현된 WBS 기능과 아직 필요한 SR/bulk/audit-export 계약을 구분합니다."}
+            title={en ? "WBS Completion Gate" : "WBS 완료 게이트"}
+          />
+          <div className="divide-y divide-slate-100">
+            {WBS_CLOSEOUT_ROWS.map((row) => (
+              <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-[220px_96px_minmax(0,1fr)]" key={row.labelKo}>
+                <div className="font-semibold text-[var(--kr-gov-text-primary)]">{en ? row.labelEn : row.labelKo}</div>
+                <div>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${row.tone === "ready" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+                    {en ? row.stateEn : row.stateKo}
+                  </span>
+                </div>
+                <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{en ? row.notesEn : row.notesKo}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <aside className="gov-card min-w-0 p-5" data-help-id="wbs-action-contract">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-amber-600">lock</span>
+            <h2 className="text-base font-bold text-[var(--kr-gov-text-primary)]">{en ? "Blocked Actions" : "차단된 조치"}</h2>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+            {en
+              ? "These actions need backend contracts for SR linkage, bulk mutation, authority checks, and audit evidence before operators can run them."
+              : "아래 조치는 SR 연결, 일괄 변경, 권한 검사, 감사 증적 API가 연결되기 전까지 실행하지 않습니다."}
+          </p>
+          <div className="mt-4 grid gap-2">
+            {WBS_ACTION_CONTRACT.map((action) => (
+              <button className="gov-btn gov-btn-outline justify-center opacity-60" disabled key={action.labelKo} type="button">
+                {en ? action.labelEn : action.labelKo}
+              </button>
+            ))}
+          </div>
+        </aside>
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">

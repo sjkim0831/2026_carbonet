@@ -52,6 +52,13 @@ const ENVIRONMENT_MANAGEMENT_ROUTE_DEFINITIONS = [
     group: "platform",
     koPath: "/admin/system/verification-center",
     enPath: "/en/admin/system/verification-center"
+  },
+  {
+    id: "verification-assets",
+    label: "검증 자산 관리",
+    group: "platform",
+    koPath: "/admin/system/verification-assets",
+    enPath: "/en/admin/system/verification-assets"
   }
 ] as const satisfies RouteDefinitionsOf;
 
@@ -90,6 +97,11 @@ const ENVIRONMENT_MANAGEMENT_PAGE_UNITS = [
     id: "verification-center",
     exportName: "VerificationCenterMigrationPage",
     loader: () => import("./VerificationCenterMigrationPage")
+  },
+  {
+    id: "verification-assets",
+    exportName: "VerificationAssetManagementMigrationPage",
+    loader: () => import("./VerificationAssetManagementMigrationPage")
   }
 ] as const satisfies PageUnitsOf<typeof ENVIRONMENT_MANAGEMENT_ROUTE_DEFINITIONS>;
 

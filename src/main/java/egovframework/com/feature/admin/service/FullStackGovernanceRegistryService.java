@@ -1,5 +1,7 @@
 package egovframework.com.feature.admin.service;
 
+import egovframework.com.platform.codex.service.ScreenCommandCenterService;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.feature.admin.dto.request.FullStackGovernanceAutoCollectRequest;

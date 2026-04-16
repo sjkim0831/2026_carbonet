@@ -101,7 +101,7 @@ public class StaticPageIsolationExceptionAdvice {
     private String resolveAdminLoginPath(HttpServletRequest request, String uri) {
         boolean english = (uri != null && uri.startsWith("/en/admin"))
                 || (request != null && "en".equalsIgnoreCase(request.getParameter("language")));
-        return english ? "/en/signin/loginView?console=admin" : "/signin/loginView?console=admin";
+        return english ? "/en/admin/login/loginView" : "/admin/login/loginView";
     }
 
     private String buildErrorHtml(String uri) {

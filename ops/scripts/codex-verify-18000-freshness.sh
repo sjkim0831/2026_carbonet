@@ -26,6 +26,8 @@ Environment overrides:
   VERIFY_WAIT_SECONDS
   VERIFY_EXTENDED_WAIT_SECONDS
   VERIFY_EXTERNAL_MONITORING_BOOTSTRAP=true
+  VERIFY_CLOB_FALLBACK_LOGS=true
+  VERIFY_BLOCKLIST_FALLBACK_LOGS=true
 EOF
   exit 0
 fi
@@ -47,6 +49,10 @@ STARTUP_MARKER="${STARTUP_MARKER:-Tomcat started on port(s): ${PORT}}"
 VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-60}"
 VERIFY_EXTENDED_WAIT_SECONDS="${VERIFY_EXTENDED_WAIT_SECONDS:-180}"
 VERIFY_EXTERNAL_MONITORING_BOOTSTRAP="${VERIFY_EXTERNAL_MONITORING_BOOTSTRAP:-false}"
+VERIFY_CLOB_FALLBACK_LOGS="${VERIFY_CLOB_FALLBACK_LOGS:-true}"
+CLOB_FALLBACK_LOG_PATTERN="${CLOB_FALLBACK_LOG_PATTERN:-Access event persistence failed due to CLOB binding|Audit event persistence failed due to CLOB binding|Error event persistence failed due to CLOB binding|Trace payload persistence failed due to CLOB binding|Failed to persist access event after compact retry|Failed to persist audit event after compact retry|Failed to persist error event after compact retry|Failed to persist trace event after retry without payload}"
+VERIFY_BLOCKLIST_FALLBACK_LOGS="${VERIFY_BLOCKLIST_FALLBACK_LOGS:-true}"
+BLOCKLIST_FALLBACK_LOG_PATTERN="${BLOCKLIST_FALLBACK_LOG_PATTERN:-Failed to load persisted blocklist rows|Failed to load persisted blocklist action history|Unknown class \"dba[.]comtnblocklistentry\"|Unknown class \"dba[.]comtnblocklistactionhist\"}"
 
 if [[ -f "$ENV_FILE" ]]; then
   set -a
@@ -72,6 +78,24 @@ port_is_listening() {
 
 log_has_startup_marker() {
   [[ -f "$LOG_FILE" ]] && grep -q "$STARTUP_MARKER" "$LOG_FILE"
+}
+
+log_since_latest_startup_has() {
+  local pattern="$1"
+  [[ -f "$LOG_FILE" ]] || return 1
+  awk -v marker="$STARTUP_MARKER" -v pattern="$pattern" '
+    index($0, marker) {
+      seen = 1
+      found = 0
+      next
+    }
+    seen && $0 ~ pattern {
+      found = 1
+    }
+    END {
+      exit(found ? 0 : 1)
+    }
+  ' "$LOG_FILE"
 }
 
 health_is_up() {
@@ -217,6 +241,18 @@ for _ in $(seq 1 "$VERIFY_EXTENDED_WAIT_SECONDS"); do
 done
 log_has_startup_marker || fail "startup marker not found in log: $STARTUP_MARKER"
 
+if [[ "$VERIFY_CLOB_FALLBACK_LOGS" == "true" ]]; then
+  if log_since_latest_startup_has "$CLOB_FALLBACK_LOG_PATTERN"; then
+    fail "CLOB persistence fallback log found after latest startup marker; run ops/scripts/codex-fix-cubrid-lob-permissions.sh and re-probe the affected route"
+  fi
+fi
+
+if [[ "$VERIFY_BLOCKLIST_FALLBACK_LOGS" == "true" ]]; then
+  if log_since_latest_startup_has "$BLOCKLIST_FALLBACK_LOG_PATTERN"; then
+    fail "blocklist persistence fallback log found after latest startup marker; run ops/scripts/codex-fix-cubrid-blocklist-schema.sh, restart :18000, and re-probe the affected route"
+  fi
+fi
+
 HEALTH_BODY=""
 for _ in $(seq 1 "$VERIFY_EXTENDED_WAIT_SECONDS"); do
   if health_is_up; then
@@ -252,6 +288,12 @@ info "target jar: $TARGET_JAR_PATH"
 info "runtime jar: $RUNTIME_JAR_PATH"
 info "jar hash OK: $TARGET_HASH"
 info "startup marker OK: $STARTUP_MARKER"
+if [[ "$VERIFY_CLOB_FALLBACK_LOGS" == "true" ]]; then
+  info "CLOB fallback logs OK since latest startup"
+fi
+if [[ "$VERIFY_BLOCKLIST_FALLBACK_LOGS" == "true" ]]; then
+  info "blocklist fallback logs OK since latest startup"
+fi
 
 if [[ "$VERIFY_EXTERNAL_MONITORING_BOOTSTRAP" == "true" ]]; then
   info "running external monitoring bootstrap verification"

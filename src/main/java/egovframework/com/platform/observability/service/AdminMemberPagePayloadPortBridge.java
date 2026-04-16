@@ -1,6 +1,6 @@
 package egovframework.com.platform.observability.service;
 
-import egovframework.com.feature.admin.web.AdminMemberPagePayloadService;
+import egovframework.com.platform.codex.service.AdminMemberPagePayloadService;
 import egovframework.com.platform.service.observability.AdminMemberPagePayloadPort;
 import org.springframework.stereotype.Service;
 

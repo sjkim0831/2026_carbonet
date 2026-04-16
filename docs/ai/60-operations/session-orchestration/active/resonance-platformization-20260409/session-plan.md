@@ -17,24 +17,10 @@
 
 ## Shared Contracts
 
-For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, the single live entry pair is:
-
-- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
-- `docs/architecture/builder-resource-ownership-queue-map.md`
-
-Use this as supporting maintenance-contract guidance only:
-
-- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
-
-Routing note:
-
-- doc-routing rollout for this family is already in place
-- follow-up work should prefer row review progress and closeout-state updates
-- the family remains in blocker-resolution state, but row `1` now carries `DELETE_NOW`
-- row `3` now carries a stronger non-blocker note
-- the active blocker-resolution row is now `5`
-- remaining docs-only valid work is limited to watched-source change detection plus exact missing-sentence confirmation
-- canonical partial phrase is `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
+- `BUILDER_RESOURCE_OWNERSHIP_CLOSURE` is now CLOSED
+- all 5 rows resolved as `DELETE_NOW` or carry non-blocking notes
+- success phrase: `SUCCESS: builder resource ownership closure is now complete across all five rows, with row 5 resolved as DELETE_NOW following explicit root exclusion and fully moved MyBatis/resource ownership.`
+- next family: `BUILDER_COMPATIBILITY_SHIM_REMOVAL`
 
 - API: control-plane bootstrap/page payload APIs, builder governance APIs, version-management APIs, deploy evidence APIs
 - DTO or VO: platform-owned builder, version-control, runtime-package, and control-plane DTO families
@@ -82,19 +68,16 @@ Routing note:
 - doneCriteria: next implementation slice is explicit and shared-file ownership is frozen
 - current builder-structure wave authority:
   - `docs/architecture/builder-structure-wave-20260409-closure.md`
+- current builder resource-ownership wave authority:
+  - `docs/architecture/builder-resource-ownership-wave-20260415-closure.md`
 - current wave closes:
   - `BUILDER_STRUCTURE_GOVERNANCE`
+  - `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`
 - current wave does not close:
-  - builder resource ownership
   - compatibility shim removal
   - broader control-plane composition split
-- current builder resource-ownership continuation entry:
-  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
-  - `docs/architecture/builder-resource-ownership-queue-map.md`
-- single live entry pair for that family:
-  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
-  - `docs/architecture/builder-resource-ownership-queue-map.md`
-- if plan refresh changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn
+- next continuation family:
+  - `BUILDER_COMPATIBILITY_SHIM_REMOVAL`
 
 ### Session B
 

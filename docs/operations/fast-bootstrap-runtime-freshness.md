@@ -218,6 +218,57 @@ Reason:
 
 - cheaper than debugging a stale runtime misunderstanding
 
+## Local CUBRID CLOB Permission Drift
+
+If route probes work but `var/logs/carbonet-18000.log` shows repeated observability fallbacks such as:
+
+- `Access event persistence failed due to CLOB binding`
+- `Audit event persistence failed due to CLOB binding`
+- `Error event persistence failed due to CLOB binding`
+- `Trace payload persistence failed due to CLOB binding`
+
+check the local CUBRID LOB volume ownership. The Docker CUBRID server runs as `cubrid`, so root-owned `700` directories under `/var/lib/cubrid/com/lob` can make CLOB creation fail even while normal SQL and health checks pass.
+
+Use the repository helper:
+
+```bash
+bash ops/scripts/codex-fix-cubrid-lob-permissions.sh
+```
+
+Then re-run the exact route probe that produced the warning and confirm no new CLOB fallback log lines appear.
+
+The default freshness verifier also checks for these fallback patterns after the latest startup marker:
+
+```bash
+bash ops/scripts/codex-verify-18000-freshness.sh
+```
+
+Set `VERIFY_CLOB_FALLBACK_LOGS=false` only when intentionally diagnosing unrelated startup freshness and you have already captured the CLOB warning separately.
+
+## Local Blocklist Persistence Schema Drift
+
+If admin route probes work but `var/logs/carbonet-18000.log` shows blocklist fallback warnings such as:
+
+- `Failed to load persisted blocklist rows. Falling back to snapshot source.`
+- `Unknown class "dba.comtnblocklistentry"`
+
+the local DB is missing the DB-backed blocklist persistence schema. Use the repository helper:
+
+```bash
+bash ops/scripts/codex-fix-cubrid-blocklist-schema.sh
+```
+
+Then restart only the local runtime process so the JDBC pool opens fresh connections:
+
+```bash
+RESTART_MODE=runtime-only bash ops/scripts/restart-18000.sh
+VERIFY_WAIT_SECONDS=20 bash ops/scripts/codex-verify-18000-freshness.sh
+```
+
+After restart, re-run the route probe and confirm the latest startup section of `var/logs/carbonet-18000.log` does not contain the blocklist fallback warning.
+
+The default freshness verifier checks these blocklist fallback patterns after the latest startup marker. Set `VERIFY_BLOCKLIST_FALLBACK_LOGS=false` only when intentionally separating schema repair from runtime freshness diagnosis.
+
 ## Verification Minimum
 
 After a local refresh, verify at least:

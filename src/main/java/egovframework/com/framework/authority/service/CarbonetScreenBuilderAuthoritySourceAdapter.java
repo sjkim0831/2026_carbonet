@@ -1,6 +1,6 @@
 package egovframework.com.framework.authority.service;
 
-import egovframework.com.feature.admin.screenbuilder.support.CarbonetScreenBuilderAuthoritySource;
+import egovframework.com.platform.screenbuilder.support.CarbonetScreenBuilderAuthoritySource;
 import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;
 
 import java.util.Collections;

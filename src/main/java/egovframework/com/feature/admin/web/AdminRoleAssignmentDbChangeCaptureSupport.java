@@ -1,7 +1,7 @@
 package egovframework.com.feature.admin.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
+import egovframework.com.platform.codex.model.UserAuthorityTargetVO;
 import egovframework.com.platform.dbchange.model.DbChangeCaptureRequest;
 import egovframework.com.platform.dbchange.service.DbChangeCaptureService;
 import lombok.RequiredArgsConstructor;

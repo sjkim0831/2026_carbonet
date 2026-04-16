@@ -1,6 +1,6 @@
 package egovframework.com.platform.observability.service;
 
-import egovframework.com.feature.admin.model.vo.LoginHistoryVO;
+import egovframework.com.platform.observability.model.LoginHistoryVO;
 import egovframework.com.feature.admin.web.AdminListPageModelAssembler;
 import egovframework.com.platform.service.observability.history.LoginHistoryDatasetSnapshot;
 import egovframework.com.platform.service.observability.history.LoginHistoryRowSnapshot;

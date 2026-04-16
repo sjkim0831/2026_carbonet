@@ -7,6 +7,7 @@ import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { MemberButton, MemberLinkButton } from "../member/common";
 
 type BatchCloseoutItem = {
   label: string;
@@ -340,6 +341,7 @@ export function BatchManagementMigrationPage() {
                   <th className="px-4 py-3">{en ? "Last Run" : "최근 실행"}</th>
                   <th className="px-4 py-3">{en ? "Next Run" : "다음 실행"}</th>
                   <th className="px-4 py-3">{en ? "Owner" : "담당"}</th>
+                  <th className="px-4 py-3 text-right">{en ? "Asset & Control" : "자산/제어"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -348,11 +350,43 @@ export function BatchManagementMigrationPage() {
                     <td className="px-4 py-3 font-bold">{stringOf(row, "jobId")}</td>
                     <td className="px-4 py-3">{stringOf(row, "jobName")}</td>
                     <td className="px-4 py-3">{stringOf(row, "queueName")}</td>
-                    <td className="px-4 py-3">{stringOf(row, "executionType")}</td>
-                    <td className="px-4 py-3">{stringOf(row, "jobStatus")}</td>
-                    <td className="px-4 py-3">{stringOf(row, "lastRunAt")}</td>
-                    <td className="px-4 py-3">{stringOf(row, "nextRunAt")}</td>
-                    <td className="px-4 py-3">{stringOf(row, "owner")}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                        {stringOf(row, "executionType")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                        stringOf(row, "jobStatus") === "ACTIVE" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                        stringOf(row, "jobStatus") === "REVIEW" ? "bg-amber-50 text-amber-700 border border-amber-200" :
+                        "bg-slate-100 text-slate-700 border border-slate-200"
+                      }`}>
+                        {stringOf(row, "jobStatus")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[12px]">{stringOf(row, "lastRunAt")}</td>
+                    <td className="px-4 py-3 text-[12px]">{stringOf(row, "nextRunAt")}</td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-[11px] text-slate-600">{stringOf(row, "owner")}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <MemberLinkButton
+                          size="sm"
+                          variant="secondary"
+                          href={buildLocalizedPath(`/admin/system/asset-detail?id=BATCH-${stringOf(row, "jobId")}`, `/en/admin/system/asset-detail?id=BATCH-${stringOf(row, "jobId")}`)}
+                        >
+                          {en ? "Asset" : "자산 연동"}
+                        </MemberLinkButton>
+                        <MemberButton
+                          size="sm"
+                          variant={stringOf(row, "jobStatus") === "ACTIVE" ? "secondary" : "primary"}
+                          onClick={() => alert(en ? "Execution action will be integrated via ADMIN-SYS-CLOSE-004." : "강제 실행 및 통제 기능은 백엔드 API 완비 후 연결됩니다.")}
+                        >
+                          {stringOf(row, "jobStatus") === "ACTIVE" ? (en ? "Pause" : "중지") : (en ? "Trigger" : "수동 실행")}
+                        </MemberButton>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -372,21 +406,38 @@ export function BatchManagementMigrationPage() {
                   <tr className="gov-table-header">
                     <th className="px-4 py-3">{en ? "Queue ID" : "큐 ID"}</th>
                     <th className="px-4 py-3">{en ? "Queue Name" : "큐명"}</th>
-                    <th className="px-4 py-3">{en ? "Backlog" : "대기 건수"}</th>
+                    <th className="px-4 py-3 text-right">{en ? "Backlog" : "대기 건수"}</th>
                     <th className="px-4 py-3">{en ? "Consumer Node" : "소비 노드"}</th>
                     <th className="px-4 py-3">{en ? "Last Message" : "최근 메시지"}</th>
                     <th className="px-4 py-3">{en ? "Status" : "상태"}</th>
+                    <th className="px-4 py-3 text-right">{en ? "Control" : "제어"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredQueues.map((row) => (
                     <tr key={stringOf(row, "queueId")}>
                       <td className="px-4 py-3 font-mono text-[13px]">{stringOf(row, "queueId")}</td>
-                      <td className="px-4 py-3">{stringOf(row, "queueName")}</td>
-                      <td className="px-4 py-3">{stringOf(row, "backlogCount")}</td>
-                      <td className="px-4 py-3">{stringOf(row, "consumerNode")}</td>
-                      <td className="px-4 py-3">{stringOf(row, "lastMessageAt")}</td>
-                      <td className="px-4 py-3">{stringOf(row, "status")}</td>
+                      <td className="px-4 py-3 font-bold">{stringOf(row, "queueName")}</td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-amber-700">{stringOf(row, "backlogCount")}</td>
+                      <td className="px-4 py-3 text-[12px]">{stringOf(row, "consumerNode")}</td>
+                      <td className="px-4 py-3 text-[12px] text-slate-500">{stringOf(row, "lastMessageAt")}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          stringOf(row, "status") === "ACTIVE" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                          "bg-amber-50 text-amber-700 border border-amber-200"
+                        }`}>
+                          {stringOf(row, "status")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <MemberButton
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => alert(en ? "Queue drain will be integrated via ADMIN-SYS-CLOSE-004." : "큐 비우기 기능은 백엔드 API 완비 후 연결됩니다.")}
+                        >
+                          {en ? "Drain" : "큐 비우기"}
+                        </MemberButton>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

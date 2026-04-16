@@ -1,5 +1,7 @@
 package egovframework.com.feature.admin.model.vo;
 
+import egovframework.com.platform.codex.model.FeatureCatalogItemVO;
+
 import lombok.Getter;
 import lombok.Setter;
 

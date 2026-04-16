@@ -55,6 +55,17 @@ import type {
   SrTicketRow,
   SrWorkbenchPagePayload,
   SrWorkbenchStackItem,
+  SystemAssetDetailPayload,
+  SystemAssetImpactPayload,
+  SystemAssetGapPayload,
+  SystemAssetLifecyclePayload,
+  SystemAssetLifecyclePlanVO,
+  SystemAssetInventoryVO,
+  AssetScanSummary,
+  VerificationCenterPagePayload,
+  VerificationAssetManagementPagePayload,
+  VerificationAssetMutationResponse,
+  VerificationCenterRunResponse,
   TraceEventSearchPayload,
   WbsManagementPagePayload
 } from "./platformTypes";
@@ -166,6 +177,71 @@ export async function fetchWbsManagementPage(menuType?: string) {
     {
       fallbackMessage: "Failed to load WBS management page"
     }
+  );
+}
+
+export async function fetchVerificationCenterPage() {
+  return fetchLocalizedPageJson<VerificationCenterPagePayload>(
+    "/admin/system/verification-center/page-data",
+    "/en/admin/system/verification-center/page-data",
+    {
+      fallbackMessage: "Failed to load verification center page"
+    }
+  );
+}
+
+export async function runVerificationCenterCheck(actionType: string) {
+  return postLocalizedValidatedJson<VerificationCenterRunResponse>(
+    "/admin/system/verification-center/run-check",
+    "/en/admin/system/verification-center/run-check",
+    { actionType },
+    "Failed to run verification check."
+  );
+}
+
+export async function fetchVerificationAssetManagementPage() {
+  return fetchLocalizedPageJson<VerificationAssetManagementPagePayload>(
+    "/admin/system/verification-assets/page-data",
+    "/en/admin/system/verification-assets/page-data",
+    {
+      fallbackMessage: "Failed to load verification asset management page"
+    }
+  );
+}
+
+export async function upsertVerificationBaseline(payload: Record<string, unknown>) {
+  return postLocalizedValidatedJson<VerificationAssetMutationResponse>(
+    "/admin/system/verification-assets/upsert-baseline",
+    "/en/admin/system/verification-assets/upsert-baseline",
+    payload,
+    "Failed to save baseline."
+  );
+}
+
+export async function upsertVerificationAccount(payload: Record<string, unknown>) {
+  return postLocalizedValidatedJson<VerificationAssetMutationResponse>(
+    "/admin/system/verification-assets/upsert-account",
+    "/en/admin/system/verification-assets/upsert-account",
+    payload,
+    "Failed to save test account."
+  );
+}
+
+export async function upsertVerificationDataset(payload: Record<string, unknown>) {
+  return postLocalizedValidatedJson<VerificationAssetMutationResponse>(
+    "/admin/system/verification-assets/upsert-dataset",
+    "/en/admin/system/verification-assets/upsert-dataset",
+    payload,
+    "Failed to save dataset."
+  );
+}
+
+export async function resolveVerificationAction(actionId: string) {
+  return postLocalizedValidatedJson<VerificationAssetMutationResponse>(
+    "/admin/system/verification-assets/resolve-action",
+    "/en/admin/system/verification-assets/resolve-action",
+    { actionId },
+    "Failed to resolve action."
   );
 }
 
@@ -1317,5 +1393,124 @@ export async function skipPlanExecuteSrTicket(ticketId: string) {
     {
       apiId: "admin.sr-workbench.ticket.skip-plan-execute"
     } as RequestInit
+  );
+}
+
+export async function fetchSystemAssetList(params?: {
+  type?: string;
+  domain?: string;
+  health?: string;
+}) {
+  const query = buildQueryString(params);
+  return fetchValidatedJson<SystemAssetInventoryVO[]>(
+    buildLocalizedPath(`/api/admin/system/asset/list${query}`, `/en/api/admin/system/asset/list${query}`),
+    {
+      fallbackMessage: "Failed to load system asset list",
+      validate: (body) => Array.isArray(body)
+    }
+  );
+}
+
+export async function fetchSystemAssetDetail(assetId: string) {
+  const query = buildQueryString({ id: assetId });
+  return fetchJson<SystemAssetDetailPayload>(
+    buildLocalizedPath(`/api/admin/system/asset/detail${query}`, `/en/api/admin/system/asset/detail${query}`),
+    {
+      fallbackMessage: "Failed to load system asset detail"
+    }
+  );
+}
+
+export async function triggerSystemAssetScan() {
+  return postLocalizedValidatedJson<AssetScanSummary>(
+    "/api/admin/system/asset/scan",
+    "/en/api/admin/system/asset/scan",
+    {},
+    "Failed to trigger system asset scan"
+  );
+}
+
+export async function fetchSystemAssetImpact(assetId: string) {
+  const query = buildQueryString({ id: assetId });
+  return fetchJson<SystemAssetImpactPayload>(
+    buildLocalizedPath(`/api/admin/system/asset/impact${query}`, `/en/api/admin/system/asset/impact${query}`),
+    {
+      fallbackMessage: "Failed to load system asset impact"
+    }
+  );
+}
+
+export async function fetchSystemAssetGap(type?: string) {
+  const query = buildQueryString({ type });
+  return fetchJson<SystemAssetGapPayload>(
+    buildLocalizedPath(`/api/admin/system/asset/gap${query}`, `/en/api/admin/system/asset/gap${query}`),
+    {
+      fallbackMessage: "Failed to load system asset gap queue"
+    }
+  );
+}
+
+export async function fetchSystemAssetLifecycle(assetId?: string) {
+  const query = buildQueryString({ id: assetId });
+  return fetchJson<SystemAssetLifecyclePayload>(
+    buildLocalizedPath(`/api/admin/system/asset/lifecycle${query}`, `/en/api/admin/system/asset/lifecycle${query}`),
+    {
+      fallbackMessage: "Failed to load system asset lifecycle"
+    }
+  );
+}
+
+export async function updateSystemAsset(params: {
+  id: string;
+  assetFamily?: string;
+  ownerDomain?: string;
+  ownerScope?: string;
+  operatorOwner?: string;
+  serviceOwner?: string;
+  criticality?: string;
+  activeYn?: string;
+  propagate?: boolean;
+}) {
+  return postLocalizedValidatedJson<{ success: boolean; affectedCount: number }>(
+    "/api/admin/system/asset/update",
+    "/en/api/admin/system/asset/update",
+    params,
+    "Failed to update system asset"
+  );
+}
+
+export async function createSystemAssetLifecyclePlan(plan: Partial<SystemAssetLifecyclePlanVO>) {
+  return postLocalizedValidatedJson<{ success: boolean; planId: string }>(
+    "/api/admin/system/asset/lifecycle/plan/create",
+    "/en/api/admin/system/asset/lifecycle/plan/create",
+    plan,
+    "Failed to create lifecycle plan"
+  );
+}
+
+export async function fetchSystemAssetLifecyclePlanList(params?: {
+  assetId?: string;
+  status?: string;
+  stage?: string;
+}) {
+  const query = buildQueryString(params);
+  return fetchJson<SystemAssetLifecyclePlanVO[]>(
+    buildLocalizedPath(`/api/admin/system/asset/lifecycle/plan/list${query}`, `/en/api/admin/system/asset/lifecycle/plan/list${query}`),
+    {
+      fallbackMessage: "Failed to load lifecycle plans"
+    }
+  );
+}
+
+export async function approveSystemAssetLifecyclePlan(params: {
+  planId: string;
+  approverId: string;
+  status: string;
+}) {
+  return postLocalizedValidatedJson<{ success: boolean }>(
+    "/api/admin/system/asset/lifecycle/plan/approve",
+    "/en/api/admin/system/asset/lifecycle/plan/approve",
+    params,
+    "Failed to approve lifecycle plan"
   );
 }

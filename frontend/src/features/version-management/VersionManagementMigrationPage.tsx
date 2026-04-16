@@ -399,7 +399,7 @@ export function VersionManagementMigrationPage() {
           </div>
         </section>
 
-        <section className="relative z-20 mx-auto -mt-8 max-w-[1440px] px-4 lg:px-8">
+        <section className="relative z-20 mx-auto -mt-8 max-w-[1440px] px-4 lg:px-8" data-help-id="mtn-version-queue">
           <div className="rounded-[28px] border border-gray-100 bg-white p-6 shadow-2xl lg:p-8">
             <div className="mb-6 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -432,7 +432,7 @@ export function VersionManagementMigrationPage() {
 
         <section className="mx-auto max-w-[1440px] px-4 py-12 lg:px-8">
           <div className="grid gap-8 xl:grid-cols-[1.2fr,0.8fr]">
-            <div className="rounded-[28px] border border-gray-100 bg-white p-8 shadow-xl">
+            <div className="rounded-[28px] border border-gray-100 bg-white p-8 shadow-xl" data-help-id="mtn-version-release-notes">
               <div className="mb-8 flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[var(--kr-gov-blue)]">
                   <span className="material-symbols-outlined">new_releases</span>

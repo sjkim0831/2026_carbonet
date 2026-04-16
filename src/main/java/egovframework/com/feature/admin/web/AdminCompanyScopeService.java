@@ -1,5 +1,7 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -7,6 +7,7 @@ import egovframework.com.platform.runtimecontrol.model.ProjectPipelineRunRequest
 import egovframework.com.platform.runtimecontrol.model.ProjectPipelineStatusRequest;
 import egovframework.com.platform.runtimecontrol.model.RepairApplyRequest;
 import egovframework.com.platform.runtimecontrol.model.RepairOpenRequest;
+import egovframework.com.platform.runtimecontrol.model.VerificationRunRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -20,7 +21,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import egovframework.com.platform.versioncontrol.mapper.ProjectVersionManagementMapper;
 
 class RuntimeControlPlaneServiceImplTest {
 
@@ -29,6 +36,62 @@ class RuntimeControlPlaneServiceImplTest {
 
     @TempDir
     Path tempDir;
+
+    private ProjectVersionManagementMapper projectVersionManagementMapper;
+
+    @Test
+    void getParityCompareIdentifiesDriftUsingReleaseUnit() throws Exception {
+        RuntimeControlPlaneServiceImpl service = createService();
+        String projectId = "proj-drift";
+        String releaseUnitId = "rel-drift-01";
+
+        // Mock Release Unit with specific versions
+        Map<String, Object> releaseUnit = new LinkedHashMap<String, Object>();
+        releaseUnit.put("releaseUnitId", releaseUnitId);
+        releaseUnit.put("packageVersionSetJson", "{\"common-core\": \"1.2.3\", \"adapter-artifact\": \"2.0.0\"}");
+        when(projectVersionManagementMapper.selectReleaseUnit(releaseUnitId)).thenReturn(releaseUnit);
+
+        // Mock Installed Artifacts with a drift (mismatch)
+        Map<String, Object> coreInstall = new LinkedHashMap<String, Object>();
+        coreInstall.put("artifactId", "common-core");
+        coreInstall.put("installedArtifactVersion", "1.2.2"); // DRIFT: expected 1.2.3
+
+        Map<String, Object> adapterInstall = new LinkedHashMap<String, Object>();
+        adapterInstall.put("artifactId", "adapter-artifact");
+        adapterInstall.put("installedArtifactVersion", "2.0.0"); // MATCH
+
+        when(projectVersionManagementMapper.selectInstalledArtifacts(projectId))
+                .thenReturn(Arrays.asList(coreInstall, adapterInstall));
+
+        ParityCompareRequest request = new ParityCompareRequest();
+        request.setProjectId(projectId);
+        request.setReleaseUnitId(releaseUnitId);
+
+        Map<String, Object> response = service.getParityCompare(request);
+
+        assertEquals("REPAIR_REQUIRED", response.get("result"));
+        assertEquals(Integer.valueOf(50), response.get("parityScore")); // 1 match out of 2 targets
+
+        List<Map<String, Object>> targets = (List<Map<String, Object>>) response.get("compareTargetSet");
+        assertEquals(2, targets.size());
+
+        Map<String, Object> coreRow = findRow(targets, "common-core");
+        assertEquals("MISMATCH", coreRow.get("result"));
+        assertEquals("1.2.3", coreRow.get("generatedTarget"));
+        assertEquals("1.2.2", coreRow.get("currentRuntime"));
+
+        Map<String, Object> adapterRow = findRow(targets, "adapter-artifact");
+        assertEquals("MATCH", adapterRow.get("result"));
+
+        assertTrue(((List<String>) response.get("blockerSet")).stream().anyMatch(s -> s.contains("common-core")));
+    }
+
+    private Map<String, Object> findRow(List<Map<String, Object>> rows, String target) {
+        for (Map<String, Object> row : rows) {
+            if (target.equals(row.get("target"))) return row;
+        }
+        return null;
+    }
 
     @Test
     void getParityCompareNormalizesPayloadAndPersistsJsonlRecord() throws Exception {
@@ -144,12 +207,43 @@ class RuntimeControlPlaneServiceImplTest {
         assertTrue(!String.valueOf(firstRun.get("pipelineRunId")).equals(String.valueOf(status.get("pipelineRunId"))));
     }
 
+    @Test
+    void saveVerificationRunPersistsGovernanceFieldsAndJsonlRecord() throws Exception {
+        RuntimeControlPlaneServiceImpl service = createService();
+
+        VerificationRunRequest request = new VerificationRunRequest();
+        request.setProjectId("proj-verify");
+        request.setMenuId("menu-01");
+        request.setTargetRuntime("PROD");
+        request.setResult("FAIL");
+        request.setBlockerCount(2);
+        request.setVerifyShellYn(true);
+        request.setVerifyComponentYn(false);
+
+        Map<String, Object> response = service.saveVerificationRun(request);
+
+        assertEquals("proj-verify", response.get("projectId"));
+        assertEquals("menu-01", response.get("menuId"));
+        assertEquals("PROD", response.get("targetRuntime"));
+        assertEquals("FAIL", response.get("result"));
+        assertEquals(2, response.get("blockerCount"));
+        assertEquals("Y", response.get("verifyShellYn"));
+        assertEquals("N", response.get("verifyComponentYn"));
+
+        Map<String, Object> persisted = lastJsonLine(tempDir.resolve("verification-run.jsonl"));
+        assertEquals("proj-verify", persisted.get("projectId"));
+        assertEquals("menu-01", persisted.get("menuId"));
+        assertEquals("FAIL", persisted.get("result"));
+    }
+
     private RuntimeControlPlaneServiceImpl createService() {
-        RuntimeControlPlaneServiceImpl service = new RuntimeControlPlaneServiceImpl(new ObjectMapper(), null);
+        projectVersionManagementMapper = mock(ProjectVersionManagementMapper.class);
+        RuntimeControlPlaneServiceImpl service = new RuntimeControlPlaneServiceImpl(new ObjectMapper(), projectVersionManagementMapper, null);
         ReflectionTestUtils.setField(service, "parityCompareStore", tempDir.resolve("parity-compare.jsonl").toString());
         ReflectionTestUtils.setField(service, "repairOpenStore", tempDir.resolve("repair-open.jsonl").toString());
         ReflectionTestUtils.setField(service, "repairApplyStore", tempDir.resolve("repair-apply.jsonl").toString());
         ReflectionTestUtils.setField(service, "projectPipelineStore", tempDir.resolve("project-pipeline.jsonl").toString());
+        ReflectionTestUtils.setField(service, "verificationRunStore", tempDir.resolve("verification-run.jsonl").toString());
         return service;
     }
 

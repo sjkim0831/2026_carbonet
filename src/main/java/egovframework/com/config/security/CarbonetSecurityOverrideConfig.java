@@ -35,6 +35,19 @@ public class CarbonetSecurityOverrideConfig {
                     );
                 });
                 registry.registerBeanDefinition("egovAccessDeniedHandler", beanDefinition);
+
+                if (registry.containsBeanDefinition("loginUrlAuthenticationEntryPoint")) {
+                    registry.removeBeanDefinition("loginUrlAuthenticationEntryPoint");
+                }
+
+                RootBeanDefinition entryPointBeanDefinition =
+                        new RootBeanDefinition(CarbonetAdminAwareLoginUrlAuthenticationEntryPoint.class);
+                entryPointBeanDefinition.setRole(BeanDefinition.ROLE_APPLICATION);
+                entryPointBeanDefinition.setInstanceSupplier(() -> {
+                    EgovSecurityProperties properties = SpringContextHolder.getBean(EgovSecurityProperties.class);
+                    return new CarbonetAdminAwareLoginUrlAuthenticationEntryPoint(properties.getLoginUrl());
+                });
+                registry.registerBeanDefinition("loginUrlAuthenticationEntryPoint", entryPointBeanDefinition);
             }
 
             @Override

@@ -315,7 +315,7 @@ export function EduCourseListMigrationPage() {
       />
 
       <main id="main-content">
-        <section className="relative overflow-hidden border-b border-slate-900/10 bg-[radial-gradient(circle_at_top_left,#1d4ed8_0,#0f172a_48%,#111827_100%)]">
+        <section className="relative overflow-hidden border-b border-slate-900/10 bg-[radial-gradient(circle_at_top_left,#1d4ed8_0,#0f172a_48%,#111827_100%)]" data-help-id="edu-course-list-hero">
           <div className="absolute inset-0 opacity-20">
             <div className="h-full w-full bg-[linear-gradient(90deg,transparent_0,transparent_48%,rgba(255,255,255,0.08)_48%,rgba(255,255,255,0.08)_52%,transparent_52%,transparent_100%)] bg-[length:72px_72px]" />
           </div>
@@ -390,7 +390,7 @@ export function EduCourseListMigrationPage() {
           </div>
         </section>
 
-        <section className="relative z-10 mx-auto -mt-8 max-w-7xl px-4 lg:px-8">
+        <section className="relative z-10 mx-auto -mt-8 max-w-7xl px-4 lg:px-8" data-help-id="edu-course-list-catalog">
           <div className="rounded-[24px] border border-white bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,0.55fr))_auto]">
               <label className="relative block">

@@ -6,7 +6,7 @@ import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.common.trace.TraceContext;
 import egovframework.com.common.trace.TraceContextHolder;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.entity.EntrprsMber;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;

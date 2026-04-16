@@ -21,6 +21,60 @@ import {
   ScreenManagementSummaryGrid
 } from "./shared";
 
+type ScreenFlowCloseoutRow = {
+  labelKo: string;
+  labelEn: string;
+  status: "available" | "blocked";
+  descriptionKo: string;
+  descriptionEn: string;
+};
+
+const SCREEN_FLOW_CLOSEOUT_ROWS: ScreenFlowCloseoutRow[] = [
+  {
+    labelKo: "화면 카탈로그 / 선택 메타데이터",
+    labelEn: "Screen catalog / selected metadata",
+    status: "available",
+    descriptionKo: "pageId, route, menuCode 기준 검색과 선택 화면의 source, 권한, layoutVersion 확인은 제공됩니다.",
+    descriptionEn: "Search by pageId, route, menuCode and selected page source, permission, and layoutVersion metadata are available."
+  },
+  {
+    labelKo: "Surface / Event / API / Schema 체인",
+    labelEn: "Surface / event / API / schema chain",
+    status: "available",
+    descriptionKo: "선택 화면의 surface, 이벤트, 프론트 함수, API, schema, change target 연결은 읽기 전용으로 점검할 수 있습니다.",
+    descriptionEn: "Selected page surface, event, frontend function, API, schema, and change-target links can be inspected read-only."
+  },
+  {
+    labelKo: "흐름 CRUD / 순서 편집",
+    labelEn: "Flow CRUD / ordered transition editing",
+    status: "blocked",
+    descriptionKo: "신규 flow 생성, transition 추가·삭제·정렬, 중복/순환 검증 저장 API가 없습니다.",
+    descriptionEn: "No API exists yet for creating flows, adding/removing/reordering transitions, or saving duplicate/cycle validation results."
+  },
+  {
+    labelKo: "버전 발행 / 롤백",
+    labelEn: "Version publish / rollback",
+    status: "blocked",
+    descriptionKo: "draft/current/published/rollback 버전 모델, 승인 권한, 변경 전후 감사 저장 계약이 필요합니다.",
+    descriptionEn: "Draft/current/published/rollback version models, approval permissions, and before/after audit contracts are required."
+  },
+  {
+    labelKo: "메뉴·권한 영향도 Preview",
+    labelEn: "Menu and authority impact preview",
+    status: "blocked",
+    descriptionKo: "연결 메뉴, route, feature/role 영향도를 저장 전 계산하고 차단 결과를 남기는 계약이 필요합니다.",
+    descriptionEn: "A contract is required to calculate linked menu, route, feature, and role impact before save and persist blocking results."
+  }
+];
+
+const SCREEN_FLOW_ACTION_CONTRACT = [
+  { labelKo: "Flow 생성", labelEn: "Create Flow" },
+  { labelKo: "Transition 편집", labelEn: "Edit Transitions" },
+  { labelKo: "Flow 검증", labelEn: "Validate Flow" },
+  { labelKo: "버전 발행", labelEn: "Publish Version" },
+  { labelKo: "영향도 Preview 저장", labelEn: "Save Impact Preview" }
+];
+
 function summarizeFields(items: Array<{ fieldId: string; type: string }> | undefined) {
   if (!items || items.length === 0) {
     return "-";
@@ -152,6 +206,48 @@ export function ScreenFlowManagementMigrationPage() {
           ]}
         />
 
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr,0.65fr]">
+          <article className="gov-card" data-help-id="screen-flow-closeout-gate">
+            <div className="flex flex-col gap-2 border-b border-[var(--kr-gov-border-light)] pb-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Closeout Gate" : "완료 게이트"}</p>
+              <h2 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Read-only chain inspector vs. blocked flow mutations" : "읽기 전용 체인 점검과 차단된 흐름 변경"}</h2>
+              <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "This screen is currently reliable for metadata inspection. Flow authoring, transition editing, versioning, and impact save actions stay disabled until backend contracts exist."
+                  : "현재 이 화면은 메타데이터 점검 용도까지 신뢰할 수 있습니다. 흐름 작성, transition 편집, 버전 관리, 영향도 저장은 백엔드 계약 전까지 비활성화합니다."}
+              </p>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {SCREEN_FLOW_CLOSEOUT_ROWS.map((row) => (
+                <article key={row.labelEn} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? row.labelEn : row.labelKo}</h3>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${row.status === "available" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                      {row.status === "available" ? (en ? "Available" : "가능") : (en ? "Blocked" : "차단")}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{en ? row.descriptionEn : row.descriptionKo}</p>
+                </article>
+              ))}
+            </div>
+          </article>
+
+          <article className="gov-card" data-help-id="screen-flow-action-contract">
+            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Action Contract" : "실행 계약"}</p>
+            <h2 className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "Disabled until validation and audit exist" : "검증과 감사 연결 전까지 비활성"}</h2>
+            <div className="mt-4 grid grid-cols-1 gap-2">
+              {SCREEN_FLOW_ACTION_CONTRACT.map((action) => (
+                <button key={action.labelEn} className="gov-btn gov-btn-outline justify-center opacity-65" type="button" disabled>
+                  {en ? action.labelEn : action.labelKo}
+                </button>
+              ))}
+            </div>
+            <p className="mt-4 text-xs font-bold text-[var(--kr-gov-text-secondary)]">
+              {en ? "Mutation actions require duplicate/cycle validation, menu and authority impact preview, approval rules, and before/after audit." : "변경 조치는 중복·순환 검증, 메뉴·권한 영향도 preview, 승인 규칙, 변경 전후 감사가 필요합니다."}
+            </p>
+          </article>
+        </section>
+
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[22rem_1fr]">
           <ScreenManagementCatalogPanel
             count={filteredPages.length}
@@ -172,25 +268,38 @@ export function ScreenFlowManagementMigrationPage() {
           />
 
           <div className="space-y-6">
-            <ScreenManagementSelectionOverview
-              badges={(
-                <>
-                  {selectedSummary?.domainCode ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{selectedSummary.domainCode}</span> : null}
-                  {page.menuPermission?.requiredViewFeatureCode ? <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{page.menuPermission.requiredViewFeatureCode}</span> : null}
-                  {page.manifestRegistry?.layoutVersion ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[var(--kr-gov-blue)]">{page.manifestRegistry.layoutVersion}</span> : null}
-                </>
-              )}
-              description={page.summary || (en ? "No summary is registered for this screen." : "이 화면에 등록된 요약 정보가 없습니다.")}
-              metaDescription={en ? "Page routing, source ownership, and component inventory stay together as the canonical trace." : "화면 경로, 소스 위치, 컴포넌트 인벤토리를 한 카드에서 같이 봅니다."}
-              metaItems={[
-                { label: en ? "Page ID" : "페이지 ID", value: page.pageId || "-" },
-                { label: en ? "Menu Code" : "메뉴 코드", value: page.menuCode || "-" },
-                { label: en ? "Route" : "경로", value: page.routePath || "-" },
-                { label: en ? "Source" : "소스", value: page.source || "-" }
-              ]}
-              metaTitle={en ? "Selected Screen Metadata" : "선택 화면 메타데이터"}
-              title={page.label || (en ? "Select a screen" : "화면을 선택하세요")}
-            />
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <ScreenManagementSelectionOverview
+                className="flex-1"
+                badges={(
+                  <>
+                    {selectedSummary?.domainCode ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{selectedSummary.domainCode}</span> : null}
+                    {page.menuPermission?.requiredViewFeatureCode ? <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{page.menuPermission.requiredViewFeatureCode}</span> : null}
+                    {page.manifestRegistry?.layoutVersion ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[var(--kr-gov-blue)]">{page.manifestRegistry.layoutVersion}</span> : null}
+                  </>
+                )}
+                description={page.summary || (en ? "No summary is registered for this screen." : "이 화면에 등록된 요약 정보가 없습니다.")}
+                metaDescription={en ? "Page routing, source ownership, and component inventory stay together as the canonical trace." : "화면 경로, 소스 위치, 컴포넌트 인벤토리를 한 카드에서 같이 봅니다."}
+                metaItems={[
+                  { label: en ? "Page ID" : "페이지 ID", value: page.pageId || "-" },
+                  { label: en ? "Menu Code" : "메뉴 코드", value: page.menuCode || "-" },
+                  { label: en ? "Route" : "경로", value: page.routePath || "-" },
+                  { label: en ? "Source" : "소스", value: page.source || "-" }
+                ]}
+                metaTitle={en ? "Selected Screen Metadata" : "선택 화면 메타데이터"}
+                title={page.label || (en ? "Select a screen" : "화면을 선택하세요")}
+              />
+              {page.pageId ? (
+                <div className="shrink-0 pt-1 pl-1">
+                  <a
+                    href={buildLocalizedPath(`/admin/system/asset-detail?id=UI-${page.pageId}`, `/en/admin/system/asset-detail?id=UI-${page.pageId}`)}
+                    className="inline-flex items-center justify-center rounded-[var(--kr-gov-radius)] border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[var(--kr-gov-blue)] focus:ring-offset-1"
+                  >
+                    {en ? "View Asset details" : "자산 거버넌스 상세"}
+                  </a>
+                </div>
+              ) : null}
+            </div>
 
             <section className="gov-card overflow-hidden p-0" data-help-id="screen-flow-surface-chain">
               <GridToolbar
@@ -349,4 +458,3 @@ export function ScreenFlowManagementMigrationPage() {
     </AdminPageShell>
   );
 }
-// agent note: updated by FreeAgent Ultra

@@ -113,7 +113,7 @@ export function BannerListMigrationPage() {
       <AdminWorkspacePageFrame>
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
 
-        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4" data-help-id="banner-list-summary">
           {summaryCards.map((card) => (
             <SummaryMetricCard
               key={`${card.title}-${card.value}`}

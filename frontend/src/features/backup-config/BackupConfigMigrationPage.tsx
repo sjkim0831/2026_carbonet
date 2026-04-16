@@ -198,6 +198,20 @@ export function BackupConfigMigrationPage() {
   });
   const page = pageState.value;
   const summary = (page?.backupConfigSummary || []) as Array<Record<string, string>>;
+
+  // Workflow Tabs: "config", "backup", "restore"
+  const [activeTab, setActiveTab] = useState<"config" | "backup" | "restore">("config");
+
+  // Determine initial tab based on path, but keep state for internal switching
+  useEffect(() => {
+    if (pathname.includes("/admin/system/backup") && !pathname.includes("backup_config")) {
+      setActiveTab("backup");
+    } else if (pathname.includes("/admin/system/restore")) {
+      setActiveTab("restore");
+    } else {
+      setActiveTab("config");
+    }
+  }, [pathname]);
   const storages = (page?.backupStorageRows || []) as Array<Record<string, string>>;
   const executions = (page?.backupExecutionRows || []) as Array<Record<string, string>>;
   const versions = (page?.backupVersionRows || []) as Array<Record<string, string>>;
@@ -926,14 +940,55 @@ export function BackupConfigMigrationPage() {
       {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
       {message ? <PageStatusNotice tone={message.includes("오류") || message.includes("Failed") ? "error" : "success"}>{message}</PageStatusNotice> : null}
       <AdminWorkspacePageFrame>
-      <CollectionResultPanel description={en ? "Backup settings, execution readiness, restore targets, and version comparison stay in one governed workspace across the backup menu family." : "백업 설정, 실행 준비, 복구 대상, 버전 비교를 백업 메뉴군 전체에서 하나의 운영 작업 공간으로 유지합니다."} title={en ? "Backup operation workflow" : "백업 운영 흐름"}>
-        {en ? "Move between backup settings, execution, restore, and version review without changing the overall page pattern." : "백업 설정, 실행, 복구, 버전 검토 화면을 이동해도 전체 페이지 패턴이 바뀌지 않게 유지합니다."}
-      </CollectionResultPanel>
+      <div className="mb-6 flex space-x-1 rounded-lg bg-slate-100 p-1" role="tablist">
+        <button
+          className={`flex-1 rounded-md px-4 py-2.5 text-sm font-bold transition-all ${
+            activeTab === "config" 
+              ? "bg-white text-[var(--kr-gov-primary)] shadow" 
+              : "text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+          }`}
+          onClick={() => setActiveTab("config")}
+          role="tab"
+          aria-selected={activeTab === "config"}
+        >
+          {en ? "1. Backup Configuration" : "1. 백업 설정 관리"}
+        </button>
+        <button
+          className={`flex-1 rounded-md px-4 py-2.5 text-sm font-bold transition-all ${
+            activeTab === "backup" 
+              ? "bg-white text-[var(--kr-gov-primary)] shadow" 
+              : "text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+          }`}
+          onClick={() => setActiveTab("backup")}
+          role="tab"
+          aria-selected={activeTab === "backup"}
+        >
+          {en ? "2. Execute Backup" : "2. 백업 실행"}
+        </button>
+        <button
+          className={`flex-1 rounded-md px-4 py-2.5 text-sm font-bold transition-all ${
+            activeTab === "restore" 
+              ? "bg-white text-[var(--kr-gov-primary)] shadow" 
+              : "text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+          }`}
+          onClick={() => setActiveTab("restore")}
+          role="tab"
+          aria-selected={activeTab === "restore"}
+        >
+          {en ? "3. Execute Restore" : "3. 복구 실행"}
+        </button>
+      </div>
+
+      {activeTab === "config" && (
+        <CollectionResultPanel description={en ? "Backup settings, execution readiness, restore targets, and version comparison stay in one governed workspace across the backup menu family." : "백업 설정, 실행 준비, 복구 대상, 버전 비교를 백업 메뉴군 전체에서 하나의 운영 작업 공간으로 유지합니다."} title={en ? "Backup operation workflow" : "백업 운영 흐름"}>
+          {en ? "Move between backup settings, execution, restore, and version review without changing the overall page pattern." : "백업 설정, 실행, 복구, 버전 검토 화면을 이동해도 전체 페이지 패턴이 바뀌지 않게 유지합니다."}
+        </CollectionResultPanel>
+      )}
 
       {renderSummary}
       {renderCurrentJob}
 
-      {preset.pageKey === "backup-config" ? (
+      {activeTab === "config" && (
         <>
           <section className="gov-card mb-6" data-help-id="backup-config-form">
             <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
@@ -1083,9 +1138,9 @@ export function BackupConfigMigrationPage() {
             {playbookPage.totalPages > 1 ? <MemberPagination currentPage={playbookPage.currentPage} onPageChange={(pageNumber) => movePage("playbook", pageNumber)} totalPages={playbookPage.totalPages} /> : null}
           </>
         </>
-      ) : null}
+      )}
 
-      {preset.pageKey === "backup-execution" ? (
+      {activeTab === "backup" ? (
         <>
           {BackupModeCloseoutPanel({
             title: en ? "Backup Execution Readiness" : "백업 실행 준비 상태",
@@ -1146,7 +1201,7 @@ export function BackupConfigMigrationPage() {
         </>
       ) : null}
 
-      {preset.pageKey === "restore-execution" ? (
+      {activeTab === "restore" ? (
         <>
           {BackupModeCloseoutPanel({
             title: en ? "Restore Execution Readiness" : "복구 실행 준비 상태",
@@ -1156,6 +1211,36 @@ export function BackupConfigMigrationPage() {
             items: restoreExecutionCloseoutItems,
             en
           })}
+
+          <section className="gov-card mb-6" data-help-id="restore-evidence-logging">
+            <div className="border-b border-amber-200 bg-amber-50 px-6 py-5">
+              <h3 className="text-lg font-bold text-amber-900">{en ? "Execution Authorization & Evidence" : "실행 승인 및 증적 기록"}</h3>
+              <p className="mt-1 text-sm text-amber-800">{en ? "Restore operations mutate live systems. Provide the incident ticket number or approval evidence before proceeding." : "복구 작업은 운영 시스템을 직접 변경합니다. 진행 전 장애 티켓 번호나 승인 증거를 입력해야 합니다."}</p>
+            </div>
+            <div className="px-6 py-6">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-slate-700">{en ? "Incident / Ticket Number" : "장애 / 티켓 번호"}</span>
+                  <input type="text" className="gov-input" placeholder="e.g. INC-20260415-001" />
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-slate-700">{en ? "Approver" : "승인자"}</span>
+                  <input type="text" className="gov-input" placeholder={en ? "e.g. Ops Lead" : "예: 운영 리더"} />
+                </label>
+              </div>
+              <label className="mt-4 flex flex-col gap-2">
+                <span className="text-sm font-bold text-slate-700">{en ? "Restore Rationale" : "복구 사유"}</span>
+                <textarea className="gov-input min-h-[80px]" placeholder={en ? "Briefly explain why this restore is necessary." : "이 복구가 필요한 이유를 간단히 설명하세요."} />
+              </label>
+              <div className="mt-4 flex items-center gap-2">
+                <input type="checkbox" id="confirm-downtime" className="h-4 w-4 rounded border-slate-300" />
+                <label htmlFor="confirm-downtime" className="text-sm font-bold text-slate-700">
+                  {en ? "I acknowledge that this restore may cause temporary service downtime and data overwritten." : "이 복구 작업으로 인해 일시적인 서비스 중단 및 데이터 덮어쓰기가 발생할 수 있음을 인지하고 승인합니다."}
+                </label>
+              </div>
+            </div>
+          </section>
+
           <section className="gov-card mb-6" data-help-id="backup-restore-actions">
             <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
               <h3 className="text-lg font-bold">{en ? "Restore Targets" : "복구 대상 선택"}</h3>

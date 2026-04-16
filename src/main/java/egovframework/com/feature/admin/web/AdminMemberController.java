@@ -6,6 +6,7 @@ import egovframework.com.feature.admin.dto.request.AdminMemberRegisterSaveReques
 import egovframework.com.feature.admin.dto.request.AdminPermissionSaveRequestDTO;
 import egovframework.com.feature.member.dto.response.CompanySearchResponseDTO;
 import egovframework.com.platform.service.observability.PlatformObservabilityHistoryPagePayloadPort;
+import egovframework.com.platform.codex.service.AdminMemberPagePayloadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;

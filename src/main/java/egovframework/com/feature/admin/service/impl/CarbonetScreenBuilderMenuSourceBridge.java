@@ -2,8 +2,8 @@ package egovframework.com.feature.admin.service.impl;
 
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.service.MenuInfoService;
-import egovframework.com.feature.admin.screenbuilder.support.CarbonetScreenBuilderMenuSource;
-import egovframework.com.feature.admin.screenbuilder.support.model.CarbonetScreenBuilderMenuItem;
+import egovframework.com.platform.screenbuilder.support.CarbonetScreenBuilderMenuSource;
+import egovframework.com.platform.screenbuilder.support.model.CarbonetScreenBuilderMenuItem;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;

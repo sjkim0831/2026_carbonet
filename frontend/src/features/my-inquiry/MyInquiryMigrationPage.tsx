@@ -339,7 +339,7 @@ export function MyInquiryMigrationPage() {
       />
 
       <main className="pb-20" id="main-content">
-        <section className="relative overflow-hidden bg-slate-900 px-4 pb-24 pt-12">
+        <section className="relative overflow-hidden bg-slate-900 px-4 pb-24 pt-12" data-help-id="my-inquiry-hero">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <svg height="100%" width="100%">
               <pattern height="60" id="my-inquiry-dots" patternUnits="userSpaceOnUse" width="60">
@@ -359,7 +359,7 @@ export function MyInquiryMigrationPage() {
         </section>
 
         <div className="relative z-20 mx-auto -mt-16 max-w-[1000px] px-4">
-          <section className="mb-8 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
+          <section className="mb-8 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl" data-help-id="my-inquiry-chat">
             <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600">
@@ -443,7 +443,7 @@ export function MyInquiryMigrationPage() {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm" data-help-id="my-inquiry-form">
             <div className="border-b border-gray-50 p-8">
               <div className="mb-2 flex items-center gap-3">
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">support_agent</span>

@@ -1,7 +1,9 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
 import egovframework.com.feature.admin.dto.request.AdminAdminAccountCreateRequestDTO;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.member.model.vo.InstitutionStatusVO;

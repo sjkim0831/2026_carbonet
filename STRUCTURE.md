@@ -137,7 +137,7 @@ Also avoid `docs/ai/60-operations/session-orchestration/archive/` and `**/*examp
 - `docs/ai/00-governance`
   - AI rules, forbidden changes, fast-path entry docs
 - `docs/ai/10-architecture`
-  - repo layout, package map, request flow
+  - Resonance AI Framework architecture, repo layout, package map, request flow
   - full-stack package and ownership map should be kept current when frontend/backend contract boundaries move
 - `docs/ai/20-ui`
   - screen, route, component, event maps

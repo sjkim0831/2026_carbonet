@@ -715,6 +715,7 @@ export function EmissionSurveyAdminDataMigrationPage() {
         {errorMessage || pageState.error ? <PageStatusNotice tone="error">{errorMessage || pageState.error}</PageStatusNotice> : null}
 
         <CollectionResultPanel
+          data-help-id="emission-survey-admin-data-upload"
           description={en
             ? "Upload the administrator workbook, map each row to a GWP substance plus one of five factor choices, and then apply the edited dataset to DB."
             : "관리자 업로드 양식을 업로드한 뒤 각 행에 대해 GWP 물질과 5종 배출계수 중 하나를 매핑하고, 수정된 데이터셋을 DB에 반영합니다."}
@@ -741,6 +742,7 @@ export function EmissionSurveyAdminDataMigrationPage() {
 
         <section className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
           <CollectionResultPanel
+            data-help-id="emission-survey-admin-data-dataset"
             description={existingSections.length > 0
               ? "이미 DB에 아래와 같이 있습니다."
               : "현재 DB에 저장된 공통 데이터가 없습니다."}
@@ -756,6 +758,7 @@ export function EmissionSurveyAdminDataMigrationPage() {
           </CollectionResultPanel>
 
           <CollectionResultPanel
+            data-help-id="emission-survey-admin-data-preview"
             description={previewPayload
               ? (previewMessage || "업로드한 파일의 내용은 아래와 같습니다. 각 행에서 GWP 물질과 배출계수를 선택한 뒤 반영 버튼을 누르세요.")
               : "엑셀 파일을 업로드하면 파일에서 읽은 내용을 여기서 미리 보고, 각 행별 GWP 매핑을 추가할 수 있습니다."}

@@ -1,6 +1,6 @@
 package egovframework.com.platform.observability.service;
 
-import egovframework.com.feature.admin.web.AdminAuthorityPagePayloadSupport;
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
 import egovframework.com.platform.service.observability.AdminAuthoritySelectionPort;
 import org.springframework.stereotype.Service;
 

@@ -1,8 +1,8 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.model.vo.LoginHistorySearchVO;
-import egovframework.com.feature.admin.model.vo.LoginHistoryVO;
-import egovframework.com.feature.admin.service.AdminLoginHistoryService;
+import egovframework.com.platform.observability.model.LoginHistorySearchVO;
+import egovframework.com.platform.observability.model.LoginHistoryVO;
+import egovframework.com.platform.observability.service.AdminLoginHistoryService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.member.model.vo.CompanyListItemVO;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;

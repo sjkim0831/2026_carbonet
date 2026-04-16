@@ -1,6 +1,8 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
+import egovframework.com.platform.codex.model.AuthorInfoVO;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import org.slf4j.Logger;

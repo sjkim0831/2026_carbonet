@@ -255,6 +255,53 @@ Required deployment confidence:
 - release-unit asset matrix matches the server-role map
 - target runtime does not require manual source patching after artifact delivery
 
+## Pattern 10-A. Control-Plane-First Resonance
+
+Carbonet should not pretend that Resonance is already a full autonomous multi-agent operating system when the repository only implements part of that target.
+
+Current canonical interpretation:
+
+- implement Resonance first as a `control-plane execution and repair system`
+- then extend it toward richer autonomous orchestration
+
+The minimum Carbonet Resonance shape is:
+
+- governed execution console
+- operator-visible prepare/plan/execute flow
+- runtime compare and repair loop
+- verification and freshness proof
+- replayable episodic evidence
+
+Do not describe the repository as having full Resonance capability unless these are also true:
+
+- semantic memory is queryable as a first-class runtime system
+- autonomous role-separated agent execution is live
+- structured critic or evaluator output can trigger retries
+- feedback changes future execution behavior automatically
+- multi-model routing and fallback are explicit
+
+## Pattern 10-B. Evidence-Backed Reflection
+
+Reflection in Carbonet is not only "LLM self-critique".
+
+It must also include:
+
+- parity compare
+- repair session open/apply
+- verification run
+- runtime freshness proof
+- exact route response proof where relevant
+
+In this repository, reflection is valid only when it leaves replayable evidence such as:
+
+- runtime compare rows
+- repair session records
+- verification run records
+- `jsonl` execution histories
+- runtime proof logs and route checks
+
+If a task claims Resonance improvement without new evidence, treat that as incomplete.
+
 ## Pattern 11. Main-Server Runtime Truth
 
 The main server is the default runtime truth source.

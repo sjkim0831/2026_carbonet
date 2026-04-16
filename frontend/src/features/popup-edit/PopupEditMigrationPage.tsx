@@ -251,7 +251,7 @@ export function PopupEditMigrationPage() {
           {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
           {error ? <PageStatusNotice tone="error">{error}</PageStatusNotice> : null}
 
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+          <section className="grid grid-cols-1 gap-4 xl:grid-cols-4" data-help-id="popup-edit-summary">
             <SummaryMetricCard
               title={en ? "Readiness" : "작성 진행률"}
               value={`${completionRatio}%`}
@@ -424,6 +424,7 @@ export function PopupEditMigrationPage() {
           </section>
 
           <MemberActionBar
+            data-help-id="popup-edit-actions"
             description={en ? "Popup detail now loads and saves through the admin content API while preserving the existing form layout." : "기존 폼 레이아웃을 유지한 채 관리자 콘텐츠 API로 팝업 상세 조회와 저장이 연결되었습니다."}
             eyebrow={en ? "Content Ops" : "콘텐츠 운영"}
             primary={<MemberButton className={`${getMemberButtonClassName({ variant: "primary", size: "lg" })} min-w-[180px] justify-center`} type="submit">{en ? "Save Popup" : "팝업 저장"}</MemberButton>}

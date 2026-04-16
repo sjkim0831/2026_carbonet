@@ -539,12 +539,15 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
   "external-schema": {
     pageId: "external-schema",
     title: "외부 스키마 도움말",
-    summary: "외부 계약 스키마, 검토 대기열, 배포 전 점검 기준을 한 화면에서 관리합니다.",
+    summary: "외부 계약 스키마, 검토 대기열, 배포 전 점검 기준과 아직 차단된 발행, 호환성 검사, 롤백, 바인딩, 감사 계약을 함께 관리합니다.",
     items: [
       { id: "summary", title: "요약 지표", body: "검토 대기 수, 검증 실패 수, 민감 필드 현황을 먼저 보고 스키마 운영 부담을 파악합니다.", anchorSelector: '[data-help-id="external-schema-summary"]', iconName: "dashboard", highlightStyle: "neutral" },
+      { id: "closeout", title: "완료 게이트", body: "현재 가능한 레지스트리 조회, 계약 스냅샷, 검토 대기열과 아직 필요한 발행, 호환성 검사, 롤백, 바인딩, 변경감사 계약을 구분합니다.", anchorSelector: '[data-help-id="external-schema-closeout-gate"]', iconName: "fact_check", highlightStyle: "warning" },
+      { id: "action-contract", title: "스키마 조치 계약", body: "백엔드 실행, 권한, 호환성 증적, 변경 전후 감사가 연결되기 전까지 버전 발행, 호환성 검사, 롤백, 엔드포인트 바인딩은 비활성화됩니다.", anchorSelector: '[data-help-id="external-schema-action-contract"]', iconName: "lock", highlightStyle: "warning" },
       { id: "filters", title: "스키마 조회 조건", body: "스키마, 연계, 도메인, 검증 상태 기준으로 검토 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-schema-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
       { id: "registry", title: "외부 계약 스키마", body: "스키마 버전, 필드 수, 담당자, 민감도, 검증 상태를 함께 확인합니다.", anchorSelector: '[data-help-id="external-schema-registry"]', iconName: "table_rows", highlightStyle: "neutral" },
-      { id: "review", title: "검토 대기열", body: "버전 정합성, 필드 소유권, 마스킹과 보존기간 기준으로 반영 전 점검합니다.", anchorSelector: '[data-help-id="external-schema-review"]', iconName: "fact_check", highlightStyle: "warning" },
+      { id: "review", title: "선택 계약 검토", body: "버전 정합성, 필드 소유권, 마스킹과 보존기간 기준으로 반영 전 점검합니다.", anchorSelector: '[data-help-id="external-schema-review"]', iconName: "fact_check", highlightStyle: "warning" },
+      { id: "review-queue", title: "스키마 검토 대기열", body: "호환성, 마스킹, 거버넌스 담당 확인이 필요한 항목을 별도 대기열로 확인합니다.", anchorSelector: '[data-help-id="external-schema-review-queue"]', iconName: "assignment", highlightStyle: "warning" },
       { id: "links", title: "바로가기", body: "연계 목록, 동기화 실행 등 인접 외부연계 화면으로 이동합니다.", anchorSelector: '[data-help-id="external-schema-links"]', iconName: "link", highlightStyle: "neutral" },
       { id: "guidance", title: "운영 가이드", body: "스키마 변경은 하위 파서, 마스킹, 파트너 공지 기준과 함께 해석해야 합니다.", anchorSelector: '[data-help-id="external-schema-guidance"]', iconName: "rule", highlightStyle: "success" }
     ]
@@ -581,9 +584,11 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
   "external-maintenance": {
     pageId: "external-maintenance",
     title: "점검 관리 도움말",
-    summary: "외부 연계 점검 윈도우, 영향 범위, 대체 경로, 복구 기준을 한 화면에서 관리합니다.",
+    summary: "외부 연계 점검 윈도우, 영향 범위, 대체 경로, 복구 기준과 아직 차단된 점검 CRUD, 승인/해제, 공지, replay 계약을 함께 관리합니다.",
     items: [
       { id: "summary", title: "요약 지표", body: "진행 중 점검, 복구 대기, 영향 대상 수를 먼저 보고 대응 우선순위를 잡습니다.", anchorSelector: '[data-help-id="external-maintenance-summary"]', iconName: "dashboard", highlightStyle: "neutral" },
+      { id: "closeout", title: "완료 게이트", body: "현재 가능한 점검 대상/영향/런북 조회와 아직 필요한 점검 CRUD, 승인/해제, 영향 scope, 공지, replay, incident 계약을 구분합니다.", anchorSelector: '[data-help-id="external-maintenance-closeout-gate"]', iconName: "fact_check", highlightStyle: "warning" },
+      { id: "action-contract", title: "전이 조치 계약", body: "workflow, 권한, 감사가 연결되기 전까지 점검 등록, 승인 요청, 공지 계획, backlog replay, incident 생성은 비활성화됩니다.", anchorSelector: '[data-help-id="external-maintenance-action-contract"]', iconName: "lock", highlightStyle: "warning" },
       { id: "filters", title: "점검 조회 조건", body: "검색어, 동기화 방식, 점검 상태 기준으로 대상 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-maintenance-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
       { id: "inventory", title: "점검 대상 현황", body: "연계별 예정 시각, 점검 윈도우, 영향 범위, 대체 경로, 상태를 함께 확인합니다.", anchorSelector: '[data-help-id="external-maintenance-inventory"]', iconName: "table_rows", highlightStyle: "neutral" },
       { id: "impact", title: "영향 검토", body: "상위 우선순위 점검 대상의 영향 범위와 운영 조치를 빠르게 비교합니다.", anchorSelector: '[data-help-id="external-maintenance-impact"]', iconName: "priority_high", highlightStyle: "warning" },
@@ -1015,6 +1020,33 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
         highlightStyle: "success"
       },
       {
+        id: "managed-vault",
+        title: "보관함과 스캐너 보드",
+        body: "테스트 계정/데이터셋 보관함과 일간·주간 sweep 스캐너 보드를 함께 보고 운영 점검처럼 관리합니다.",
+        anchorSelector: '[data-help-id="verification-center-managed-vault"]',
+        placement: "bottom",
+        iconName: "storage",
+        highlightStyle: "warning"
+      },
+      {
+        id: "run-history",
+        title: "최근 실행과 조치 큐",
+        body: "최근 검증 실행 결과와 즉시 처리해야 할 stale baseline, 만료 프로필, 데이터셋 drift 항목을 함께 봅니다.",
+        anchorSelector: '[data-help-id="verification-center-run-history"]',
+        placement: "bottom",
+        iconName: "history",
+        highlightStyle: "warning"
+      },
+      {
+        id: "baseline-registry",
+        title: "baseline 레지스트리",
+        body: "페이지별 baseline snapshot, 보관 경로, 마지막 검증 시각과 보관 자산 상태를 직접 점검합니다.",
+        anchorSelector: '[data-help-id="verification-center-baseline-registry"]',
+        placement: "bottom",
+        iconName: "backup_table",
+        highlightStyle: "focus"
+      },
+      {
         id: "inventory-scope",
         title: "전체 인벤토리 범위",
         body: "현재 수집된 페이지, API, 함수, 테스트 자산 수와 원본 경로를 확인합니다.",
@@ -1043,10 +1075,105 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       }
     ]
   },
+  "verification-assets": {
+    pageId: "verification-assets",
+    title: "검증 자산 관리 도움말",
+    summary: "baseline, 테스트 계정, 데이터셋, 조치 큐를 직접 등록하고 정리하는 운영 화면입니다.",
+    items: [
+      {
+        id: "baseline-form",
+        title: "baseline 등록",
+        body: "pageId, routePath, snapshotPath, 필수 scenario를 저장해 복구 anchor를 남깁니다.",
+        anchorSelector: ".gov-card",
+        placement: "top",
+        iconName: "backup_table",
+        highlightStyle: "focus"
+      },
+      {
+        id: "action-queue",
+        title: "조치 큐 해제",
+        body: "갱신이나 재발급이 끝난 항목은 이 화면에서 바로 action queue에서 해제합니다.",
+        anchorSelector: ".gov-card",
+        placement: "bottom",
+        iconName: "task_alt",
+        highlightStyle: "warning"
+      }
+    ]
+  },
+  "wbs-management": {
+    pageId: "wbs-management",
+    title: "WBS 관리 도움말",
+    summary: "DB 메뉴 기준 WBS 인벤토리, 계획/실적 일정 저장, 편차 지표, Codex 지시문, 저장 감사 기록과 아직 차단된 SR 직접 연결, bulk update, 감사 export 계약을 함께 관리합니다.",
+    items: [
+      {
+        id: "summary",
+        title: "WBS 요약 지표",
+        body: "메뉴 범위, 페이지 메뉴 수, 지연 건수, 정시 완료율, 평균 편차, 예상일정 미입력 수를 먼저 확인합니다.",
+        anchorSelector: '[data-help-id="wbs-summary-cards"]',
+        placement: "top",
+        iconName: "dashboard",
+        highlightStyle: "focus"
+      },
+      {
+        id: "closeout",
+        title: "WBS 완료 게이트",
+        body: "현재 가능한 메뉴 기반 인벤토리, 계획/실적 일정 저장, 편차 산출, Codex 지시문, 저장 감사와 아직 필요한 SR 연결, bulk update, 감사 export를 구분합니다.",
+        anchorSelector: '[data-help-id="wbs-closeout-gate"]',
+        placement: "top",
+        iconName: "fact_check",
+        highlightStyle: "warning"
+      },
+      {
+        id: "action-contract",
+        title: "차단된 조치",
+        body: "SR 티켓 생성/동기화, bulk 일정 업데이트, 감사 증적 내보내기는 백엔드 계약과 권한 검사가 연결되기 전까지 비활성화됩니다.",
+        anchorSelector: '[data-help-id="wbs-action-contract"]',
+        placement: "right",
+        iconName: "lock",
+        highlightStyle: "warning"
+      },
+      {
+        id: "tree",
+        title: "메뉴 트리",
+        body: "HOME/ADMIN 범위를 전환하고 페이지 메뉴를 선택해 WBS 행과 편집 폼을 동기화합니다.",
+        anchorSelector: '[data-help-id="wbs-menu-tree"]',
+        placement: "left",
+        iconName: "account_tree",
+        highlightStyle: "neutral"
+      },
+      {
+        id: "table",
+        title: "실행용 WBS",
+        body: "예상/실적 일정, 편차, 담당자, 상태, 진행률, 메타 커버리지를 표에서 비교하고 엑셀로 내려받습니다.",
+        anchorSelector: '[data-help-id="wbs-execution-table"]',
+        placement: "bottom",
+        iconName: "table_rows",
+        highlightStyle: "success"
+      },
+      {
+        id: "editor",
+        title: "선택 메뉴 계획",
+        body: "담당자, 상태, 진행률, 예상/실적 시작·종료일, 메모, Codex 추가 지시를 저장합니다.",
+        anchorSelector: '[data-help-id="wbs-editor-panel"]',
+        placement: "left",
+        iconName: "edit_calendar",
+        highlightStyle: "focus"
+      },
+      {
+        id: "codex",
+        title: "Codex 작업 지시문",
+        body: "화면/메뉴/권한/API 메타와 WBS 일정 정보를 합쳐 복사 가능한 작업 지시문을 만듭니다.",
+        anchorSelector: '[data-help-id="wbs-codex-prompt"]',
+        placement: "right",
+        iconName: "smart_toy",
+        highlightStyle: "neutral"
+      }
+    ]
+  },
   "screen-flow-management": {
     pageId: "screen-flow-management",
     title: "화면 흐름 관리 도움말",
-    summary: "등록된 화면을 surface, event, API, schema, 권한 변경 체인으로 점검합니다.",
+    summary: "등록된 화면을 surface, event, API, schema, 권한 변경 체인으로 점검하고 아직 차단된 flow CRUD, transition 편집, 버전 발행, 영향도 저장 계약을 구분합니다.",
     items: [
       {
         id: "summary",
@@ -1056,6 +1183,24 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
         placement: "top",
         iconName: "dashboard",
         highlightStyle: "focus"
+      },
+      {
+        id: "closeout",
+        title: "완료 게이트",
+        body: "현재 가능한 화면 카탈로그/체인 점검과 아직 필요한 flow CRUD, transition 편집, 버전 발행, 영향도 preview, 감사 계약을 구분합니다.",
+        anchorSelector: '[data-help-id="screen-flow-closeout-gate"]',
+        placement: "top",
+        iconName: "fact_check",
+        highlightStyle: "warning"
+      },
+      {
+        id: "action-contract",
+        title: "흐름 변경 조치 계약",
+        body: "중복·순환 검증, 메뉴·권한 영향도 preview, 승인, 변경 전후 감사가 연결되기 전까지 flow 생성과 transition 편집은 비활성화됩니다.",
+        anchorSelector: '[data-help-id="screen-flow-action-contract"]',
+        placement: "right",
+        iconName: "lock",
+        highlightStyle: "warning"
       },
       {
         id: "catalog",
@@ -1098,7 +1243,7 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
   "screen-menu-assignment-management": {
     pageId: "screen-menu-assignment-management",
     title: "화면-메뉴 귀속 관리 도움말",
-    summary: "메뉴 관리 기준 페이지 메뉴와 screen command 페이지의 귀속 상태를 점검합니다.",
+    summary: "메뉴 관리 기준 페이지 메뉴와 screen command 페이지의 귀속 상태를 점검하고, 현재 가능한 단일 매핑 저장과 아직 차단된 충돌 검증, 권한 영향도, rollback, 감사 계약을 구분합니다.",
     items: [
       {
         id: "summary",
@@ -1108,6 +1253,24 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
         placement: "top",
         iconName: "fact_check",
         highlightStyle: "focus"
+      },
+      {
+        id: "closeout",
+        title: "완료 게이트",
+        body: "현재 가능한 메뉴 수집, 귀속 목록, 단일 매핑 저장과 아직 필요한 중복/충돌 검증, 권한 영향도 preview, rollback, 감사 증적을 구분합니다.",
+        anchorSelector: '[data-help-id="screen-menu-assignment-closeout-gate"]',
+        placement: "top",
+        iconName: "fact_check",
+        highlightStyle: "warning"
+      },
+      {
+        id: "action-contract",
+        title: "귀속 변경 조치 계약",
+        body: "충돌 검증, 권한 영향도 계산, bulk 매핑, rollback, 감사 증적 export는 백엔드 거버넌스 계약이 연결되기 전까지 비활성화됩니다.",
+        anchorSelector: '[data-help-id="screen-menu-assignment-action-contract"]',
+        placement: "right",
+        iconName: "lock",
+        highlightStyle: "warning"
       },
       {
         id: "catalog",
@@ -1597,10 +1760,13 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
   "security-history": {
     pageId: "security-history",
     title: "시스템 접근 차단 이력 도움말",
-    summary: "IP, 계정 잠금 등 시스템 차단 이벤트를 조회하는 화면입니다.",
+    summary: "공유 차단 이력 컴포넌트를 시스템 범위로 사용하는 보안 검토 콘솔입니다. 차단 이력 조회, 상세 컨텍스트, 운영 조치 기록은 가능하며 실제 계정 해제/예외 적용과 감사 export는 후속 계약입니다.",
     items: [
-      { id: "search", title: "차단 이력 검색", body: "사용자 구분과 키워드로 차단 이력을 조회합니다.", anchorSelector: '[data-help-id="login-history-search"]' },
-      { id: "table", title: "차단 이력 목록", body: "차단 시각, 사용자, IP, 차단 사유를 표로 검토합니다.", anchorSelector: '[data-help-id="login-history-table"]' }
+      { id: "guidance", title: "차단 검토 안내", body: "시스템 차단 이력은 회원 차단 이력과 같은 표준 컴포넌트를 쓰지만 시스템 메뉴, 시스템 payload, 보안 운영 링크 기준으로 해석합니다.", anchorSelector: '[data-help-id="member-security-guidance"]', iconName: "shield", highlightStyle: "warning" },
+      { id: "closeout", title: "완료 게이트", body: "공유 콘솔, 차단 이력 조회, 상세 컨텍스트, 운영 조치 기록과 아직 필요한 실제 해제/예외 적용, 케이스 관리, 감사 export를 구분합니다.", anchorSelector: '[data-help-id="security-history-closeout-gate"]', iconName: "fact_check", highlightStyle: "warning" },
+      { id: "action-contract", title: "실행 조치 계약", body: "실제 계정 잠금 해제, 정책 예외 적용, 인시던트 케이스 생성, 감사 증적 export는 권한/승인/감사 API가 연결되기 전까지 비활성화됩니다.", anchorSelector: '[data-help-id="security-history-action-contract"]', iconName: "lock", highlightStyle: "warning" },
+      { id: "search", title: "차단 이력 검색", body: "회원사, 사용자 구분, 조치 상태, 키워드로 차단 이력을 조회합니다.", anchorSelector: '[data-help-id="login-history-search"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "table", title: "차단 이력 목록", body: "차단 시각, 사용자, IP, 조치 상태, 차단 사유를 표로 검토합니다.", anchorSelector: '[data-help-id="login-history-table"]', iconName: "table_rows", highlightStyle: "neutral" }
     ]
   },
   "security-policy": {
@@ -1665,6 +1831,37 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "queues", title: "큐 적체 현황", body: "대기 건수, 소비 노드, 최근 메시지 시각, SLA 상태를 함께 확인합니다.", anchorSelector: '[data-help-id="batch-management-queues"]' },
       { id: "nodes", title: "워커 노드", body: "재실행 전에 노드 상태, 담당 큐, heartbeat를 확인합니다.", anchorSelector: '[data-help-id="batch-management-nodes"]' },
       { id: "executions", title: "최근 실행 이력", body: "실패와 재검토 실행을 우선 확인하고 후속 조치 대상을 구분합니다.", anchorSelector: '[data-help-id="batch-management-executions"]' }
+    ]
+  },
+  "monitoring-center": {
+    pageId: "monitoring-center",
+    title: "운영센터 도움말",
+    summary: "운영 상태, 우선 대응 큐, 도메인 위젯, 최근 조치 이력과 아직 차단된 incident lifecycle 계약을 함께 점검합니다.",
+    items: [
+      { id: "status", title: "현재 운영 상태", body: "전체 상태와 갱신 시각을 확인하고 센서 등록/설정/목록 화면으로 이동합니다.", anchorSelector: '[data-help-id="operations-center-status"]' },
+      { id: "closeout", title: "완료 게이트", body: "현재 가능한 상황판 조회와 아직 필요한 실측 metric 출처, 인지 처리, escalation, 담당자 배정, closeout 이력을 구분합니다.", anchorSelector: '[data-help-id="operations-center-closeout-gate"]' },
+      { id: "action-contract", title: "Incident 조치 계약", body: "백엔드 lifecycle, 권한, 감사가 연결되기 전까지 인지 처리, 담당자 배정, escalation, closeout 조치는 비활성화됩니다.", anchorSelector: '[data-help-id="operations-center-action-contract"]' },
+      { id: "core-summary", title: "핵심 운영 요약", body: "회원, 배출, 보안/시스템 신호를 우선 보고 상세 화면으로 이동합니다.", anchorSelector: '[data-help-id="operations-center-core-summary"]' },
+      { id: "support-summary", title: "지원 도메인", body: "외부연계, 콘텐츠, 운영도구 신호를 함께 확인합니다.", anchorSelector: '[data-help-id="operations-center-support-summary"]' },
+      { id: "priority-queue", title: "우선 대응 큐", body: "심각도와 발생 시각 기준으로 정렬된 대응 항목을 도메인별로 필터링합니다.", anchorSelector: '[data-help-id="operations-center-priority-queue"]' },
+      { id: "playbooks", title: "운영 체크포인트", body: "상세 화면에서 조치하기 전 확인해야 할 운영 기준을 봅니다.", anchorSelector: '[data-help-id="operations-center-playbooks"]' },
+      { id: "widgets", title: "운영 위젯", body: "도메인별 metric row와 quick link로 상세 진단 화면에 진입합니다.", anchorSelector: '[data-help-id="operations-center-core-widgets"]' },
+      { id: "recent-actions", title: "최근 조치 이력", body: "최근 운영자 조치와 결과를 확인하고 관련 이력 화면으로 이동합니다.", anchorSelector: '[data-help-id="operations-center-recent-actions"]' }
+    ]
+  },
+  "sensor-list": {
+    pageId: "sensor-list",
+    title: "센서 목록 도움말",
+    summary: "보안 모니터링 기반 센서 행, 검색/필터, 선택 패널, 상세 이동과 아직 차단된 live inventory, refresh, export, bulk 조치를 함께 점검합니다.",
+    items: [
+      { id: "summary", title: "센서 요약", body: "등록 센서, 경보, 검토, 안정, 활성 차단 건수를 상단 카드로 확인합니다.", anchorSelector: '[data-help-id="sensor-list-summary"]' },
+      { id: "operating-rule", title: "운영 기준", body: "상태, 심각도, 담당자 메모, 차단 승격 상태를 한 목록에서 본 뒤 이벤트 상세 화면으로 이동합니다.", anchorSelector: '[data-help-id="sensor-list-operating-rule"]' },
+      { id: "closeout", title: "완료 게이트", body: "현재 가능한 모니터링 기반 조회/상세 이동과 아직 필요한 live inventory, 상태 refresh, export, bulk enable/disable 계약을 구분합니다.", anchorSelector: '[data-help-id="sensor-list-closeout-gate"]' },
+      { id: "action-contract", title: "인벤토리 조치 계약", body: "백엔드 인벤토리, 권한, 감사가 연결되기 전까지 상태 새로고침, export, 선택 활성/비활성 조치는 비활성화됩니다.", anchorSelector: '[data-help-id="sensor-list-action-contract"]' },
+      { id: "filters", title: "검색 조건", body: "검색어, 상태, 센서 유형, 심각도 조건으로 모니터링 기반 센서 행을 좁힙니다.", anchorSelector: '[data-help-id="sensor-list-filters"]' },
+      { id: "table", title: "센서 목록", body: "행을 클릭하거나 Enter 키를 눌러 선택 센서 패널을 갱신합니다.", anchorSelector: '[data-help-id="sensor-list-table"]' },
+      { id: "focus", title: "선택 센서", body: "선택 센서의 심각도, 상태, 담당자, 차단 상태와 상세 이동 링크를 확인합니다.", anchorSelector: '[data-help-id="sensor-list-focus"]' },
+      { id: "activity", title: "최근 활동", body: "센서 관련 최근 운영 활동을 시간순으로 확인합니다.", anchorSelector: '[data-help-id="sensor-list-activity"]' }
     ]
   },
   "infra": {

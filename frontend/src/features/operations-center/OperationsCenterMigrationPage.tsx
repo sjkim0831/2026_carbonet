@@ -8,6 +8,79 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 
+type OperationsCloseoutRow = {
+  titleKo: string;
+  titleEn: string;
+  status: "Available" | "Blocked";
+  detailKo: string;
+  detailEn: string;
+};
+
+const OPERATIONS_CLOSEOUT_ROWS: OperationsCloseoutRow[] = [
+  {
+    titleKo: "운영 상황판 조회",
+    titleEn: "Operations visibility",
+    status: "Available",
+    detailKo: "요약 카드, 우선 대응 큐, 도메인 위젯, 최근 조치 이력, 상세 화면 이동은 현재 payload로 제공됩니다.",
+    detailEn: "Summary cards, priority queue, domain widgets, recent actions, and drill-down links are available from the current payload."
+  },
+  {
+    titleKo: "실측 Metric Source",
+    titleEn: "Real metric source binding",
+    status: "Blocked",
+    detailKo: "센서/배출/연계/보안 지표별 원천 테이블, 수집 시각, stale 판단, trace id 계약이 필요합니다.",
+    detailEn: "Source tables, collected-at timestamps, stale detection, and trace-id contracts are required per sensor/emission/integration/security metric."
+  },
+  {
+    titleKo: "Incident Acknowledge",
+    titleEn: "Incident acknowledgement",
+    status: "Blocked",
+    detailKo: "우선 대응 항목을 운영자가 인지 처리하고 담당자/시각/사유를 감사로 남기는 API가 필요합니다.",
+    detailEn: "An API is required to acknowledge priority items and audit assignee, timestamp, and reason."
+  },
+  {
+    titleKo: "Escalation / Assignment",
+    titleEn: "Escalation / assignment",
+    status: "Blocked",
+    detailKo: "도메인별 담당자 배정, 상위 escalation, 알림센터 연계, 권한 기능 코드가 필요합니다.",
+    detailEn: "Domain assignment, escalation, notification-center linkage, and feature codes are required."
+  },
+  {
+    titleKo: "Closeout History",
+    titleEn: "Closeout history",
+    status: "Blocked",
+    detailKo: "조치 완료, 재발 방지 메모, 증적 링크, 종료 감사와 재오픈 정책이 필요합니다.",
+    detailEn: "Closeout, prevention notes, evidence links, closing audit, and reopen policy are required."
+  }
+];
+
+const OPERATIONS_ACTION_CONTRACT = [
+  {
+    labelKo: "인지 처리",
+    labelEn: "Acknowledge",
+    noteKo: "incident acknowledge API와 감사 이벤트가 필요합니다.",
+    noteEn: "Requires incident acknowledge API and audit event."
+  },
+  {
+    labelKo: "담당자 배정",
+    labelEn: "Assign Owner",
+    noteKo: "도메인별 담당자 directory와 권한 기능 코드가 필요합니다.",
+    noteEn: "Requires domain owner directory and feature codes."
+  },
+  {
+    labelKo: "Escalate",
+    labelEn: "Escalate",
+    noteKo: "상위 escalation 규칙과 알림센터 연계가 필요합니다.",
+    noteEn: "Requires escalation rules and notification-center linkage."
+  },
+  {
+    labelKo: "Closeout",
+    labelEn: "Closeout",
+    noteKo: "증적 링크, 조치 메모, 종료 감사, 재오픈 정책이 필요합니다.",
+    noteEn: "Requires evidence links, action notes, closing audit, and reopen policy."
+  }
+];
+
 function stringOf(row: Record<string, unknown> | null | undefined, ...keys: string[]) {
   if (!row) {
     return "";
@@ -166,7 +239,7 @@ export function OperationsCenterMigrationPage() {
       <AdminWorkspacePageFrame>
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
 
-        <section className="gov-card">
+        <section className="gov-card" data-help-id="operations-center-status">
           <div className="flex flex-col gap-4 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Current Status" : "현재 운영 상태"}</p>
@@ -200,7 +273,52 @@ export function OperationsCenterMigrationPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="gov-card overflow-hidden p-0" data-help-id="operations-center-closeout-gate">
+          <div className="px-6 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Closeout Gate" : "완료 게이트"}</p>
+                <h2 className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{en ? "What is still missing for incident operations" : "운영센터 incident 처리를 위해 남은 기능"}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "This page is currently a first-stop visibility console. Incident lifecycle actions remain disabled until real metric provenance, acknowledgement, escalation, assignment, closeout history, and audit contracts are implemented."
+                    : "이 화면은 현재 1차 상황판입니다. 실측 지표 출처, 인지 처리, escalation, 담당자 배정, closeout 이력, 감사 계약이 구현되기 전까지 incident lifecycle 조치는 비활성화합니다."}
+                </p>
+              </div>
+              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700">
+                {en ? "PARTIAL / lifecycle actions blocked" : "PARTIAL / lifecycle 조치 차단"}
+              </span>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-5">
+              {OPERATIONS_CLOSEOUT_ROWS.map((row) => (
+                <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4" key={row.titleEn}>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${row.status === "Available" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                    {row.status}
+                  </span>
+                  <h3 className="mt-3 text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? row.titleEn : row.titleKo}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{en ? row.detailEn : row.detailKo}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-[var(--kr-gov-border-light)] bg-slate-50 px-6 py-5" data-help-id="operations-center-action-contract">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-[var(--kr-gov-text-primary)]">{en ? "Blocked Incident Actions" : "차단된 incident 조치"}</h3>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Keep drill-down navigation active; enable these actions only after backend lifecycle, authorization, and audit are connected." : "상세 화면 이동은 유지하되, 백엔드 lifecycle·권한·감사가 연결된 뒤에만 아래 조치를 활성화합니다."}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {OPERATIONS_ACTION_CONTRACT.map((action) => (
+                  <button className="gov-btn gov-btn-outline opacity-60" disabled key={action.labelEn} title={en ? action.noteEn : action.noteKo} type="button">
+                    {en ? action.labelEn : action.labelKo}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4" data-help-id="operations-center-core-summary">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">
@@ -235,7 +353,7 @@ export function OperationsCenterMigrationPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4" data-help-id="operations-center-support-summary">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">
@@ -265,7 +383,7 @@ export function OperationsCenterMigrationPage() {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-4" data-help-id="operations-center-navigation">
           {navigationSections.map((section, index) => {
             const links = ((section.links || []) as Array<Record<string, string>>);
             return (
@@ -376,7 +494,7 @@ export function OperationsCenterMigrationPage() {
           </CollectionResultPanel>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4" data-help-id="operations-center-core-widgets">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">
               {en ? "Operational Widgets" : "운영 위젯"}
@@ -428,7 +546,7 @@ export function OperationsCenterMigrationPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4" data-help-id="operations-center-extended-widgets">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">
               {en ? "Extended Operations" : "확장 운영"}

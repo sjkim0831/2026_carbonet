@@ -640,7 +640,7 @@ export function MonitoringReductionTrendMigrationPage() {
         </section>
 
         <section className="mx-auto max-w-[1600px] px-4 py-10 lg:px-8" data-help-id="monitoring-reduction-trend-timeline">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" data-help-id="monitoring-reduction-trend-filters">
             <div>
               <h2 className="flex items-center gap-2 text-2xl font-black">
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'FILL' 1" }}>timeline</span>
@@ -700,7 +700,7 @@ export function MonitoringReductionTrendMigrationPage() {
                 </div>
               </div>
 
-              <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="monitoring-reduction-trend-stats">
                 {timeline.metrics.map((metric) => (
                   <article
                     className={metric.tone === "critical"
@@ -729,7 +729,7 @@ export function MonitoringReductionTrendMigrationPage() {
             </h2>
             <p className="mt-2 text-sm font-semibold text-slate-500">{content.siteSectionBody}</p>
           </div>
-          <div className="grid gap-8 lg:grid-cols-3">
+          <div className="grid gap-8 lg:grid-cols-3" data-help-id="monitoring-reduction-trend-site-cards">
             {visibleSites.map((site) => {
               const tone = SITE_TONE_CLASSNAME[site.tone];
               return (

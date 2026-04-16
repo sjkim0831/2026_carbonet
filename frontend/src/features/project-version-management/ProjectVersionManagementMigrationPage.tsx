@@ -1292,7 +1292,7 @@ export function ProjectVersionManagementMigrationPage() {
           </MemberStateCard>
         ) : null}
 
-        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6" data-help-id="version-management-summary">
           {summaryCards.map((card) => (
             <SummaryMetricCard
               key={card.title}
@@ -1303,7 +1303,7 @@ export function ProjectVersionManagementMigrationPage() {
           ))}
         </section>
 
-        <section className="gov-card overflow-hidden p-0">
+        <section className="gov-card overflow-hidden p-0" data-help-id="version-management-governance">
           <GridToolbar
             title={en ? "Fleet Common Upgrade Governance" : "공통 업그레이드 거버넌스"}
             meta={en
@@ -1417,7 +1417,7 @@ export function ProjectVersionManagementMigrationPage() {
         </section>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="gov-card overflow-hidden p-0">
+          <div className="gov-card overflow-hidden p-0" data-help-id="version-management-db-git">
             <GridToolbar
               title={en ? "DB And Git Operations" : "DB 및 Git 운영 작업"}
               meta={en
@@ -1696,7 +1696,7 @@ export function ProjectVersionManagementMigrationPage() {
             </div>
           </div>
 
-          <div className="gov-card overflow-hidden p-0">
+          <div className="gov-card overflow-hidden p-0" data-help-id="version-management-overview">
             <GridToolbar
               title={en ? "221 Sync And Fresh Deploy" : "221 동기화 및 Fresh Deploy"}
               meta={en
@@ -2500,7 +2500,7 @@ export function ProjectVersionManagementMigrationPage() {
               </div>
             )}
           />
-          <div className="space-y-6 px-6 py-5">
+          <div className="space-y-6 px-6 py-5" data-help-id="version-management-control-plane">
             <KeyValueGridPanel
               title={en ? "Pipeline Summary" : "파이프라인 요약"}
               description={en
@@ -2694,7 +2694,7 @@ export function ProjectVersionManagementMigrationPage() {
         </div>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="gov-card overflow-hidden p-0">
+          <div className="gov-card overflow-hidden p-0" data-help-id="version-management-release-detail">
             <MemberSectionToolbar title={en ? "Adapter Change History" : "어댑터 변경 이력"} />
             <div className="overflow-x-auto">
               <AdminTable className="min-w-[920px]">
@@ -3029,7 +3029,7 @@ export function ProjectVersionManagementMigrationPage() {
           </div>
         </section>
 
-        <section className="gov-card">
+        <section className="gov-card" data-help-id="version-management-upgrade-planner">
           <MemberSectionToolbar title={en ? "Upgrade Planner" : "업그레이드 플래너"} />
             <div className="space-y-6 px-6 py-6">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">

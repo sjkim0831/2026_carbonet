@@ -1,5 +1,7 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
 import egovframework.com.feature.member.dto.response.CompanySearchResponseDTO;
 import egovframework.com.feature.member.model.vo.CompanyListItemVO;
 import egovframework.com.feature.member.service.EmployeeMemberService;

@@ -387,7 +387,7 @@ export function Co2DemandListMigrationPage() {
           </div>
         </header>
         <main id="main-content">
-          <section className="bg-slate-900 py-10 relative overflow-hidden border-b border-slate-800">
+          <section className="bg-slate-900 py-10 relative overflow-hidden border-b border-slate-800" data-help-id="co2-demand-assistant-hero">
             <div className="absolute inset-0 opacity-10 pointer-events-none">
               <svg height="100%" width="100%"><pattern height="60" id="demand-dots" patternUnits="userSpaceOnUse" width="60"><circle cx="2" cy="2" fill="white" r="1"></circle></pattern><rect fill="url(#demand-dots)" height="100%" width="100%"></rect></svg>
             </div>
@@ -435,7 +435,7 @@ export function Co2DemandListMigrationPage() {
               </div>
             </div>
           </section>
-          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-12">
+          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-12" data-help-id="co2-demand-data-matrix">
             <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
               <div>
                 <h2 className="text-2xl font-black flex items-center gap-2">
@@ -532,7 +532,7 @@ export function Co2DemandListMigrationPage() {
               </div>
             </div>
           </section>
-          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 pb-20">
+          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 pb-20" data-help-id="co2-demand-stats-cards">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
                 <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">

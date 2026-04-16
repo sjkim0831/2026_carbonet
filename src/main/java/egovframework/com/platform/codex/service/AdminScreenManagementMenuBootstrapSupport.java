@@ -1,8 +1,8 @@
 package egovframework.com.platform.codex.service;
 
 import egovframework.com.feature.admin.service.AdminCodeManageService;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
-import egovframework.com.feature.admin.service.MenuFeatureManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.MenuFeatureManageService;
 import egovframework.com.platform.codex.model.CodexProvisionResponse;
 import egovframework.com.platform.request.codex.CodexProvisionRequest;
 import lombok.RequiredArgsConstructor;

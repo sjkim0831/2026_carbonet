@@ -36,14 +36,10 @@ public class CarbonetApplication {
                     "egovframework.com.framework.builder.",
                     "egovframework.com.feature.admin.framework.builder.");
             private final List<String> excludedClasses = Arrays.asList(
-                    "egovframework.com.feature.admin.web.AdminScreenBuilderController",
-                    "egovframework.com.feature.admin.web.CarbonetAdminRouteSourceBridge");
+                    "egovframework.com.feature.admin.web.AdminScreenBuilderController");
             private final List<String> excludedBeanNames = Arrays.asList(
                     "adminScreenBuilderController",
-                    "screenBuilderApiController",
-                    "carbonetAdminRouteSourceBridge",
-                    "frameworkBuilderCompatibilityController",
-                    "frameworkBuilderContractController");
+                    "screenBuilderApiController");
 
             @Override
             public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {

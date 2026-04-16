@@ -333,7 +333,7 @@ export function FileManagementMigrationPage() {
             : "업로드 파일은 이제 로컬에 영속 저장되고 다운로드할 수 있습니다. 기본 시드 행은 저장소 연계 전까지 미리보기 성격의 참조 데이터로 유지됩니다."}
         </PageStatusNotice>
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="file-management-summary">
           {summaryCards.map((card, index) => (
             <SummaryMetricCard
               key={`${stringOf(card, "title")}-${index}`}

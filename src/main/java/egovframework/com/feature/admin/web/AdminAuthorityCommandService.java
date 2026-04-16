@@ -1,17 +1,19 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
 import egovframework.com.feature.admin.dto.request.AdminAuthChangeSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminAuthGroupCreateRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminAuthGroupFeatureSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminAuthorRoleProfileSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminDeptRoleMappingSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminDeptRoleMemberSaveRequestDTO;
-import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
+import egovframework.com.platform.codex.model.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.AuthorRoleProfileVO;
-import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
-import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
+import egovframework.com.platform.codex.model.DepartmentRoleMappingVO;
+import egovframework.com.platform.codex.model.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AuthorRoleProfileService;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.service.CurrentUserContextService;
 import egovframework.com.platform.dbchange.model.DbChangeCaptureRequest;
 import egovframework.com.platform.dbchange.service.DbChangeCaptureService;

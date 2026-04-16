@@ -270,6 +270,7 @@ export function SensorEditMigrationPage() {
           </div>
 
           <SectionCard
+            data-help-id="sensor-edit-context"
             title={en ? "Linked Monitoring Context" : "연결된 모니터링 문맥"}
             description={en ? "Review the source event that opened this edit flow before applying sensor-level changes." : "센서 설정 변경 전에 이 수정 화면을 연 원본 모니터링 신호를 확인합니다."}
           >
@@ -311,6 +312,7 @@ export function SensorEditMigrationPage() {
           </SectionCard>
 
           <SectionCard
+            data-help-id="sensor-edit-profile"
             title={en ? "Basic Sensor Profile" : "기본 센서 정보"}
             description={en ? "Update the sensor identity and placement while keeping the registered asset code stable." : "등록 자산 코드는 유지하면서 센서 식별 정보와 설치 위치를 조정합니다."}
           >
@@ -343,6 +345,7 @@ export function SensorEditMigrationPage() {
           </SectionCard>
 
           <SectionCard
+            data-help-id="sensor-edit-threshold"
             title={en ? "Collection And Threshold Tuning" : "수집 및 임계값 조정"}
             description={en ? "Tune collection and escalation policy for the deployed sensor." : "배포된 센서의 수집 정책과 경보 승격 기준을 조정합니다."}
           >
@@ -390,6 +393,7 @@ export function SensorEditMigrationPage() {
           </SectionCard>
 
           <SectionCard
+            data-help-id="sensor-edit-ownership"
             title={en ? "Operations Ownership" : "운영 담당 체계"}
             description={en ? "Keep owner, status, and operator notes aligned before applying downstream changes." : "하위 시스템 반영 전 담당자, 운영 상태, 메모를 함께 정렬합니다."}
           >

@@ -133,6 +133,8 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "asset-impact", "/admin/system/asset-impact", "/admin/system/asset-impact");
         registerAdmin(adminPathToRoute, adminRouteToPath, "asset-lifecycle", "/admin/system/asset-lifecycle", "/admin/system/asset-lifecycle");
         registerAdmin(adminPathToRoute, adminRouteToPath, "asset-gap", "/admin/system/asset-gap", "/admin/system/asset-gap");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "verification-center", "/admin/system/verification-center", "/admin/system/verification-center");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "verification-assets", "/admin/system/verification-assets", "/admin/system/verification-assets");
         registerAdmin(adminPathToRoute, adminRouteToPath, "screen-flow-management", "/admin/system/screen-flow-management", "/admin/system/screen-flow-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "screen-menu-assignment-management", "/admin/system/screen-menu-assignment-management", "/admin/system/screen-menu-assignment-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "wbs-management", "/admin/system/wbs-management", "/admin/system/wbs-management");

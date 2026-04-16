@@ -188,7 +188,7 @@ export function NoticeListMigrationPage() {
       />
 
       <main className="mx-auto max-w-7xl px-4 py-10 lg:px-8" id="main-content">
-        <section className="relative overflow-hidden rounded-[28px] border border-slate-900/10 bg-[radial-gradient(circle_at_top_left,#1d4ed8_0,#0f172a_48%,#111827_100%)] px-6 py-10 text-white shadow-xl lg:px-10">
+        <section className="relative overflow-hidden rounded-[28px] border border-slate-900/10 bg-[radial-gradient(circle_at_top_left,#1d4ed8_0,#0f172a_48%,#111827_100%)] px-6 py-10 text-white shadow-xl lg:px-10" data-help-id="notice-list-hero">
           <div className="absolute inset-0 opacity-20">
             <div className="h-full w-full bg-[linear-gradient(90deg,transparent_0,transparent_48%,rgba(255,255,255,0.08)_48%,rgba(255,255,255,0.08)_52%,transparent_52%,transparent_100%)] bg-[length:72px_72px]" />
           </div>
@@ -221,7 +221,7 @@ export function NoticeListMigrationPage() {
 
         <section className="mt-8 grid gap-8 xl:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="space-y-5">
-            <article className="rounded-[24px] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm">
+            <article className="rounded-[24px] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm" data-help-id="notice-list-filters">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{en ? "Support Menu" : "고객지원 메뉴"}</p>
               <div className="mt-5 space-y-2">
                 <button className="flex w-full items-center justify-between rounded-2xl bg-blue-50 px-4 py-3 text-left text-sm font-bold text-[var(--kr-gov-blue)]" type="button">
@@ -258,7 +258,7 @@ export function NoticeListMigrationPage() {
             </article>
           </aside>
 
-          <section className="space-y-6">
+            <section className="space-y-6" data-help-id="notice-list-table">
             <article className="rounded-[24px] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm">
               <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
                 <label className="block">

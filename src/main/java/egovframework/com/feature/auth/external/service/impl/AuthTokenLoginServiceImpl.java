@@ -1,6 +1,6 @@
 package egovframework.com.feature.auth.external.service.impl;
 
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.dto.response.LoginResponseDTO;
 import egovframework.com.feature.auth.external.service.AuthTokenLoginService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;

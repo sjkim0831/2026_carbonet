@@ -1,5 +1,7 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
 import egovframework.com.feature.admin.dto.request.AdminPermissionSaveRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

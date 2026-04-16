@@ -28,7 +28,82 @@ type Props = {
   fetchPage: (params: Filters) => Promise<LoginHistoryPagePayload>;
   fixedLoginResult?: string;
   variant?: "login" | "blocked";
+  routeScope?: "system" | "member";
 };
+
+type SecurityHistoryCloseoutRow = {
+  labelKo: string;
+  labelEn: string;
+  stateKo: string;
+  stateEn: string;
+  tone: "ready" | "blocked";
+  notesKo: string;
+  notesEn: string;
+};
+
+const SECURITY_HISTORY_CLOSEOUT_ROWS: SecurityHistoryCloseoutRow[] = [
+  {
+    labelKo: "공유 차단 이력 콘솔",
+    labelEn: "Shared blocked-history console",
+    stateKo: "가능",
+    stateEn: "Available",
+    tone: "ready",
+    notesKo: "시스템/회원 차단 이력은 같은 표준 컴포넌트를 사용하되 route, breadcrumb, payload API로 범위를 구분합니다.",
+    notesEn: "System and member block-history routes share the governed component while route, breadcrumb, and payload API define the scope."
+  },
+  {
+    labelKo: "차단 이력 조회/필터",
+    labelEn: "Blocked-history query and filters",
+    stateKo: "가능",
+    stateEn: "Available",
+    tone: "ready",
+    notesKo: "loginResult=FAIL 기준으로 회원사, 사용자 구분, 조치 상태, 키워드, 페이지 조건을 조회합니다.",
+    notesEn: "Queries loginResult=FAIL rows by company, user type, action status, keyword, and page."
+  },
+  {
+    labelKo: "상세 컨텍스트와 연계 이동",
+    labelEn: "Detail context and linked navigation",
+    stateKo: "가능",
+    stateEn: "Available",
+    tone: "ready",
+    notesKo: "동일 IP/사용자/회원사 건수, 메시지, 모니터링/정책/차단목록/회원사 링크를 제공합니다.",
+    notesEn: "Shows same-IP/user/company counts, message context, and links to monitoring, policy, blocklist, and company pages."
+  },
+  {
+    labelKo: "운영 조치 기록",
+    labelEn: "Operator action recording",
+    stateKo: "가능",
+    stateEn: "Available",
+    tone: "ready",
+    notesKo: "메모 저장, 차단 해제 요청 기록, 예외 요청 기록, IP 차단 승격을 보안 조치 이력으로 저장합니다.",
+    notesEn: "Records note save, unblock request, exception request, and IP block escalation in security action history."
+  },
+  {
+    labelKo: "실제 계정 해제/예외 적용",
+    labelEn: "Actual unblock and exception enforcement",
+    stateKo: "차단",
+    stateEn: "Blocked",
+    tone: "blocked",
+    notesKo: "현재 해제/예외는 요청 기록이며 계정 잠금, 세션, 정책 예외를 실제 변경하는 실행 API는 별도 필요합니다.",
+    notesEn: "Unblock and exception actions currently record requests; enforcement APIs for account locks, sessions, and policy exceptions are still needed."
+  },
+  {
+    labelKo: "케이스 관리 / 감사 export",
+    labelEn: "Case management / audit export",
+    stateKo: "차단",
+    stateEn: "Blocked",
+    tone: "blocked",
+    notesKo: "인시던트 케이스 연결, 승인 흐름, 감사 증적 조회와 내보내기 계약이 필요합니다.",
+    notesEn: "Incident case linkage, approval flow, and audit evidence query/export contracts are still needed."
+  }
+];
+
+const SECURITY_HISTORY_ACTION_CONTRACT = [
+  { labelKo: "실제 계정 잠금 해제", labelEn: "Enforce Account Unblock" },
+  { labelKo: "정책 예외 적용", labelEn: "Apply Policy Exception" },
+  { labelKo: "인시던트 케이스 생성", labelEn: "Create Incident Case" },
+  { labelKo: "감사 증적 내보내기", labelEn: "Export Audit Evidence" }
+];
 
 function resultBadge(result: string) {
   return result === "SUCCESS" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700";
@@ -92,6 +167,7 @@ function syncLoginHistoryQuery(filters: Filters, fixedLoginResult?: string) {
 export function LoginHistorySharedPage(props: Props) {
   const en = isEnglish();
   const blockedMode = props.variant === "blocked";
+  const systemBlockedMode = blockedMode && props.routeScope === "system";
   const initial = useMemo<Filters>(() => {
     const search = new URLSearchParams(window.location.search);
     return {
@@ -305,6 +381,48 @@ export function LoginHistorySharedPage(props: Props) {
               {en ? "Review order: member -> company -> IP -> message -> follow-up action" : "검토 순서: 사용자 -> 회원사 -> IP -> 메시지 -> 후속 조치"}
             </div>
           </div>
+        </section>
+      ) : null}
+      {systemBlockedMode ? (
+        <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <article className="gov-card min-w-0 overflow-hidden p-0" data-help-id="security-history-closeout-gate">
+            <GridToolbar
+              meta={en ? "Documents this route as the system-scope blocked-history console, not a separate duplicate screen." : "이 경로가 별도 중복 화면이 아니라 시스템 범위 차단 이력 콘솔임을 명확히 합니다."}
+              title={en ? "Security History Completion Gate" : "보안 이력 완료 게이트"}
+            />
+            <div className="divide-y divide-slate-100">
+              {SECURITY_HISTORY_CLOSEOUT_ROWS.map((row) => (
+                <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-[210px_92px_minmax(0,1fr)]" key={row.labelKo}>
+                  <div className="font-semibold text-[var(--kr-gov-text-primary)]">{en ? row.labelEn : row.labelKo}</div>
+                  <div>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${row.tone === "ready" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+                      {en ? row.stateEn : row.stateKo}
+                    </span>
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{en ? row.notesEn : row.notesKo}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <aside className="gov-card min-w-0 p-5" data-help-id="security-history-action-contract">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-600">lock</span>
+              <h2 className="text-base font-bold text-[var(--kr-gov-text-primary)]">{en ? "Blocked Enforcement" : "차단된 실행 조치"}</h2>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+              {en
+                ? "The page records operator intent today. Actual account/session/policy mutation needs separate authority, approval, and audit contracts."
+                : "현재 화면은 운영자 의사결정을 기록합니다. 실제 계정/세션/정책 변경은 별도 권한, 승인, 감사 계약이 필요합니다."}
+            </p>
+            <div className="mt-4 grid gap-2">
+              {SECURITY_HISTORY_ACTION_CONTRACT.map((action) => (
+                <button className="gov-btn gov-btn-outline justify-center opacity-60" disabled key={action.labelKo} type="button">
+                  {en ? action.labelEn : action.labelKo}
+                </button>
+              ))}
+            </div>
+          </aside>
         </section>
       ) : null}
       <section className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2 xl:grid-cols-4">

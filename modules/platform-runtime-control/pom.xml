@@ -32,6 +32,11 @@
             <artifactId>platform-version-control</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>egovframework</groupId>
+            <artifactId>platform-observability-query</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

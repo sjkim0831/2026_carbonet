@@ -122,9 +122,16 @@ if [[ -z "${APP_PID:-}" ]]; then
 fi
 
 if ! kill -0 "$APP_PID" 2>/dev/null; then
-  rm -f "$PID_FILE"
-  echo "[stop-18000] process already stopped: pid=$APP_PID"
-  exit 0
+  RECOVERED_PID="$(find_running_pid_without_pid_file || true)"
+  if [[ -n "${RECOVERED_PID:-}" ]] && kill -0 "$RECOVERED_PID" 2>/dev/null; then
+    APP_PID="$RECOVERED_PID"
+    printf '%s\n' "$APP_PID" > "$PID_FILE"
+    echo "[stop-18000] recovered running pid from process table: pid=$APP_PID"
+  else
+    rm -f "$PID_FILE"
+    echo "[stop-18000] process already stopped: pid=$APP_PID"
+    exit 0
+  fi
 fi
 
 kill "$APP_PID" 2>/dev/null || true

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-14T15:42:58.081Z",
+  "generatedAt": "2026-04-16T02:41:31.406Z",
   "sources": {
     "pageManifest": "frontend/src/platform/screen-registry/pageManifests.ts",
     "apiMap": "docs/ai/40-backend/controller-service-map.csv",
@@ -10,21 +10,28 @@
     "governancePlan": "docs/architecture/verification-center-and-baseline-governance-plan.md"
   },
   "summary": {
-    "pageCount": 193,
-    "menuBoundPageCount": 193,
-    "staticMenuBoundPageCount": 192,
+    "pageCount": 219,
+    "menuBoundPageCount": 219,
+    "staticMenuBoundPageCount": 218,
     "dynamicMenuBoundPageCount": 1,
     "unmanagedPageCount": 0,
-    "routeBoundPageCount": 193,
+    "routeBoundPageCount": 219,
     "apiCount": 13,
     "uniqueRouteCount": 13,
     "functionCount": 59,
     "uniqueFunctionCount": 45,
     "frontendE2eCount": 7,
     "backendTestCount": 6,
-    "highRiskPageCount": 23,
+    "highRiskPageCount": 26,
     "highRiskApiCount": 1,
-    "governedTestProfileCount": 12
+    "governedTestProfileCount": 12,
+    "baselineRegistryCount": 4,
+    "staleBaselineCount": 1,
+    "verificationRunCount": 3,
+    "failingRunCount": 2,
+    "expiringProfileCount": 1,
+    "staleDatasetCount": 1,
+    "actionQueueCount": 3
   },
   "pages": [
     {
@@ -147,6 +154,20 @@
       "menuBindingType": "static"
     },
     {
+      "manifestKey": "backup-config",
+      "pageId": "backup-config",
+      "routePath": "/admin/system/backup_config",
+      "menuCode": "AMENU_BACKUP_CONFIG",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "backup-execution",
+      "pageId": "backup-execution",
+      "routePath": "/admin/system/backup",
+      "menuCode": "AMENU_BACKUP_EXECUTION",
+      "menuBindingType": "static"
+    },
+    {
       "manifestKey": "banner-edit",
       "pageId": "banner-edit",
       "routePath": "/admin/content/banner_edit",
@@ -193,6 +214,13 @@
       "pageId": "certificate-apply",
       "routePath": "/certificate/apply",
       "menuCode": "H0020201",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "certificate-approve",
+      "pageId": "certificate-approve",
+      "routePath": "/admin/certificate/approve",
+      "menuCode": "AMENU_CERTIFICATE_APPROVE",
       "menuBindingType": "static"
     },
     {
@@ -266,10 +294,31 @@
       "menuBindingType": "static"
     },
     {
+      "manifestKey": "co2-analysis",
+      "pageId": "co2-analysis",
+      "routePath": "/co2/analysis",
+      "menuCode": "H0030103",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "co2-credit",
+      "pageId": "co2-credit",
+      "routePath": "/co2/credit",
+      "menuCode": "H0030301",
+      "menuBindingType": "static"
+    },
+    {
       "manifestKey": "co2-demand-list",
       "pageId": "co2-demand-list",
       "routePath": "/co2/demand_list",
       "menuCode": "H0030201",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "co2-integrity",
+      "pageId": "co2-integrity",
+      "routePath": "/co2/integrity",
+      "menuCode": "H0030102",
       "menuBindingType": "static"
     },
     {
@@ -311,7 +360,7 @@
       "manifestKey": "company-approve",
       "pageId": "company-approve",
       "routePath": "/admin/member/company-approve",
-      "menuCode": "AMENU_COMPANY_APPROVE",
+      "menuCode": "A0010202",
       "menuBindingType": "static"
     },
     {
@@ -340,6 +389,13 @@
       "pageId": "current-runtime-compare",
       "routePath": "/admin/system/current-runtime-compare",
       "menuCode": "A1900108",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "db-promotion-policy",
+      "pageId": "db-promotion-policy",
+      "routePath": "/admin/system/db-promotion-policy",
+      "menuCode": "AMENU_DB_PROMOTION_POLICY",
       "menuBindingType": "static"
     },
     {
@@ -378,6 +434,13 @@
       "menuBindingType": "static"
     },
     {
+      "manifestKey": "edu-certificate",
+      "pageId": "edu-certificate",
+      "routePath": "/edu/certificate",
+      "menuCode": "HMENU_EDU_CERTIFICATE",
+      "menuBindingType": "static"
+    },
+    {
       "manifestKey": "edu-content",
       "pageId": "edu-content",
       "routePath": "/edu/content",
@@ -392,6 +455,13 @@
       "menuBindingType": "static"
     },
     {
+      "manifestKey": "edu-course-list",
+      "pageId": "edu-course-list",
+      "routePath": "/edu/course_list",
+      "menuCode": "HMENU_EDU_COURSE_LIST",
+      "menuBindingType": "static"
+    },
+    {
       "manifestKey": "edu-my-course",
       "pageId": "edu-my-course",
       "routePath": "/edu/my_course",
@@ -403,6 +473,13 @@
       "pageId": "edu-progress",
       "routePath": "/edu/progress",
       "menuCode": "H0070105",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "edu-survey",
+      "pageId": "edu-survey",
+      "routePath": "/edu/survey",
+      "menuCode": "HMENU_EDU_SURVEY",
       "menuBindingType": "static"
     },
     {
@@ -455,6 +532,20 @@
       "menuBindingType": "static"
     },
     {
+      "manifestKey": "emission-lci-classification",
+      "pageId": "emission-lci-classification",
+      "routePath": "/admin/emission/lci-classification",
+      "menuCode": "AMENU_EMISSION_LCI_CLASSIFICATION",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "emission-management",
+      "pageId": "emission-management",
+      "routePath": "/admin/emission/management",
+      "menuCode": "AMENU_EMISSION_MANAGEMENT",
+      "menuBindingType": "static"
+    },
+    {
       "manifestKey": "emission-project-list",
       "pageId": "emission-project-list",
       "routePath": "/emission/project_list",
@@ -501,6 +592,20 @@
       "pageId": "emission-site-management",
       "routePath": "/admin/emission/site-management",
       "menuCode": "A0020105",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "emission-survey-admin",
+      "pageId": "emission-survey-admin",
+      "routePath": "/admin/emission/survey-admin",
+      "menuCode": "AMENU_EMISSION_SURVEY_ADMIN",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "emission-survey-admin-data",
+      "pageId": "emission-survey-admin-data",
+      "routePath": "/admin/emission/survey-admin-data",
+      "menuCode": "AMENU_EMISSION_SURVEY_ADMIN_DATA",
       "menuBindingType": "static"
     },
     {
@@ -787,7 +892,7 @@
       "manifestKey": "member-approve",
       "pageId": "member-approve",
       "routePath": "/admin/member/approve",
-      "menuCode": "AMENU_MEMBER_APPROVE",
+      "menuCode": "A0010103",
       "menuBindingType": "static"
     },
     {
@@ -851,6 +956,13 @@
       "pageId": "monitoring-alerts",
       "routePath": "/monitoring/alerts",
       "menuCode": "H0050104",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "monitoring-center",
+      "pageId": "monitoring-center",
+      "routePath": "/admin/monitoring/center",
+      "menuCode": "ADMIN_MONITORING_CENTER",
       "menuBindingType": "static"
     },
     {
@@ -938,6 +1050,13 @@
       "menuBindingType": "static"
     },
     {
+      "manifestKey": "mypage-email",
+      "pageId": "mypage-email",
+      "routePath": "/mypage/email",
+      "menuCode": "HMENU_MYPAGE_EMAIL",
+      "menuBindingType": "static"
+    },
+    {
       "manifestKey": "mypage-marketing",
       "pageId": "mypage-marketing",
       "routePath": "/mypage/marketing",
@@ -959,10 +1078,24 @@
       "menuBindingType": "static"
     },
     {
+      "manifestKey": "mypage-staff",
+      "pageId": "mypage-staff",
+      "routePath": "/mypage/staff",
+      "menuCode": "HMENU_MYPAGE_STAFF",
+      "menuBindingType": "static"
+    },
+    {
       "manifestKey": "new-page",
       "pageId": "new-page",
       "routePath": "/admin/system/new-page",
       "menuCode": "AMENU_SYSTEM_NEW_PAGE",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "notice-list",
+      "pageId": "notice-list",
+      "routePath": "/support/notice_list",
+      "menuCode": "HMENU_NOTICE_LIST",
       "menuBindingType": "static"
     },
     {
@@ -1012,6 +1145,13 @@
       "pageId": "payment-pay",
       "routePath": "/payment/pay",
       "menuCode": "H0060102",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "payment-receipt",
+      "pageId": "payment-receipt",
+      "routePath": "/payment/receipt",
+      "menuCode": "HMENU_PAYMENT_RECEIPT",
       "menuBindingType": "static"
     },
     {
@@ -1106,6 +1246,13 @@
       "menuBindingType": "dynamic"
     },
     {
+      "manifestKey": "restore-execution",
+      "pageId": "restore-execution",
+      "routePath": "/admin/system/restore",
+      "menuCode": "AMENU_RESTORE_EXECUTION",
+      "menuBindingType": "static"
+    },
+    {
       "manifestKey": "scheduler-management",
       "pageId": "scheduler-management",
       "routePath": "/admin/system/scheduler",
@@ -1173,6 +1320,27 @@
       "pageId": "security-policy",
       "routePath": "/admin/system/security-policy",
       "menuCode": "AMENU_SECURITY_POLICY",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "sensor-add",
+      "pageId": "sensor-add",
+      "routePath": "/admin/monitoring/sensor_add",
+      "menuCode": "AMENU_SENSOR_ADD",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "sensor-edit",
+      "pageId": "sensor-edit",
+      "routePath": "/admin/monitoring/sensor_edit",
+      "menuCode": "AMENU_SENSOR_EDIT",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "sensor-list",
+      "pageId": "sensor-list",
+      "routePath": "/admin/monitoring/sensor_list",
+      "menuCode": "A0070201",
       "menuBindingType": "static"
     },
     {
@@ -1311,7 +1479,7 @@
     {
       "manifestKey": "trade-list",
       "pageId": "trade-list",
-      "routePath": "/admin/trade/list",
+      "routePath": "/trade/list",
       "menuCode": "AMENU_TRADE_LIST",
       "menuBindingType": "static"
     },
@@ -1358,10 +1526,31 @@
       "menuBindingType": "static"
     },
     {
+      "manifestKey": "unified-log",
+      "pageId": "unified-log",
+      "routePath": "/admin/system/unified_log",
+      "menuCode": "AMENU_UNIFIED_LOG",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "verification-assets",
+      "pageId": "verification-assets",
+      "routePath": "/admin/system/verification-assets",
+      "menuCode": "A0060129",
+      "menuBindingType": "static"
+    },
+    {
       "manifestKey": "verification-center",
       "pageId": "verification-center",
       "routePath": "/admin/system/verification-center",
       "menuCode": "A0060128",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "version-management",
+      "pageId": "version-management",
+      "routePath": "/admin/system/version",
+      "menuCode": "AMENU_VERSION_MANAGEMENT",
       "menuBindingType": "static"
     },
     {
@@ -1843,6 +2032,18 @@
         ]
       },
       {
+        "pageId": "certificate-approve",
+        "routePath": "/admin/certificate/approve",
+        "menuCode": "AMENU_CERTIFICATE_APPROVE",
+        "riskTags": [
+          "CERTIFICATE"
+        ],
+        "requiredProfiles": [
+          "CERTIFICATE_QA_OPERATOR",
+          "MASKED_CERTIFICATE_PACK"
+        ]
+      },
+      {
         "pageId": "certificate-audit-log",
         "routePath": "/admin/certificate/audit-log",
         "menuCode": "AMENU_CERTIFICATE_AUDIT_LOG",
@@ -1963,6 +2164,18 @@
         ]
       },
       {
+        "pageId": "edu-certificate",
+        "routePath": "/edu/certificate",
+        "menuCode": "HMENU_EDU_CERTIFICATE",
+        "riskTags": [
+          "CERTIFICATE"
+        ],
+        "requiredProfiles": [
+          "CERTIFICATE_QA_OPERATOR",
+          "MASKED_CERTIFICATE_PACK"
+        ]
+      },
+      {
         "pageId": "external-keys",
         "routePath": "/admin/external/keys",
         "menuCode": "A0050201",
@@ -2002,6 +2215,18 @@
         "pageId": "payment-pay",
         "routePath": "/payment/pay",
         "menuCode": "H0060102",
+        "riskTags": [
+          "PAYMENT"
+        ],
+        "requiredProfiles": [
+          "MASKED_PAYMENT_FIXTURE",
+          "PAYMENT_SANDBOX_OPERATOR"
+        ]
+      },
+      {
+        "pageId": "payment-receipt",
+        "routePath": "/payment/receipt",
+        "menuCode": "HMENU_PAYMENT_RECEIPT",
         "riskTags": [
           "PAYMENT"
         ],
@@ -2272,6 +2497,203 @@
       ],
       "requiresExpiryTracking": true,
       "notes": "Verification must fail closed when only expired or production-bound credentials remain."
+    }
+  ],
+  "baselineRegistry": [
+    {
+      "pageId": "environment-management",
+      "routePath": "/admin/system/environment-management",
+      "baselineId": "BL-ENV-2026-04-14",
+      "snapshotPath": "var/baselines/environment-management/2026-04-14",
+      "owner": "PLATFORM_ADMIN",
+      "lastVerifiedAt": "2026-04-14T09:10:00+09:00",
+      "stale": false,
+      "requiredScenarioIds": [
+        "ROUTE_HEAD",
+        "SCREEN_COMMAND_METADATA",
+        "PRIMARY_ACTION_BAR"
+      ]
+    },
+    {
+      "pageId": "asset-inventory",
+      "routePath": "/admin/system/asset-inventory",
+      "baselineId": "BL-AINV-2026-04-14",
+      "snapshotPath": "var/baselines/asset-inventory/2026-04-14",
+      "owner": "PLATFORM_ADMIN",
+      "lastVerifiedAt": "2026-04-14T09:18:00+09:00",
+      "stale": false,
+      "requiredScenarioIds": [
+        "ROUTE_HEAD",
+        "SUMMARY_COUNT",
+        "DETAIL_LINKS"
+      ]
+    },
+    {
+      "pageId": "asset-impact",
+      "routePath": "/admin/system/asset-impact",
+      "baselineId": "BL-AIMP-2026-04-13",
+      "snapshotPath": "var/baselines/asset-impact/2026-04-13",
+      "owner": "PLATFORM_ADMIN",
+      "lastVerifiedAt": "2026-04-13T19:05:00+09:00",
+      "stale": true,
+      "requiredScenarioIds": [
+        "ROUTE_HEAD",
+        "MODE_SWITCH",
+        "LINKED_CONSOLES"
+      ]
+    },
+    {
+      "pageId": "verification-center",
+      "routePath": "/admin/system/verification-center",
+      "baselineId": "BL-VC-2026-04-14",
+      "snapshotPath": "var/baselines/verification-center/2026-04-14",
+      "owner": "OPS_AUDIT",
+      "lastVerifiedAt": "2026-04-14T09:25:00+09:00",
+      "stale": false,
+      "requiredScenarioIds": [
+        "ROUTE_HEAD",
+        "FULL_LISTS",
+        "RISK_SCOPE"
+      ]
+    }
+  ],
+  "verificationRuns": [
+    {
+      "runId": "VR-2026-04-15-001",
+      "runType": "DAILY_SWEEP",
+      "targetScope": "system-governed-pages",
+      "baselineId": "BL-ENV-2026-04-14",
+      "result": "WARN",
+      "startedAt": "2026-04-15T06:00:00+09:00",
+      "finishedAt": "2026-04-15T06:12:00+09:00",
+      "traceId": "trace-verification-daily-001",
+      "profileId": "EXPIRY_MONITORING_RULE",
+      "datasetId": "MASKED_PAYMENT_FIXTURE",
+      "failureCount": 2,
+      "driftCount": 1,
+      "followupPath": "/admin/system/current-runtime-compare"
+    },
+    {
+      "runId": "VR-2026-04-14-POST-DEPLOY",
+      "runType": "POST_DEPLOY_SMOKE",
+      "targetScope": "asset-inventory,asset-detail,asset-impact",
+      "baselineId": "BL-AINV-2026-04-14",
+      "result": "PASS",
+      "startedAt": "2026-04-14T22:11:00+09:00",
+      "finishedAt": "2026-04-14T22:16:00+09:00",
+      "traceId": "trace-verification-postdeploy-014",
+      "profileId": "PLATFORM_ADMIN_SANDBOX",
+      "datasetId": "SYSTEM_ASSET_SEED_PACK",
+      "failureCount": 0,
+      "driftCount": 0,
+      "followupPath": "/admin/system/verification-center"
+    },
+    {
+      "runId": "VR-2026-04-14-EXPIRY",
+      "runType": "WEEKLY_PROFILE_AUDIT",
+      "targetScope": "sandbox-accounts-and-datasets",
+      "baselineId": "BL-VC-2026-04-14",
+      "result": "TODO",
+      "startedAt": "2026-04-14T07:30:00+09:00",
+      "finishedAt": "2026-04-14T07:37:00+09:00",
+      "traceId": "trace-verification-expiry-002",
+      "profileId": "TOKEN_ROTATION_SANDBOX",
+      "datasetId": "MASKED_IDENTITY_FIXTURE",
+      "failureCount": 0,
+      "driftCount": 3,
+      "followupPath": "/admin/system/security-policy"
+    }
+  ],
+  "managedVault": {
+    "accounts": [
+      {
+        "profileId": "PLATFORM_ADMIN_SANDBOX",
+        "role": "SYSTEM_ADMIN",
+        "status": "READY",
+        "expiresAt": "2026-05-15T00:00:00+09:00",
+        "resetOwner": "ops-admin",
+        "allowedRoutes": [
+          "/admin/system/environment-management",
+          "/admin/system/asset-inventory"
+        ]
+      },
+      {
+        "profileId": "TOKEN_ROTATION_SANDBOX",
+        "role": "INTEGRATION_SANDBOX",
+        "status": "EXPIRING_SOON",
+        "expiresAt": "2026-04-20T00:00:00+09:00",
+        "resetOwner": "external-auth-ops",
+        "allowedRoutes": [
+          "/admin/external/keys",
+          "/admin/system/verification-center"
+        ]
+      },
+      {
+        "profileId": "PAYMENT_SANDBOX_OPERATOR",
+        "role": "PAYMENT_QA",
+        "status": "READY",
+        "expiresAt": "2026-05-01T00:00:00+09:00",
+        "resetOwner": "payment-ops",
+        "allowedRoutes": [
+          "/payment/pay",
+          "/payment/refund"
+        ]
+      }
+    ],
+    "datasets": [
+      {
+        "datasetId": "SYSTEM_ASSET_SEED_PACK",
+        "type": "WORKFLOW",
+        "status": "READY",
+        "lastRefreshedAt": "2026-04-14T18:00:00+09:00",
+        "retentionPolicy": "30d",
+        "maskingPolicy": "FULL_MASK"
+      },
+      {
+        "datasetId": "MASKED_IDENTITY_FIXTURE",
+        "type": "IDENTITY",
+        "status": "STALE",
+        "lastRefreshedAt": "2026-03-20T12:00:00+09:00",
+        "retentionPolicy": "60d",
+        "maskingPolicy": "PARTIAL_MASK"
+      },
+      {
+        "datasetId": "MASKED_PAYMENT_FIXTURE",
+        "type": "PAYMENT",
+        "status": "READY",
+        "lastRefreshedAt": "2026-04-10T10:30:00+09:00",
+        "retentionPolicy": "30d",
+        "maskingPolicy": "FULL_MASK"
+      }
+    ]
+  },
+  "actionQueue": [
+    {
+      "actionId": "QA-001",
+      "severity": "HIGH",
+      "category": "STALE_BASELINE",
+      "title": "asset-impact baseline snapshot refresh",
+      "owner": "platform-admin",
+      "targetId": "asset-impact",
+      "recommendedAction": "Recapture baseline and rerun mode-switch smoke"
+    },
+    {
+      "actionId": "QA-002",
+      "severity": "HIGH",
+      "category": "PROFILE_EXPIRY",
+      "title": "token rotation sandbox expires within 5 days",
+      "owner": "external-auth-ops",
+      "targetId": "TOKEN_ROTATION_SANDBOX",
+      "recommendedAction": "Reissue credential and record reset evidence"
+    },
+    {
+      "actionId": "QA-003",
+      "severity": "MEDIUM",
+      "category": "DATASET_DRIFT",
+      "title": "masked identity fixture refresh overdue",
+      "owner": "ops-audit",
+      "targetId": "MASKED_IDENTITY_FIXTURE",
+      "recommendedAction": "Refresh dataset and rerun external-auth smoke"
     }
   ],
   "tests": {

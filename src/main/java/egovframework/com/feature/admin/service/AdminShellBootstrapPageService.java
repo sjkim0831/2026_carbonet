@@ -1,8 +1,10 @@
 package egovframework.com.feature.admin.service;
 
+import egovframework.com.platform.codex.service.AuthGroupManageService;
+
 import egovframework.com.common.trace.UiManifestRegistryPort;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
-import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
+import egovframework.com.platform.codex.model.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
 import egovframework.com.feature.admin.model.vo.EmissionResultSummaryView;
 import egovframework.com.feature.admin.model.vo.SecurityAuditSnapshot;
@@ -33,6 +35,7 @@ public class AdminShellBootstrapPageService {
     private final AdminHomeBootstrapReadService adminHomeBootstrapReadService;
     private final AdminSchedulerBootstrapReadService adminSchedulerBootstrapReadService;
     private final AdminEmissionResultBootstrapReadService adminEmissionResultBootstrapReadService;
+    private final VerificationCenterBootstrapReadService verificationCenterBootstrapReadService;
     private final BackupConfigManagementService backupConfigManagementService;
     private final MenuInfoReadPort menuInfoReadPort;
     private final AuthGroupManageService authGroupManageService;
@@ -157,6 +160,34 @@ public class AdminShellBootstrapPageService {
 
     public Map<String, Object> buildBackupConfigPageData(boolean isEn) {
         return backupConfigManagementService.buildPageData(isEn);
+    }
+
+    public Map<String, Object> buildVerificationCenterPageData(boolean isEn) {
+        return verificationCenterBootstrapReadService.buildPageData(isEn);
+    }
+
+    public Map<String, Object> runVerificationCenterCheck(String actionType, String actorId, boolean isEn) {
+        return verificationCenterBootstrapReadService.runCheck(actionType, actorId, isEn);
+    }
+
+    public Map<String, Object> buildVerificationAssetManagementPageData(boolean isEn) {
+        return verificationCenterBootstrapReadService.buildManagementPageData(isEn);
+    }
+
+    public Map<String, Object> upsertVerificationBaseline(Map<String, Object> payload, String actorId, boolean isEn) {
+        return verificationCenterBootstrapReadService.upsertBaseline(payload, actorId, isEn);
+    }
+
+    public Map<String, Object> upsertVerificationAccount(Map<String, Object> payload, String actorId, boolean isEn) {
+        return verificationCenterBootstrapReadService.upsertAccount(payload, actorId, isEn);
+    }
+
+    public Map<String, Object> upsertVerificationDataset(Map<String, Object> payload, boolean isEn) {
+        return verificationCenterBootstrapReadService.upsertDataset(payload, isEn);
+    }
+
+    public Map<String, Object> resolveVerificationAction(String actionId, boolean isEn) {
+        return verificationCenterBootstrapReadService.resolveAction(actionId, isEn);
     }
 
     public Map<String, Object> buildNewPagePageData(boolean isEn) {

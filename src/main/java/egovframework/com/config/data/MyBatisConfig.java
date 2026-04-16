@@ -1,5 +1,6 @@
 package egovframework.com.config.data;
 
+import egovframework.com.common.mapper.SystemAssetInventoryMapper;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;
@@ -30,5 +31,10 @@ public class MyBatisConfig {
         sessionFactory.setConfiguration(configuration);
 
         return sessionFactory.getObject();
+    }
+
+    @Bean
+    public SystemAssetInventoryMapper systemAssetInventoryMapper() {
+        return new SystemAssetInventoryMapper();
     }
 }

@@ -3,7 +3,7 @@ package egovframework.com.feature.home.web;
 import egovframework.com.feature.admin.service.AdminMenuTreeService;
 import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import egovframework.com.feature.admin.web.AdminApprovalController;
-import egovframework.com.feature.admin.web.AdminHotPathPagePayloadService;
+import egovframework.com.platform.codex.service.AdminHotPathPagePayloadService;
 import egovframework.com.feature.auth.dto.response.FrontendSessionResponseDTO;
 import egovframework.com.feature.auth.service.FrontendSessionService;
 import egovframework.com.feature.home.service.HomeMenuService;

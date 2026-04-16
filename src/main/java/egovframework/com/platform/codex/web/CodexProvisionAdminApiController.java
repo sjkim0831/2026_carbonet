@@ -2,7 +2,7 @@ package egovframework.com.platform.codex.web;
 
 import egovframework.com.common.security.AdminActionRateLimitService;
 import egovframework.com.platform.codex.model.CodexAdminActorContext;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.util.JwtTokenProvider;

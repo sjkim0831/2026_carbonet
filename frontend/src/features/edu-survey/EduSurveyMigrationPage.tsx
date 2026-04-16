@@ -156,7 +156,7 @@ export function EduSurveyMigrationPage() {
       />
 
       <main id="main-content">
-        <section className="border-b border-slate-800 bg-[radial-gradient(circle_at_top_left,#3730a3_0%,#111827_58%,#0f172a_100%)]">
+        <section className="border-b border-slate-800 bg-[radial-gradient(circle_at_top_left,#3730a3_0%,#111827_58%,#0f172a_100%)]" data-help-id="edu-survey-hero">
           <div className="mx-auto max-w-6xl px-4 py-8 lg:px-8">
             <nav className="mb-8 hidden h-14 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm xl:flex">
               <button className="h-full border-b-4 border-transparent px-3 font-bold text-slate-300 transition hover:text-white" onClick={() => navigate(buildLocalizedPath("/edu/my_course", "/en/edu/my_course"))} type="button">{copy.navClassroom}</button>
@@ -202,7 +202,7 @@ export function EduSurveyMigrationPage() {
           </div>
         </section>
 
-        <section className="mx-auto -mt-8 max-w-6xl px-4 pb-16 lg:px-8">
+        <section className="mx-auto -mt-8 max-w-6xl px-4 pb-16 lg:px-8" data-help-id="edu-survey-form">
           <div className="grid gap-8 lg:grid-cols-[1.5fr_0.8fr]">
             <article className="rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] md:p-10">
               <div className="border-b border-slate-100 pb-6">

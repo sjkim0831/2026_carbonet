@@ -610,7 +610,7 @@ export function Co2SearchMigrationPage() {
           </div>
         </section>
 
-        <section className="relative z-20 mx-auto -mt-10 max-w-[1440px] px-4 lg:px-8">
+        <section className="relative z-20 mx-auto -mt-10 max-w-[1440px] px-4 lg:px-8" data-help-id="co2-search-filter">
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl">
             <div className="flex flex-col gap-6">
               <div className="relative">
@@ -645,7 +645,7 @@ export function Co2SearchMigrationPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1440px] px-4 py-12 lg:px-8">
+        <section className="mx-auto max-w-[1440px] px-4 py-12 lg:px-8" data-help-id="co2-search-results">
           <div className="mb-8 flex items-center justify-between gap-4">
             <h2 className="flex items-center gap-2 text-2xl font-black">
               <MaterialIcon className="text-[var(--kr-gov-blue)]" name="explore" />

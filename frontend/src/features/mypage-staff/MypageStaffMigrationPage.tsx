@@ -305,7 +305,7 @@ export function MypageStaffMigrationPage() {
       />
 
       <main id="main-content">
-        <section className="border-b border-slate-800 bg-[radial-gradient(circle_at_top_left,#1f3ea8_0%,#111827_62%,#0f172a_100%)]">
+        <section className="border-b border-slate-800 bg-[radial-gradient(circle_at_top_left,#1f3ea8_0%,#111827_62%,#0f172a_100%)]" data-help-id="mypage-staff-hero">
           <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
             <div className="grid gap-8 xl:grid-cols-[220px_minmax(0,1fr)]">
               <aside className="space-y-2 rounded-[24px] border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
@@ -413,7 +413,7 @@ export function MypageStaffMigrationPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
+        <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8" data-help-id="mypage-staff-table">
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <h3 className="flex items-center gap-2 text-2xl font-black text-slate-900">

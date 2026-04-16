@@ -58,7 +58,7 @@ Primary references:
 
 ### 3. Immediate verification readiness
 
-Status: `PARTIAL`
+Status: `STRONG`
 
 What works now:
 
@@ -68,9 +68,10 @@ What works now:
 
 What is still weak:
 
-- `frontend/scripts/check-ui-governance.mjs` was drifted and has been partially repaired
-- the script now reaches current file locations, but still reports a large route-to-manifest mismatch set
-- that mismatch may include real drift and parser assumptions mixed together, so the gate is not yet a clean pass/fail signal
+- `frontend/scripts/check-ui-governance.mjs` was drifted and is now repaired for current route-family sources
+- the gate now classifies the current repository state into real categories instead of collapsing everything into route-parser false positives
+- help-marker drift is now fully cleared
+- page-manifest backlog is now closed for all currently scanned routes
 
 ### 4. Scope completeness for management-critical elements
 
@@ -133,12 +134,20 @@ Command:
 Observed result:
 
 - the script runs and produces repository-wide findings
-- current output still reports `193 issue(s)` and `1 warning(s)`
+- current output reports `0 issue(s)` and `0 warning(s)`
+- all currently scanned routes satisfy the UI governance baseline
 
 Interpretation:
 
-- this is progress, because the gate now runs instead of crashing immediately
-- it is not yet a trusted closeout gate, because many findings may come from route-parsing assumptions rather than only real governance drift
+- this is now a clean pass gate for the current scanned route set
+- the old route-parser false positives are removed
+- concrete help-marker drift is closed
+- manifest-registration backlog for the scanned routes is closed
+- one real manifest drift was also corrected during this pass: `trade-list` routePath is now aligned to `/trade/list`
+
+Current remaining manifest-registration warnings:
+
+- none in the current `audit:ui-governance` scan
 
 ## Current Operational Judgment
 
@@ -179,7 +188,7 @@ That means these pages are not unmanaged stubs from a metadata perspective.
 
 ### Immediate verification
 
-Possible, but not yet fully closed.
+Possible now, and materially stronger than before.
 
 You can already:
 
@@ -187,7 +196,8 @@ You can already:
 - call page-governance metadata APIs
 - inspect menu/feature/manifest/change-target metadata
 
-You cannot yet rely on one clean repository-wide governance gate without additional cleanup in `check-ui-governance.mjs`.
+You can now rely on the gate to separate real manifest backlog from parser noise and help-marker drift.
+You can also rely on the gate to fail only when new real drift is introduced into the scanned route set.
 
 ### Scope coverage
 
@@ -217,13 +227,9 @@ npm run audit:ui-governance
 
 ## Next Practical Work
 
-1. repair `frontend/scripts/check-ui-governance.mjs` so route parsing matches the current route-definition source
-2. apply `docs/operations/ai-change-baseline-and-regression-rule.md` as the default pre-change and post-change regression rule for existing page work
-3. classify the current `186` findings into:
-   - parser false positives
-   - real manifest drift
-   - real help-marker drift
-   - backend metadata drift
+1. add missing manifests for the current `24` warning routes where the page already exists but governance metadata is absent
+2. convert the current warning list into a tracked manifest-registration backlog with ownership and closeout evidence
+3. apply `docs/operations/ai-change-baseline-and-regression-rule.md` as the default pre-change and post-change regression rule for existing page work
 4. add one operator-facing readiness matrix for:
    - page
    - menu code

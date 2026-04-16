@@ -422,7 +422,7 @@ export function Co2AnalysisMigrationPage() {
         </header>
 
         <main id="main-content">
-          <section className="bg-slate-900 pt-10 pb-6 relative overflow-hidden">
+          <section className="bg-slate-900 pt-10 pb-6 relative overflow-hidden" data-help-id="co2-analysis-hero">
             <div className="max-w-[1440px] mx-auto px-4 lg:px-8 relative z-10">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
@@ -456,7 +456,7 @@ export function Co2AnalysisMigrationPage() {
             </div>
           </section>
 
-          <section className="bg-slate-900 border-b border-slate-800 relative h-[650px]">
+          <section className="bg-slate-900 border-b border-slate-800 relative h-[650px]" data-help-id="co2-analysis-charts">
             <div className="absolute inset-0 health-gradient-bg">
               <svg className="w-full h-full opacity-40" viewBox="0 0 1440 650">
                 <line className="network-line" stroke="var(--health-excellent)" strokeWidth="2" x1="400" x2="720" y1="200" y2="325" />
@@ -590,7 +590,7 @@ export function Co2AnalysisMigrationPage() {
             </div>
           </section>
 
-          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-12" id="emission-sources">
+          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-12" data-help-id="co2-analysis-recommendations" id="emission-sources">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full overflow-hidden">

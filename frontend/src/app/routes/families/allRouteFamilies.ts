@@ -1,9 +1,6 @@
 import { buildRouteFamilyAggregates } from "../../../framework/registry/routeFamilyAggregates";
 import { normalizeRegistryPath } from "../../../framework/registry/pathNormalization";
-import { ENVIRONMENT_MANAGEMENT_FAMILY } from "../../../features/environment-management/environmentManagementFamily";
-import { PROJECT_VERSION_MANAGEMENT_FAMILY } from "../../../features/project-version-management/projectVersionManagementFamily";
-import { SCREEN_BUILDER_FAMILY } from "../../../features/screen-builder/screenBuilderFamily";
-import { PLATFORM_FOUNDATION_FAMILY } from "../../../platform/routes/platformFoundationFamily";
+import { EXTERNAL_ROUTE_FAMILIES } from "../../../platform/routes/platformRouteRegistry";
 import { ADMIN_MEMBER_FAMILY } from "./adminMemberFamily";
 import { ADMIN_SYSTEM_FAMILY } from "./adminSystemFamily";
 import { APP_OWNED_FAMILY } from "./appOwnedFamily";
@@ -20,13 +17,6 @@ const APP_ROUTE_FAMILIES = [
   ADMIN_SYSTEM_FAMILY,
   CONTENT_SUPPORT_FAMILY,
   HOME_EXPERIENCE_FAMILY
-] as const;
-
-const EXTERNAL_ROUTE_FAMILIES = [
-  PLATFORM_FOUNDATION_FAMILY,
-  ENVIRONMENT_MANAGEMENT_FAMILY,
-  SCREEN_BUILDER_FAMILY,
-  PROJECT_VERSION_MANAGEMENT_FAMILY
 ] as const;
 
 const ALL_ROUTE_FAMILIES = [

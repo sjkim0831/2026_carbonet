@@ -735,7 +735,7 @@ export function Co2CreditMigrationPage() {
 
         <main id="main-content">
           {/* Hero Section */}
-          <section className="bg-[var(--portfolio-dark)] py-10 relative overflow-hidden border-b border-slate-800">
+          <section className="bg-[var(--portfolio-dark)] py-10 relative overflow-hidden border-b border-slate-800" data-help-id="co2-credit-hero">
             <div className="absolute inset-0 opacity-10 pointer-events-none">
               <svg height="100%" width="100%">
                 <pattern height="60" id="dots" patternUnits="userSpaceOnUse" width="60">
@@ -810,7 +810,7 @@ export function Co2CreditMigrationPage() {
           </section>
 
           {/* Holdings Section */}
-          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-12">
+          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-12" data-help-id="co2-credit-portfolio">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-2xl font-black flex items-center gap-2">
@@ -880,7 +880,7 @@ export function Co2CreditMigrationPage() {
             </div>
 
             {/* Analytics Section */}
-            <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4" data-help-id="co2-credit-actions">
               <div>
                 <h2 className="text-2xl font-black mb-1">{content.analyticsTitle}</h2>
                 <p className="text-[var(--kr-gov-text-secondary)] text-sm">{content.analyticsSubtitle}</p>

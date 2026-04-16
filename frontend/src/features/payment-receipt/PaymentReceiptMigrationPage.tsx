@@ -693,7 +693,7 @@ export function PaymentReceiptMigrationPage() {
       </div>
 
       <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-        <section className="relative overflow-hidden rounded-[32px] bg-slate-950 px-6 py-8 text-white shadow-sm lg:px-8">
+        <section className="relative overflow-hidden rounded-[32px] bg-slate-950 px-6 py-8 text-white shadow-sm lg:px-8" data-help-id="payment-receipt-hero">
           <div className="absolute inset-0 opacity-20">
             <div className="h-full w-full bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:40px_40px]" />
           </div>
@@ -815,7 +815,7 @@ export function PaymentReceiptMigrationPage() {
           </div>
         </section>
 
-        <section className="mt-10 overflow-hidden rounded-[24px] border border-[var(--kr-gov-border-light)] bg-white shadow-sm">
+        <section className="mt-10 overflow-hidden rounded-[24px] border border-[var(--kr-gov-border-light)] bg-white shadow-sm" data-help-id="payment-receipt-detail">
           <div className="border-b border-slate-100 p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>

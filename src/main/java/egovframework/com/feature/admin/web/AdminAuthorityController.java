@@ -6,6 +6,7 @@ import egovframework.com.feature.admin.dto.request.AdminAuthGroupFeatureSaveRequ
 import egovframework.com.feature.admin.dto.request.AdminAuthorRoleProfileSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminDeptRoleMappingSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminDeptRoleMemberSaveRequestDTO;
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;

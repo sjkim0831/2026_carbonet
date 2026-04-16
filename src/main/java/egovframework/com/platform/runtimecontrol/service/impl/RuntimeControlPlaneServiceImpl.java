@@ -5,11 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderArtifactSetNormalizer;
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderPlatformFamilyRegistry;
 import egovframework.com.platform.versioncontrol.mapper.ProjectVersionManagementMapper;
+import egovframework.com.platform.runtimecontrol.mapper.RuntimeControlPlaneMapper;
+import egovframework.com.platform.runtimecontrol.model.ModuleBindingPreviewRequest;
+import egovframework.com.platform.runtimecontrol.model.ModuleBindingResultRequest;
 import egovframework.com.platform.runtimecontrol.model.ParityCompareRequest;
 import egovframework.com.platform.runtimecontrol.model.ProjectPipelineRunRequest;
 import egovframework.com.platform.runtimecontrol.model.ProjectPipelineStatusRequest;
 import egovframework.com.platform.runtimecontrol.model.RepairApplyRequest;
 import egovframework.com.platform.runtimecontrol.model.RepairOpenRequest;
+import egovframework.com.platform.runtimecontrol.model.VerificationRunRequest;
 import egovframework.com.platform.runtimecontrol.service.RuntimeControlPlaneService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,6 +45,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
 
     private final ObjectMapper objectMapper;
     private final ProjectVersionManagementMapper projectVersionManagementMapper;
+    private final RuntimeControlPlaneMapper runtimeControlPlaneMapper;
 
     @Value("${carbonet.platform.runtimecontrol.parity-compare-store:/tmp/carbonet-resonance-parity-compare.jsonl}")
     private String parityCompareStore;
@@ -54,6 +59,15 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
     @Value("${carbonet.platform.runtimecontrol.project-pipeline-store:/tmp/carbonet-resonance-project-pipeline.jsonl}")
     private String projectPipelineStore;
 
+    @Value("${carbonet.platform.runtimecontrol.verification-run-store:/tmp/carbonet-resonance-verification-run.jsonl}")
+    private String verificationRunStore;
+
+    @Value("${carbonet.platform.runtimecontrol.module-binding-preview-store:/tmp/carbonet-resonance-module-binding-preview.jsonl}")
+    private String moduleBindingPreviewStore;
+
+    @Value("${carbonet.platform.runtimecontrol.module-binding-result-store:/tmp/carbonet-resonance-module-binding-result.jsonl}")
+    private String moduleBindingResultStore;
+
     @Override
     public Map<String, Object> getParityCompare(ParityCompareRequest request) throws Exception {
         String projectId = required(request.getProjectId(), "projectId");
@@ -66,18 +80,65 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         Map<String, Object> runtimeEvidence = normalizeObjectMap(request.getRuntimeEvidence());
 
         List<Map<String, Object>> compareTargetSet = new ArrayList<Map<String, Object>>();
-        compareTargetSet.add(compareRow("layout-shell", "runtime/header-shell:v1", "builder/header-shell:v2", "guided-state", "layout"));
-        compareTargetSet.add(compareRow("event-binding", "runtime/onClick->legacyAction", "builder/onClick->projectAction", adapterContractArtifactId(projectId), "binding"));
-        compareTargetSet.add(compareRow("theme-token", "runtime/color.brand.500", "builder/color.primary.600", "theme-governance", "theme"));
-
         List<String> blockerSet = new ArrayList<String>();
-        blockerSet.add("guided-state identity must remain stable across scaffold/build/deploy");
-        blockerSet.add("adapter event binding requires controlled remap before package approval");
-
         List<String> repairCandidateSet = new ArrayList<String>();
-        repairCandidateSet.add("reuse governed shell asset set");
-        repairCandidateSet.add("apply adapter binding override patch");
-        repairCandidateSet.add("rebuild installable package with validator set");
+
+        Map<String, Object> releaseUnit = hasText(request.getReleaseUnitId())
+                ? defaultMap(projectVersionManagementMapper.selectReleaseUnit(request.getReleaseUnitId()))
+                : orderedMap();
+        Map<String, Object> targetVersionSet = canonicalizeArtifactVersionSet(
+                projectId,
+                parseJsonObject(releaseUnit.get("packageVersionSetJson")));
+        List<Map<String, Object>> installedArtifacts = canonicalArtifactRows(
+                projectId,
+                projectVersionManagementMapper.selectInstalledArtifacts(projectId));
+        Map<String, String> currentVersionByArtifactId = new LinkedHashMap<String, String>();
+        for (Map<String, Object> installed : installedArtifacts) {
+            currentVersionByArtifactId.put(value(installed, "artifactId"), value(installed, "installedArtifactVersion"));
+        }
+
+        int matchCount = 0;
+        int totalTargets = 0;
+
+        if (!targetVersionSet.isEmpty()) {
+            for (Map.Entry<String, Object> entry : targetVersionSet.entrySet()) {
+                String artifactId = entry.getKey();
+                String targetVersion = String.valueOf(entry.getValue());
+                String currentVersion = currentVersionByArtifactId.get(artifactId);
+                totalTargets++;
+
+                String result = "MATCH";
+                if (!hasText(currentVersion)) {
+                    result = "GAP";
+                    blockerSet.add("Missing artifact at runtime: " + artifactId);
+                } else if (!targetVersion.equals(currentVersion)) {
+                    result = "MISMATCH";
+                    blockerSet.add("Version drift detected for " + artifactId + ": expected " + targetVersion + " but found " + currentVersion);
+                } else {
+                    matchCount++;
+                    result = "MATCH";
+                }
+                Map<String, Object> row = compareRow(artifactId, orDefault(currentVersion, "(none)"), targetVersion, "release-unit", "artifact");
+                row.put("result", result);
+                compareTargetSet.add(row);
+            }
+        }
+
+        if (totalTargets == 0) {
+            compareTargetSet.add(compareRow("layout-shell", "runtime/header-shell:v1", "builder/header-shell:v2", "guided-state", "layout"));
+            compareTargetSet.add(compareRow("event-binding", "runtime/onClick->legacyAction", "builder/onClick->projectAction", adapterContractArtifactId(projectId), "binding"));
+            compareTargetSet.add(compareRow("theme-token", "runtime/color.brand.500", "builder/color.primary.600", "theme-governance", "theme"));
+            totalTargets = compareTargetSet.size();
+            blockerSet.add("No authoritative release unit found; using legacy baseline for comparison.");
+        }
+
+        if (!blockerSet.isEmpty()) {
+            repairCandidateSet.add("Apply repair patch for artifact version alignment");
+            repairCandidateSet.add("Re-sync project adapter boundary bindings");
+            repairCandidateSet.add("Rebuild installable package with validator set");
+        }
+
+        int parityScore = totalTargets > 0 ? (matchCount * 100 / totalTargets) : 100;
 
         Map<String, Object> response = orderedMap();
         response.put("compareContextId", compareContextId);
@@ -93,15 +154,16 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("builderInput", builderInput);
         response.put("runtimeEvidence", runtimeEvidence);
         response.put("compareTargetSet", compareTargetSet);
-        response.put("parityScore", Integer.valueOf(84));
+        response.put("parityScore", Integer.valueOf(parityScore));
         response.put("uniformityScore", Integer.valueOf(88));
         response.put("blockerSet", blockerSet);
         response.put("repairCandidateSet", repairCandidateSet);
-        response.put("result", "REPAIR_REQUIRED");
+        response.put("result", blockerSet.isEmpty() ? "MATCH" : "REPAIR_REQUIRED");
         response.put("requestedBy", orDefault(request.getRequestedBy(), "system"));
         response.put("requestedByType", orDefault(request.getRequestedByType(), "PLATFORM_OPERATOR"));
         response.put("occurredAt", occurredAt);
         response.put("traceId", traceId);
+        persistParityCompareRunToDatabase(request, response);
         appendJsonLine(parityCompareStore, response);
         return response;
     }
@@ -142,6 +204,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("requestNote", orDefault(request.getRequestNote(), "Repair session opened from runtime compare."));
         response.put("occurredAt", now());
         response.put("traceId", "trace-" + shortId());
+        persistRepairSessionToDatabase(request, response);
         appendJsonLine(repairOpenStore, response);
         return response;
     }
@@ -191,6 +254,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("traceId", "trace-" + shortId());
         if (canUseDatabase()) {
             persistRepairApplyRecordToDatabase(request, response);
+            persistRepairApplyRunToDatabase(request, response);
         }
         appendJsonLine(repairApplyStore, response);
         return response;
@@ -1310,6 +1374,219 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         return result;
     }
 
+    @Override
+    public Map<String, Object> saveVerificationRun(VerificationRunRequest request) throws Exception {
+        String projectId = required(request.getProjectId(), "projectId");
+        String menuId = required(request.getMenuId(), "menuId");
+        String occurredAt = now();
+        String verificationRunId = "verify-" + shortId();
+        String traceId = orDefault(request.getTraceId(), "trace-" + shortId());
+
+        Map<String, Object> response = orderedMap();
+        response.put("verificationRunId", verificationRunId);
+        response.put("traceId", traceId);
+        response.put("projectId", projectId);
+        response.put("scenarioFamilyId", orDefault(request.getScenarioFamilyId(), "verification-family"));
+        response.put("menuId", menuId);
+        response.put("guidedStateId", orDefault(request.getGuidedStateId(), projectId + ".guided-state"));
+        response.put("templateLineId", orDefault(request.getTemplateLineId(), "template.runtime.standard"));
+        response.put("ownerLane", orDefault(request.getOwnerLane(), ownerLane()));
+        response.put("targetRuntime", orDefault(request.getTargetRuntime(), "CURRENT_RUNTIME"));
+        response.put("releaseUnitId", orDefault(request.getReleaseUnitId(), ""));
+        response.put("screenFamilyRuleId", orDefault(request.getScreenFamilyRuleId(), "screen-family.standard"));
+        response.put("selectedScreenId", orDefault(request.getSelectedScreenId(), ""));
+        response.put("selectedElementSet", normalizeStringList(request.getSelectedElementSet()));
+        response.put("compareBaseline", orDefault(request.getCompareBaseline(), ""));
+        response.put("pageId", orDefault(request.getPageId(), ""));
+        response.put("routeId", orDefault(request.getRouteId(), ""));
+        response.put("shellProfileId", orDefault(request.getShellProfileId(), ""));
+        response.put("pageFrameId", orDefault(request.getPageFrameId(), ""));
+        response.put("componentCoverageState", orDefault(request.getComponentCoverageState(), "UNKNOWN"));
+        response.put("bindingCoverageState", orDefault(request.getBindingCoverageState(), "UNKNOWN"));
+        response.put("backendChainState", orDefault(request.getBackendChainState(), "UNKNOWN"));
+        response.put("helpSecurityState", orDefault(request.getHelpSecurityState(), "UNKNOWN"));
+        response.put("result", orDefault(request.getResult(), "PASS"));
+        response.put("blockerCount", request.getBlockerCount() != null ? request.getBlockerCount() : Integer.valueOf(0));
+        response.put("verifyShellYn", request.getVerifyShellYn() != null && request.getVerifyShellYn() ? "Y" : "N");
+        response.put("verifyComponentYn", request.getVerifyComponentYn() != null && request.getVerifyComponentYn() ? "Y" : "N");
+        response.put("verifyBindingYn", request.getVerifyBindingYn() != null && request.getVerifyBindingYn() ? "Y" : "N");
+        response.put("verifyBackendYn", request.getVerifyBackendYn() != null && request.getVerifyBackendYn() ? "Y" : "N");
+        response.put("verifyHelpSecurityYn", request.getVerifyHelpSecurityYn() != null && request.getVerifyHelpSecurityYn() ? "Y" : "N");
+        response.put("requestedBy", orDefault(request.getRequestedBy(), "system"));
+        response.put("requestedByType", orDefault(request.getRequestedByType(), "PLATFORM_OPERATOR"));
+        response.put("blockerSet", request.getBlockerSet() != null ? request.getBlockerSet() : new ArrayList<Map<String, Object>>());
+        response.put("resultPayload", request.getResultPayload() != null ? request.getResultPayload() : orderedMap());
+        response.put("occurredAt", occurredAt);
+
+        persistVerificationRunToDatabase(request, response);
+        appendJsonLine(verificationRunStore, response);
+        return response;
+    }
+
+    private void persistVerificationRunToDatabase(VerificationRunRequest request, Map<String, Object> response) {
+        try {
+            if (!canUseResonanceDatabase()) {
+                return;
+            }
+            Map<String, Object> params = new LinkedHashMap<String, Object>();
+            params.put("verificationRunId", response.get("verificationRunId"));
+            params.put("traceId", response.get("traceId"));
+            params.put("projectId", response.get("projectId"));
+            params.put("scenarioFamilyId", response.get("scenarioFamilyId"));
+            params.put("menuId", response.get("menuId"));
+            params.put("guidedStateId", response.get("guidedStateId"));
+            params.put("templateLineId", response.get("templateLineId"));
+            params.put("ownerLane", response.get("ownerLane"));
+            params.put("targetRuntime", response.get("targetRuntime"));
+            params.put("releaseUnitId", response.get("releaseUnitId"));
+            params.put("screenFamilyRuleId", response.get("screenFamilyRuleId"));
+            params.put("selectedScreenId", response.get("selectedScreenId"));
+            params.put("selectedElementSetJson", objectMapper.writeValueAsString(response.get("selectedElementSet")));
+            params.put("compareBaseline", response.get("compareBaseline"));
+            params.put("pageId", response.get("pageId"));
+            params.put("routeId", response.get("routeId"));
+            params.put("shellProfileId", response.get("shellProfileId"));
+            params.put("pageFrameId", response.get("pageFrameId"));
+            params.put("componentCoverageState", response.get("componentCoverageState"));
+            params.put("bindingCoverageState", response.get("bindingCoverageState"));
+            params.put("backendChainState", response.get("backendChainState"));
+            params.put("helpSecurityState", response.get("helpSecurityState"));
+            params.put("result", response.get("result"));
+            params.put("blockerCount", response.get("blockerCount"));
+            params.put("verifyShellYn", response.get("verifyShellYn"));
+            params.put("verifyComponentYn", response.get("verifyComponentYn"));
+            params.put("verifyBindingYn", response.get("verifyBindingYn"));
+            params.put("verifyBackendYn", response.get("verifyBackendYn"));
+            params.put("verifyHelpSecurityYn", response.get("verifyHelpSecurityYn"));
+            params.put("requestedBy", response.get("requestedBy"));
+            params.put("requestedByType", response.get("requestedByType"));
+            params.put("blockerSetJson", objectMapper.writeValueAsString(response.get("blockerSet")));
+            params.put("resultPayloadJson", objectMapper.writeValueAsString(response.get("resultPayload")));
+            params.put("occurredAt", response.get("occurredAt"));
+            runtimeControlPlaneMapper.insertVerificationRun(params);
+        } catch (Exception e) {
+            // Log error
+        }
+    }
+
+    private void persistParityCompareRunToDatabase(ParityCompareRequest request, Map<String, Object> response) {
+        try {
+            if (!canUseResonanceDatabase()) {
+                return;
+            }
+            Map<String, Object> params = new LinkedHashMap<String, Object>();
+            params.put("compareContextId", response.get("compareContextId"));
+            params.put("traceId", response.get("traceId"));
+            params.put("projectId", response.get("projectId"));
+            params.put("guidedStateId", response.get("guidedStateId"));
+            params.put("templateLineId", response.get("templateLineId"));
+            params.put("screenFamilyRuleId", response.get("screenFamilyRuleId"));
+            params.put("ownerLane", response.get("ownerLane"));
+            params.put("selectedScreenId", response.get("selectedScreenId"));
+            params.put("releaseUnitId", response.get("releaseUnitId"));
+            params.put("compareBaseline", response.get("compareBaseline"));
+            params.put("parityScore", response.get("parityScore"));
+            params.put("uniformityScore", response.get("uniformityScore"));
+            params.put("result", response.get("result"));
+            params.put("compareTargetSetJson", objectMapper.writeValueAsString(response.get("compareTargetSet")));
+            params.put("blockerSetJson", objectMapper.writeValueAsString(response.get("blockerSet")));
+            params.put("repairCandidateSetJson", objectMapper.writeValueAsString(response.get("repairCandidateSet")));
+            params.put("requestedBy", response.get("requestedBy"));
+            params.put("requestedByType", response.get("requestedByType"));
+            params.put("resultPayloadJson", objectMapper.writeValueAsString(response));
+            params.put("occurredAt", response.get("occurredAt"));
+            runtimeControlPlaneMapper.insertParityCompareRun(params);
+        } catch (Exception e) {
+            // Log error or ignore if persistence is non-blocking
+        }
+    }
+
+    private void persistRepairSessionToDatabase(RepairOpenRequest request, Map<String, Object> response) {
+        try {
+            if (!canUseResonanceDatabase()) {
+                return;
+            }
+            Map<String, Object> params = new LinkedHashMap<String, Object>();
+            params.put("repairSessionId", response.get("repairSessionId"));
+            params.put("traceId", response.get("traceId"));
+            params.put("projectId", response.get("projectId"));
+            params.put("scenarioFamilyId", "repair-family"); // Default or derived
+            params.put("releaseUnitId", response.get("releaseUnitId"));
+            params.put("guidedStateId", response.get("guidedStateId"));
+            params.put("templateLineId", response.get("templateLineId"));
+            params.put("screenFamilyRuleId", response.get("screenFamilyRuleId"));
+            params.put("ownerLane", response.get("ownerLane"));
+            params.put("selectedScreenId", response.get("selectedScreenId"));
+            params.put("compareSnapshotId", response.get("compareSnapshotId"));
+            params.put("compareBaseline", response.get("compareBaseline"));
+            params.put("reasonCode", response.get("reasonCode"));
+            params.put("requestedBy", response.get("requestedBy"));
+            params.put("requestedByType", response.get("requestedByType"));
+            params.put("requestNote", response.get("requestNote"));
+            params.put("selectedElementSetJson", objectMapper.writeValueAsString(response.get("selectedElementSet")));
+            params.put("existingAssetReuseSetJson", objectMapper.writeValueAsString(request.getExistingAssetReuseSet()));
+            params.put("blockingGapSetJson", objectMapper.writeValueAsString(response.get("blockingGapSet")));
+            params.put("reuseRecommendationSetJson", objectMapper.writeValueAsString(response.get("reuseRecommendationSet")));
+            params.put("requiredContractSetJson", objectMapper.writeValueAsString(response.get("requiredContractSet")));
+            params.put("status", response.get("status"));
+            params.put("blockingGapCount", ((List<?>) response.get("blockingGapSet")).size());
+            params.put("sessionPayloadJson", objectMapper.writeValueAsString(response));
+            params.put("occurredAt", response.get("occurredAt"));
+            runtimeControlPlaneMapper.insertRepairSession(params);
+        } catch (Exception e) {
+            // Log error
+        }
+    }
+
+    private void persistRepairApplyRunToDatabase(RepairApplyRequest request, Map<String, Object> response) {
+        try {
+            if (!canUseResonanceDatabase()) {
+                return;
+            }
+            Map<String, Object> params = new LinkedHashMap<String, Object>();
+            params.put("repairApplyRunId", response.get("repairApplyRunId"));
+            params.put("repairSessionId", response.get("repairSessionId"));
+            params.put("traceId", response.get("traceId"));
+            params.put("projectId", response.get("projectId"));
+            params.put("scenarioFamilyId", "repair-apply-family");
+            params.put("releaseUnitId", response.get("releaseUnitId"));
+            params.put("guidedStateId", response.get("guidedStateId"));
+            params.put("templateLineId", response.get("templateLineId"));
+            params.put("screenFamilyRuleId", response.get("screenFamilyRuleId"));
+            params.put("ownerLane", response.get("ownerLane"));
+            params.put("selectedScreenId", response.get("selectedScreenId"));
+            params.put("selectedElementSetJson", objectMapper.writeValueAsString(response.get("selectedElementSet")));
+            params.put("compareBaseline", response.get("compareBaseline"));
+            params.put("updatedReleaseCandidateId", response.get("updatedReleaseCandidateId"));
+            params.put("publishMode", response.get("publishMode"));
+            params.put("requestedBy", response.get("requestedBy"));
+            params.put("requestedByType", response.get("requestedByType"));
+            params.put("parityRecheckRequiredYn", response.get("parityRecheckRequiredYn") != null && (Boolean) response.get("parityRecheckRequiredYn") ? "Y" : "N");
+            params.put("uniformityRecheckRequiredYn", response.get("uniformityRecheckRequiredYn") != null && (Boolean) response.get("uniformityRecheckRequiredYn") ? "Y" : "N");
+            params.put("smokeRequiredYn", response.get("smokeRequiredYn") != null && (Boolean) response.get("smokeRequiredYn") ? "Y" : "N");
+            params.put("status", response.get("status"));
+            params.put("rollbackAnchorYn", "N"); // Default
+            params.put("changeSummary", response.get("changeSummary"));
+            params.put("updatedAssetTraceSetJson", objectMapper.writeValueAsString(response.get("updatedAssetTraceSet")));
+            params.put("updatedBindingSetJson", objectMapper.writeValueAsString(response.get("updatedBindingSet")));
+            params.put("updatedThemeLayoutSetJson", objectMapper.writeValueAsString(response.get("updatedThemeOrLayoutSet")));
+            params.put("sqlDraftSetJson", objectMapper.writeValueAsString(response.get("sqlDraftSet")));
+            params.put("applyPayloadJson", objectMapper.writeValueAsString(response));
+            params.put("occurredAt", response.get("occurredAt"));
+            runtimeControlPlaneMapper.insertRepairApplyRun(params);
+        } catch (Exception e) {
+            // Log error
+        }
+    }
+
+    private boolean canUseResonanceDatabase() {
+        try {
+            return runtimeControlPlaneMapper != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private Map<String, Object> orderedMap(Object... pairs) {
         Map<String, Object> map = new LinkedHashMap<String, Object>();
         if (pairs == null) {
@@ -1319,5 +1596,29 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
             map.put(String.valueOf(pairs[i]), pairs[i + 1]);
         }
         return map;
+    }
+
+    @Override
+    public Map<String, Object> saveModuleBindingPreview(ModuleBindingPreviewRequest request) throws Exception {
+        String projectId = required(request.getProjectId(), "projectId");
+        String occurredAt = now();
+        Map<String, Object> response = orderedMap();
+        response.put("previewId", "prev-" + shortId());
+        response.put("projectId", projectId);
+        response.put("occurredAt", occurredAt);
+        appendJsonLine(moduleBindingPreviewStore, response);
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> saveModuleBindingResult(ModuleBindingResultRequest request) throws Exception {
+        String projectId = required(request.getProjectId(), "projectId");
+        String occurredAt = now();
+        Map<String, Object> response = orderedMap();
+        response.put("resultId", "res-" + shortId());
+        response.put("projectId", projectId);
+        response.put("occurredAt", occurredAt);
+        appendJsonLine(moduleBindingResultStore, response);
+        return response;
     }
 }

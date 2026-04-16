@@ -231,7 +231,7 @@ export function TagManagementMigrationPage() {
             : "이 화면은 우선 탐색과 운영 검토 기준으로 연결했으며, 저장 액션은 아직 백엔드 연동 전입니다."}
         </PageStatusNotice>
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="tag-management-summary">
           <SummaryMetricCard title={en ? "Tags" : "태그 수"} value={TAG_ROWS.length} description={en ? "Configured operator tags" : "현재 등록된 운영 태그"} />
           <SummaryMetricCard title={en ? "Active" : "운영중"} value={activeCount} description={en ? "Currently exposed tags" : "현재 노출 중 태그"} />
           <SummaryMetricCard title={en ? "Draft" : "초안"} value={draftCount} description={en ? "Pending review" : "검토 대기 태그"} accentClassName="text-amber-700" surfaceClassName="bg-amber-50" />

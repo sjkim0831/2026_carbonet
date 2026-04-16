@@ -48,7 +48,7 @@ Do not leave queue state newer than current closeout, or current closeout newer 
 | `2` | framework contract metadata resource | resolved historical review | `DELETE_NOW`; bounded delete-proof is now documented under the row-`2` packet | `docs/architecture/builder-resource-review-framework-contract-metadata.md` |
 | `3` | builder observability metadata/resource family | bounded non-blocking review | stronger non-blocker note recorded; module-owned `UiObservabilityRegistryMapper` and `UiManifestRegistryService` own the selected row-`3` read-shapes, while root `ObservabilityMapper` remains limited to audit/trace/access/error lanes | `docs/architecture/builder-resource-review-builder-observability.md` |
 | `4` | builder-owned root resource line excluded by app packaging | bounded provisional review | stronger non-blocker note recorded; keep non-blocking unless later proof contradicts the empty-root-surface read | `docs/architecture/builder-resource-review-app-packaging-exclusion.md` |
-| `5` | executable app resource assembly fallback | blocker-resolution state | `BLOCKS_CLOSEOUT`; executable assembly attribution is still ambiguous on the current docs set and no explicit shim reason is documented | `docs/architecture/builder-resource-review-executable-app-fallback.md` |
+| `5` | executable app resource assembly fallback | resolved historical review | `DELETE_NOW`; bounded delete-proof is now documented under the row-`5` packet | `docs/architecture/builder-resource-review-executable-app-fallback.md` |
 
 ## Current Phase Summary
 
@@ -135,7 +135,7 @@ Current evidence-checklist set:
 ## Current Counts
 
 - provisional blocker count:
-  - `1`
+  - `0`
 - bounded pre-blocker review rows:
   - `0`
 - blocker sink rows:
@@ -143,7 +143,7 @@ Current evidence-checklist set:
 
 ## Canonical Partial Phrase
 
-- `PARTIAL_DONE: builder resource ownership closure now carries bounded DELETE_NOW notes on rows 1 and 2, stronger non-blocker notes on rows 3 and 4, and row 5 remains the only BLOCKS_CLOSEOUT fallback blocker on the current docs set.`
+- `SUCCESS: builder resource ownership closure is now complete across all five rows, with row 5 resolved as DELETE_NOW following explicit root exclusion and fully moved MyBatis/resource ownership.`
 
 ## Owner Rule
 

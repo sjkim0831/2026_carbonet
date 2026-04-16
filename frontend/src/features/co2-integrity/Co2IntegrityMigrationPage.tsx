@@ -481,7 +481,7 @@ export function Co2IntegrityMigrationPage() {
 
         <main id="main-content">
           {/* Hero Section - Dark Background */}
-          <section className="bg-slate-900 py-10 relative overflow-hidden">
+          <section className="bg-slate-900 py-10 relative overflow-hidden" data-help-id="co2-integrity-hero">
             <div className="absolute inset-0 opacity-10 pointer-events-none">
               <svg height="100%" width="100%">
                 <pattern height="60" id="grid-integrity" patternUnits="userSpaceOnUse" width="60">
@@ -541,7 +541,7 @@ export function Co2IntegrityMigrationPage() {
           </section>
 
           {/* Key Emission Sites Section */}
-          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-12">
+          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 py-12" data-help-id="co2-integrity-trace-map">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-2xl font-black flex items-center gap-2">
@@ -585,7 +585,7 @@ export function Co2IntegrityMigrationPage() {
           </section>
 
           {/* CO2 Data Integrity & Audit Trail Table */}
-          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 pb-20" id="integrity-compliance">
+          <section className="max-w-[1440px] mx-auto px-4 lg:px-8 pb-20" data-help-id="co2-integrity-evidence" id="integrity-compliance">
             <div className="bg-white border border-[var(--kr-gov-border-light)] rounded-xl shadow-sm overflow-hidden">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>

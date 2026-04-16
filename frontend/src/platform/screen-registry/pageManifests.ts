@@ -431,8 +431,10 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
-      { componentId: "ExternalMaintenanceFilters", instanceKey: "external-maintenance-filters", layoutZone: "actions", propsSummary: ["keyword", "syncMode", "status"] },
       { componentId: "ExternalMaintenanceSummaryCards", instanceKey: "external-maintenance-summary", layoutZone: "content", propsSummary: ["externalMaintenanceSummary"] },
+      { componentId: "ExternalMaintenanceCloseoutGate", instanceKey: "external-maintenance-closeout-gate", layoutZone: "content", propsSummary: ["windowCrud", "approvalRelease", "affectedScope", "noticePlan", "backlogReplay", "incidentLinkage"] },
+      { componentId: "ExternalMaintenanceActionContract", instanceKey: "external-maintenance-action-contract", layoutZone: "actions", propsSummary: ["createWindow", "requestApproval", "noticePlan", "replayBacklog", "openIncident"] },
+      { componentId: "ExternalMaintenanceFilters", instanceKey: "external-maintenance-filters", layoutZone: "actions", propsSummary: ["keyword", "syncMode", "status"] },
       { componentId: "ExternalMaintenanceInventoryTable", instanceKey: "external-maintenance-inventory", layoutZone: "content", propsSummary: ["externalMaintenanceRows", "filteredCount", "refreshedAt"] },
       { componentId: "ExternalMaintenanceImpactTable", instanceKey: "external-maintenance-impact", layoutZone: "content", propsSummary: ["externalMaintenanceImpactRows"] },
       { componentId: "ExternalMaintenanceRunbook", instanceKey: "external-maintenance-runbook", layoutZone: "content", propsSummary: ["externalMaintenanceRunbooks"] },
@@ -448,10 +450,13 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
-      { componentId: "ExternalSchemaFilters", instanceKey: "external-schema-filters", layoutZone: "actions", propsSummary: ["keyword", "domain", "status"] },
       { componentId: "ExternalSchemaSummaryCards", instanceKey: "external-schema-summary", layoutZone: "content", propsSummary: ["externalSchemaSummary"] },
+      { componentId: "ExternalSchemaCloseoutGate", instanceKey: "external-schema-closeout-gate", layoutZone: "content", propsSummary: ["registryReview", "contractSnapshot", "reviewQueue", "versionPublish", "compatibilityTest", "rollback", "endpointBinding", "changeAudit"] },
+      { componentId: "ExternalSchemaActionContract", instanceKey: "external-schema-action-contract", layoutZone: "actions", propsSummary: ["publishVersion", "runCompatibility", "rollback", "bindEndpoint", "recordAudit"] },
+      { componentId: "ExternalSchemaFilters", instanceKey: "external-schema-filters", layoutZone: "actions", propsSummary: ["keyword", "domain", "status"] },
       { componentId: "ExternalSchemaRegistryTable", instanceKey: "external-schema-registry", layoutZone: "content", propsSummary: ["externalSchemaRows", "filteredCount", "selectedSchemaId"] },
       { componentId: "ExternalSchemaReviewPanel", instanceKey: "external-schema-review", layoutZone: "content", propsSummary: ["activeSchemaId", "contractPreview", "reviewChecklist"] },
+      { componentId: "ExternalSchemaReviewQueue", instanceKey: "external-schema-review-queue", layoutZone: "content", propsSummary: ["externalSchemaReviewRows", "compatibility", "masking", "governanceOwner"] },
       { componentId: "ExternalSchemaQuickLinks", instanceKey: "external-schema-links", layoutZone: "content", propsSummary: ["externalSchemaQuickLinks"] },
       { componentId: "ExternalSchemaGuidance", instanceKey: "external-schema-guidance", layoutZone: "content", propsSummary: ["externalSchemaGuidance"] }
     ]
@@ -489,7 +494,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
   "member-approve": {
     pageId: "member-approve",
     routePath: "/admin/member/approve",
-    menuCode: "AMENU_MEMBER_APPROVE",
+    menuCode: "A0010103",
     domainCode: "admin",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
@@ -502,7 +507,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
   "company-approve": {
     pageId: "company-approve",
     routePath: "/admin/member/company-approve",
-    menuCode: "AMENU_COMPANY_APPROVE",
+    menuCode: "A0010202",
     domainCode: "admin",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
@@ -1768,7 +1773,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
   },
   "trade-list": {
     pageId: "trade-list",
-    routePath: "/admin/trade/list",
+    routePath: "/trade/list",
     menuCode: "AMENU_TRADE_LIST",
     domainCode: "admin",
     layoutVersion: "v1",
@@ -2141,8 +2146,11 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
-      { componentId: "SecurityHistorySearch", instanceKey: "login-history-search", layoutZone: "actions", propsSummary: ["searchKeyword", "userSe", "loginResult=FAIL"] },
-      { componentId: "SecurityHistoryTable", instanceKey: "login-history-table", layoutZone: "content", propsSummary: ["loginHistoryList", "pageIndex"] }
+      { componentId: "SecurityHistoryGuidance", instanceKey: "member-security-guidance", layoutZone: "header", propsSummary: ["routeScope=system", "fixedLoginResult=FAIL", "sharedConsole"] },
+      { componentId: "SecurityHistoryCloseoutGate", instanceKey: "security-history-closeout-gate", layoutZone: "content", propsSummary: ["sharedBlockedHistoryConsole", "queryFilters", "detailContext", "operatorActionRecording", "enforcementBlocked", "auditExportBlocked"] },
+      { componentId: "SecurityHistoryActionContract", instanceKey: "security-history-action-contract", layoutZone: "actions", propsSummary: ["enforceAccountUnblock", "applyPolicyException", "createIncidentCase", "exportAuditEvidence"] },
+      { componentId: "SecurityHistorySearch", instanceKey: "login-history-search", layoutZone: "actions", propsSummary: ["searchKeyword", "userSe", "insttId", "actionStatus", "loginResult=FAIL"] },
+      { componentId: "SecurityHistoryTable", instanceKey: "login-history-table", layoutZone: "content", propsSummary: ["loginHistoryList", "pageIndex", "securityHistoryActionRows", "securityHistoryAggregate"] }
     ]
   },
   "security-policy": {
@@ -2238,6 +2246,45 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "BatchManagementQueues", instanceKey: "batch-management-queues", layoutZone: "content", propsSummary: ["batchQueueRows"] },
       { componentId: "BatchManagementNodes", instanceKey: "batch-management-nodes", layoutZone: "content", propsSummary: ["batchNodeRows"] },
       { componentId: "BatchManagementExecutions", instanceKey: "batch-management-executions", layoutZone: "content", propsSummary: ["batchExecutionRows"] }
+    ]
+  },
+  "monitoring-center": {
+    pageId: "monitoring-center",
+    routePath: "/admin/monitoring/center",
+    menuCode: "ADMIN_MONITORING_CENTER",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "OperationsCenterStatus", instanceKey: "operations-center-status", layoutZone: "header", propsSummary: ["overallStatus", "refreshedAt"] },
+      { componentId: "OperationsCenterCloseoutGate", instanceKey: "operations-center-closeout-gate", layoutZone: "content", propsSummary: ["metricSource", "acknowledgement", "escalation", "assignment", "closeoutHistory"] },
+      { componentId: "OperationsCenterActionContract", instanceKey: "operations-center-action-contract", layoutZone: "actions", propsSummary: ["acknowledge", "assignOwner", "escalate", "closeout"] },
+      { componentId: "OperationsCenterCoreSummary", instanceKey: "operations-center-core-summary", layoutZone: "content", propsSummary: ["summaryCards", "coreDomains"] },
+      { componentId: "OperationsCenterSupportSummary", instanceKey: "operations-center-support-summary", layoutZone: "content", propsSummary: ["summaryCards", "supportDomains"] },
+      { componentId: "OperationsCenterNavigation", instanceKey: "operations-center-navigation", layoutZone: "content", propsSummary: ["navigationSections"] },
+      { componentId: "OperationsCenterPriorityQueue", instanceKey: "operations-center-priority-queue", layoutZone: "content", propsSummary: ["priorityItems", "selectedQueueDomain"] },
+      { componentId: "OperationsCenterPlaybooks", instanceKey: "operations-center-playbooks", layoutZone: "content", propsSummary: ["playbooks"] },
+      { componentId: "OperationsCenterCoreWidgets", instanceKey: "operations-center-core-widgets", layoutZone: "content", propsSummary: ["widgetGroups", "primaryDomains"] },
+      { componentId: "OperationsCenterExtendedWidgets", instanceKey: "operations-center-extended-widgets", layoutZone: "content", propsSummary: ["widgetGroups", "secondaryDomains"] },
+      { componentId: "OperationsCenterRecentActions", instanceKey: "operations-center-recent-actions", layoutZone: "content", propsSummary: ["recentActions"] }
+    ]
+  },
+  "sensor-list": {
+    pageId: "sensor-list",
+    routePath: "/admin/monitoring/sensor_list",
+    menuCode: "A0070201",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SensorListSummaryCards", instanceKey: "sensor-list-summary", layoutZone: "header", propsSummary: ["sensorSummary"] },
+      { componentId: "SensorListOperatingRule", instanceKey: "sensor-list-operating-rule", layoutZone: "content", propsSummary: ["triagePolicy"] },
+      { componentId: "SensorListCloseoutGate", instanceKey: "sensor-list-closeout-gate", layoutZone: "content", propsSummary: ["liveInventorySource", "statusRefresh", "export", "bulkEnableDisable", "detailNavigation"] },
+      { componentId: "SensorListActionContract", instanceKey: "sensor-list-action-contract", layoutZone: "actions", propsSummary: ["refreshStatus", "exportList", "bulkEnable", "bulkDisable"] },
+      { componentId: "SensorListFilters", instanceKey: "sensor-list-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "statusFilter", "typeFilter", "severityFilter"] },
+      { componentId: "SensorListTable", instanceKey: "sensor-list-table", layoutZone: "content", propsSummary: ["sensorRows", "pagedRows", "selectedSensorId"] },
+      { componentId: "SensorListFocusPanel", instanceKey: "sensor-list-focus", layoutZone: "content", propsSummary: ["selectedRow", "targetRoute", "sensorEditHref"] },
+      { componentId: "SensorListActivityFeed", instanceKey: "sensor-list-activity", layoutZone: "content", propsSummary: ["sensorActivityRows"] }
     ]
   },
   "infra": {
@@ -2587,13 +2634,30 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
-      { componentId: "VerificationCenterSummary", instanceKey: "verification-center-summary", layoutZone: "actions", propsSummary: ["baselinePackCount", "readyCount", "partialCount", "runPassCount"] },
-      { componentId: "VerificationCenterOverview", instanceKey: "verification-center-overview", layoutZone: "content", propsSummary: ["baselinePolicyState", "currentRisk"] },
+      { componentId: "VerificationCenterSummary", instanceKey: "verification-center-summary", layoutZone: "actions", propsSummary: ["baselinePackCount", "managedPageCount", "scheduledSweepCount", "stalePendingCount"] },
+      { componentId: "VerificationCenterOverview", instanceKey: "verification-center-overview", layoutZone: "content", propsSummary: ["baselinePolicyState", "currentRisk", "backupPathLink"] },
       { componentId: "VerificationCenterCatalog", instanceKey: "verification-center-catalog", layoutZone: "content", propsSummary: ["baselinePacks", "ownerScope", "linkedConsoleCount"] },
       { componentId: "VerificationCenterRuns", instanceKey: "verification-center-runs", layoutZone: "content", propsSummary: ["runCadenceCount", "failureRouting", "testAccountPolicy"] },
+      { componentId: "VerificationCenterRunHistory", instanceKey: "verification-center-run-history", layoutZone: "content", propsSummary: ["runCount", "actionQueueCount", "failingRunCount"] },
+      { componentId: "VerificationCenterManagedVault", instanceKey: "verification-center-managed-vault", layoutZone: "content", propsSummary: ["vaultPolicy", "scannerBoardCount"] },
+      { componentId: "VerificationCenterBaselineRegistry", instanceKey: "verification-center-baseline-registry", layoutZone: "content", propsSummary: ["baselineRegistryCount", "vaultAccountCount", "vaultDatasetCount"] },
       { componentId: "VerificationCenterInventoryScope", instanceKey: "verification-center-inventory-scope", layoutZone: "content", propsSummary: ["pageCount", "apiCount", "functionCount", "testCaseCount"] },
       { componentId: "VerificationCenterFullLists", instanceKey: "verification-center-full-lists", layoutZone: "content", propsSummary: ["pages", "apis", "functions", "tests"] },
       { componentId: "VerificationCenterLogPolicy", instanceKey: "verification-center-log-policy", layoutZone: "content", propsSummary: ["nextBuildStepCount"] }
+    ]
+  },
+  "verification-assets": {
+    pageId: "verification-assets",
+    routePath: "/admin/system/verification-assets",
+    menuCode: "A0060129",
+    domainCode: "platform",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "VerificationAssetBaselineForm", instanceKey: "verification-assets-baseline-form", layoutZone: "content", propsSummary: ["pageId", "routePath", "baselineId", "snapshotPath"] },
+      { componentId: "VerificationAssetAccountForm", instanceKey: "verification-assets-account-form", layoutZone: "content", propsSummary: ["profileId", "role", "status", "expiresAt"] },
+      { componentId: "VerificationAssetDatasetForm", instanceKey: "verification-assets-dataset-form", layoutZone: "content", propsSummary: ["datasetId", "type", "status", "lastRefreshedAt"] },
+      { componentId: "VerificationAssetActionQueue", instanceKey: "verification-assets-action-queue", layoutZone: "content", propsSummary: ["actionQueueCount", "resolveAction"] }
     ]
   },
   "screen-builder": {
@@ -2658,6 +2722,8 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     designTokenVersion: "krds-current",
     components: [
       { componentId: "ScreenFlowSummaryCards", instanceKey: "screen-flow-summary", layoutZone: "actions", propsSummary: ["registeredScreenCount", "surfaceCount", "eventCount", "apiSchemaCount"] },
+      { componentId: "ScreenFlowCloseoutGate", instanceKey: "screen-flow-closeout-gate", layoutZone: "content", propsSummary: ["catalogInspection", "metadataChain", "flowCrud", "transitionEditing", "versioning", "impactPreview", "audit"] },
+      { componentId: "ScreenFlowActionContract", instanceKey: "screen-flow-action-contract", layoutZone: "actions", propsSummary: ["createFlow", "editTransitions", "validateFlow", "publishVersion", "saveImpactPreview"] },
       { componentId: "ScreenFlowCatalog", instanceKey: "screen-flow-catalog", layoutZone: "content", propsSummary: ["selectedPageId", "pageFilter", "filteredPageCount"] },
       { componentId: "ScreenFlowSurfaceChain", instanceKey: "screen-flow-surface-chain", layoutZone: "content", propsSummary: ["surfaceCount", "eventIds", "selector"] },
       { componentId: "ScreenFlowEventApiChain", instanceKey: "screen-flow-event-chain", layoutZone: "content", propsSummary: ["eventCount", "frontendFunction", "apiIds"] },
@@ -2673,6 +2739,8 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     designTokenVersion: "krds-current",
     components: [
       { componentId: "ScreenMenuAssignmentSummaryCards", instanceKey: "screen-menu-assignment-summary", layoutZone: "actions", propsSummary: ["pageMenuCount", "assignedCount", "unassignedCount", "orphanedScreenCount"] },
+      { componentId: "ScreenMenuAssignmentCloseoutGate", instanceKey: "screen-menu-assignment-closeout-gate", layoutZone: "content", propsSummary: ["menuInventory", "assignmentList", "singleMappingSave", "conflictDetection", "authorityImpact", "rollback", "auditEvidence"] },
+      { componentId: "ScreenMenuAssignmentActionContract", instanceKey: "screen-menu-assignment-action-contract", layoutZone: "actions", propsSummary: ["checkConflicts", "previewAuthorityImpact", "bulkMapping", "rollback", "exportAuditEvidence"] },
       { componentId: "ScreenMenuAssignmentCatalog", instanceKey: "screen-menu-assignment-catalog", layoutZone: "content", propsSummary: ["selectedMenuCode", "filter", "filteredAssignmentCount"] },
       { componentId: "ScreenMenuAssignmentDetail", instanceKey: "screen-menu-assignment-detail", layoutZone: "content", propsSummary: ["menuCode", "pageId", "layoutVersion", "requiredViewFeatureCode"] },
       { componentId: "ScreenMenuAssignmentOrphanPages", instanceKey: "screen-menu-assignment-orphans", layoutZone: "content", propsSummary: ["orphanPageCount", "pageId", "routePath", "menuCode"] }
@@ -2686,10 +2754,12 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
-      { componentId: "WbsSummaryCards", instanceKey: "wbs-summary-cards", layoutZone: "actions", propsSummary: ["scope", "totalMenus", "averageProgress"] },
+      { componentId: "WbsSummaryCards", instanceKey: "wbs-summary-cards", layoutZone: "actions", propsSummary: ["scope", "pageMenus", "overdue", "onTimeCompletionRate", "averageVarianceDays", "noPlannedDate"] },
+      { componentId: "WbsCloseoutGate", instanceKey: "wbs-closeout-gate", layoutZone: "content", propsSummary: ["menuInventory", "planSave", "scheduleMetrics", "codexInstruction", "saveAudit", "srTicketLinkage", "bulkUpdate", "auditExport"] },
+      { componentId: "WbsActionContract", instanceKey: "wbs-action-contract", layoutZone: "actions", propsSummary: ["createSrTicket", "syncSrLink", "bulkScheduleUpdate", "exportAuditEvidence"] },
       { componentId: "WbsMenuTree", instanceKey: "wbs-menu-tree", layoutZone: "content", propsSummary: ["menuType", "selectedMenuCode"] },
       { componentId: "WbsExecutionTable", instanceKey: "wbs-execution-table", layoutZone: "content", propsSummary: ["wbsRows", "waveSummary"] },
-      { componentId: "WbsEditorPanel", instanceKey: "wbs-editor-panel", layoutZone: "content", propsSummary: ["owner", "status", "startDate", "endDate"] },
+      { componentId: "WbsEditorPanel", instanceKey: "wbs-editor-panel", layoutZone: "content", propsSummary: ["owner", "status", "progress", "plannedStartDate", "plannedEndDate", "actualStartDate", "actualEndDate", "notes", "codexInstruction"] },
       { componentId: "WbsCodexPrompt", instanceKey: "wbs-codex-prompt", layoutZone: "content", propsSummary: ["codexPrompt", "codexInstruction"] }
     ]
   },
@@ -2734,6 +2804,309 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "SrTicketDraftForm", instanceKey: "sr-ticket-draft", layoutZone: "actions", propsSummary: ["pageId", "surfaceId", "eventId", "targetId"] },
       { componentId: "SrDirectionPreview", instanceKey: "sr-direction-preview", layoutZone: "content", propsSummary: ["generatedDirection", "commandPrompt"] },
       { componentId: "SrTicketTable", instanceKey: "sr-ticket-table", layoutZone: "content", propsSummary: ["tickets", "approvalComment", "executionStatus"] }
+    ]
+  },
+  "certificate-approve": {
+    pageId: "certificate-approve",
+    routePath: "/admin/certificate/approve",
+    menuCode: "AMENU_CERTIFICATE_APPROVE",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateApproveSearch", instanceKey: "certificate-approve-search", layoutZone: "actions", propsSummary: ["searchKeyword", "status", "companyName"] },
+      { componentId: "CertificateApproveTable", instanceKey: "certificate-approve-table", layoutZone: "content", propsSummary: ["rows", "selectedRowId", "pageIndex"] },
+      { componentId: "CertificateApproveBatchActions", instanceKey: "certificate-approve-batch-actions", layoutZone: "actions", propsSummary: ["checkedCount", "approvalStatus"] }
+    ]
+  },
+  "sensor-add": {
+    pageId: "sensor-add",
+    routePath: "/admin/monitoring/sensor_add",
+    menuCode: "AMENU_SENSOR_ADD",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SensorAddBasicProfile", instanceKey: "sensor-add-basic-profile", layoutZone: "content", propsSummary: ["sensorName", "sensorType", "siteCode"] },
+      { componentId: "SensorAddPolicy", instanceKey: "sensor-add-policy", layoutZone: "content", propsSummary: ["collectionCycle", "threshold", "alertUseAt"] },
+      { componentId: "SensorAddOpsNotes", instanceKey: "sensor-add-ops-notes", layoutZone: "content", propsSummary: ["ownerTeam", "ownerUser", "notes"] }
+    ]
+  },
+  "sensor-edit": {
+    pageId: "sensor-edit",
+    routePath: "/admin/monitoring/sensor_edit",
+    menuCode: "AMENU_SENSOR_EDIT",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SensorEditContext", instanceKey: "sensor-edit-context", layoutZone: "content", propsSummary: ["sensorId", "siteCode", "monitoringCode"] },
+      { componentId: "SensorEditProfile", instanceKey: "sensor-edit-profile", layoutZone: "content", propsSummary: ["sensorName", "sensorType", "status"] },
+      { componentId: "SensorEditThreshold", instanceKey: "sensor-edit-threshold", layoutZone: "content", propsSummary: ["collectionCycle", "warningThreshold", "criticalThreshold"] },
+      { componentId: "SensorEditOwnership", instanceKey: "sensor-edit-ownership", layoutZone: "content", propsSummary: ["ownerTeam", "ownerUser", "maintenanceCycle"] }
+    ]
+  },
+  "db-promotion-policy": {
+    pageId: "db-promotion-policy",
+    routePath: "/admin/system/db-promotion-policy",
+    menuCode: "AMENU_DB_PROMOTION_POLICY",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "DbPromotionPolicyTable", instanceKey: "db-promotion-policy-table-list", layoutZone: "content", propsSummary: ["rows", "selectedTableName", "policyType"] },
+      { componentId: "DbPromotionPolicyComment", instanceKey: "db-promotion-policy-comment", layoutZone: "content", propsSummary: ["selectedPolicy", "generatedComment"] },
+      { componentId: "DbPromotionPolicyRecentChanges", instanceKey: "db-promotion-policy-recent-changes", layoutZone: "content", propsSummary: ["changeRows", "tableName", "actionType"] }
+    ]
+  },
+  "backup-config": {
+    pageId: "backup-config",
+    routePath: "/admin/system/backup_config",
+    menuCode: "AMENU_BACKUP_CONFIG",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "BackupConfigSummary", instanceKey: "backup-config-summary", layoutZone: "actions", propsSummary: ["summaryCards", "backupRootPath", "retentionDays"] },
+      { componentId: "BackupConfigStorage", instanceKey: "backup-config-storage", layoutZone: "content", propsSummary: ["storageType", "backupRootPath", "snapshotCount"] },
+      { componentId: "BackupConfigExecutions", instanceKey: "backup-config-executions", layoutZone: "content", propsSummary: ["executionRows", "lastRunAt"] },
+      { componentId: "BackupConfigVersions", instanceKey: "backup-config-versions", layoutZone: "content", propsSummary: ["versionRows", "selectedVersion"] }
+    ]
+  },
+  "backup-execution": {
+    pageId: "backup-execution",
+    routePath: "/admin/system/backup",
+    menuCode: "AMENU_BACKUP_EXECUTION",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "BackupExecutionSummary", instanceKey: "backup-config-summary", layoutZone: "actions", propsSummary: ["pageKey", "summaryCards", "runType"] },
+      { componentId: "BackupExecutionRunActions", instanceKey: "backup-config-run-actions", layoutZone: "content", propsSummary: ["dbEnabled", "gitEnabled", "freshnessRequired"] },
+      { componentId: "BackupExecutionPlaybooks", instanceKey: "backup-config-playbooks", layoutZone: "content", propsSummary: ["playbookCount", "targetSystem"] }
+    ]
+  },
+  "restore-execution": {
+    pageId: "restore-execution",
+    routePath: "/admin/system/restore",
+    menuCode: "AMENU_RESTORE_EXECUTION",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "RestoreExecutionSummary", instanceKey: "backup-config-summary", layoutZone: "actions", propsSummary: ["pageKey", "summaryCards", "restoreTarget"] },
+      { componentId: "RestoreExecutionActions", instanceKey: "backup-restore-actions", layoutZone: "content", propsSummary: ["snapshotId", "restoreMode", "confirmationRequired"] },
+      { componentId: "RestoreExecutionPlaybooks", instanceKey: "backup-config-playbooks", layoutZone: "content", propsSummary: ["playbookCount", "restoreTarget"] }
+    ]
+  },
+  "notice-list": {
+    pageId: "notice-list",
+    routePath: "/support/notice_list",
+    menuCode: "HMENU_NOTICE_LIST",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "NoticeListHero", instanceKey: "notice-list-hero", layoutZone: "header", propsSummary: ["brandSubtitle", "headline"] },
+      { componentId: "NoticeListFilters", instanceKey: "notice-list-filters", layoutZone: "actions", propsSummary: ["keyword", "category", "pageIndex"] },
+      { componentId: "NoticeListTable", instanceKey: "notice-list-table", layoutZone: "content", propsSummary: ["rows", "selectedNoticeId", "totalCount"] }
+    ]
+  },
+  "emission-management": {
+    pageId: "emission-management",
+    routePath: "/admin/emission/management",
+    menuCode: "AMENU_EMISSION_MANAGEMENT",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionManagementSummary", instanceKey: "emission-management-summary", layoutZone: "actions", propsSummary: ["categoryCode", "tier", "summaryMetrics"] },
+      { componentId: "EmissionManagementScope", instanceKey: "emission-management-scope", layoutZone: "content", propsSummary: ["searchKeyword", "categoryCode", "tier"] },
+      { componentId: "EmissionManagementDefinition", instanceKey: "emission-management-definition", layoutZone: "content", propsSummary: ["variableCount", "factorReferenceCount", "formulaText"] },
+      { componentId: "EmissionManagementInput", instanceKey: "emission-management-input", layoutZone: "content", propsSummary: ["sessionId", "rowCount", "validationState"] },
+      { componentId: "EmissionManagementActions", instanceKey: "emission-management-actions", layoutZone: "actions", propsSummary: ["sessionId", "canSave", "canCalculate"] },
+      { componentId: "EmissionManagementResult", instanceKey: "emission-management-result", layoutZone: "content", propsSummary: ["calculatedTotal", "factorSnapshotCount", "usedFallback"] }
+    ]
+  },
+  "emission-lci-classification": {
+    pageId: "emission-lci-classification",
+    routePath: "/admin/emission/lci-classification",
+    menuCode: "AMENU_EMISSION_LCI_CLASSIFICATION",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionLciClassificationSummary", instanceKey: "emission-lci-classification-summary", layoutZone: "actions", propsSummary: ["summaryCards", "classificationCount"] },
+      { componentId: "EmissionLciClassificationTable", instanceKey: "emission-lci-classification-table", layoutZone: "content", propsSummary: ["rows", "selectedClassificationId"] },
+      { componentId: "EmissionLciClassificationDetail", instanceKey: "emission-lci-classification-detail", layoutZone: "content", propsSummary: ["classificationCode", "majorCategory", "minorCategory"] }
+    ]
+  },
+  "emission-survey-admin": {
+    pageId: "emission-survey-admin",
+    routePath: "/admin/emission/survey-admin",
+    menuCode: "AMENU_EMISSION_SURVEY_ADMIN",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionSurveyAdminClassification", instanceKey: "emission-survey-admin-classification", layoutZone: "actions", propsSummary: ["classificationId", "surveyType", "draftSetId"] },
+      { componentId: "EmissionSurveyAdminWorkbookGrid", instanceKey: "emission-survey-admin-grid", layoutZone: "content", propsSummary: ["columnCount", "rowCount", "selectedCell"] },
+      { componentId: "EmissionSurveyAdminBottomActions", instanceKey: "emission-survey-admin-bottom-actions", layoutZone: "actions", propsSummary: ["canSave", "canPublish", "draftState"] }
+    ]
+  },
+  "emission-survey-admin-data": {
+    pageId: "emission-survey-admin-data",
+    routePath: "/admin/emission/survey-admin-data",
+    menuCode: "AMENU_EMISSION_SURVEY_ADMIN_DATA",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionSurveyAdminDataUpload", instanceKey: "emission-survey-admin-data-upload", layoutZone: "actions", propsSummary: ["uploadedFileName", "sheetCount", "replaceMode"] },
+      { componentId: "EmissionSurveyAdminDataDataset", instanceKey: "emission-survey-admin-data-dataset", layoutZone: "content", propsSummary: ["datasetCount", "sectionCount", "selectedDatasetId"] },
+      { componentId: "EmissionSurveyAdminDataPreview", instanceKey: "emission-survey-admin-data-preview", layoutZone: "content", propsSummary: ["previewRowCount", "selectedSheetName"] }
+    ]
+  },
+  "co2-integrity": {
+    pageId: "co2-integrity",
+    routePath: "/co2/integrity",
+    menuCode: "H0030102",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "Co2IntegrityHero", instanceKey: "co2-integrity-hero", layoutZone: "header", propsSummary: ["routePath", "menuCode", "headline"] },
+      { componentId: "Co2IntegrityTraceMap", instanceKey: "co2-integrity-trace-map", layoutZone: "content", propsSummary: ["nodeCount", "integrityScore", "alertCount"] },
+      { componentId: "Co2IntegrityEvidence", instanceKey: "co2-integrity-evidence", layoutZone: "content", propsSummary: ["evidenceCount", "selectedEvidenceId"] }
+    ]
+  },
+  "co2-credit": {
+    pageId: "co2-credit",
+    routePath: "/co2/credit",
+    menuCode: "H0030301",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "Co2CreditHero", instanceKey: "co2-credit-hero", layoutZone: "header", propsSummary: ["routePath", "menuCode", "headline"] },
+      { componentId: "Co2CreditPortfolio", instanceKey: "co2-credit-portfolio", layoutZone: "content", propsSummary: ["creditCount", "availableBalance", "retiredBalance"] },
+      { componentId: "Co2CreditActions", instanceKey: "co2-credit-actions", layoutZone: "actions", propsSummary: ["portfolioValue", "buyEnabled"] }
+    ]
+  },
+  "co2-analysis": {
+    pageId: "co2-analysis",
+    routePath: "/co2/analysis",
+    menuCode: "H0030103",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "Co2AnalysisHero", instanceKey: "co2-analysis-hero", layoutZone: "header", propsSummary: ["routePath", "menuCode", "headline"] },
+      { componentId: "Co2AnalysisCharts", instanceKey: "co2-analysis-charts", layoutZone: "content", propsSummary: ["chartCount", "selectedRange", "trendDirection"] },
+      { componentId: "Co2AnalysisRecommendations", instanceKey: "co2-analysis-recommendations", layoutZone: "content", propsSummary: ["recommendationCount", "selectedSiteId"] }
+    ]
+  },
+  "edu-course-list": {
+    pageId: "edu-course-list",
+    routePath: "/edu/course_list",
+    menuCode: "HMENU_EDU_COURSE_LIST",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EduCourseListHero", instanceKey: "edu-course-list-hero", layoutZone: "header", propsSummary: ["brandSubtitle", "categoryCount"] },
+      { componentId: "EduCourseListCatalog", instanceKey: "edu-course-list-catalog", layoutZone: "content", propsSummary: ["courseCount", "selectedCategory", "pageIndex"] }
+    ]
+  },
+  "edu-survey": {
+    pageId: "edu-survey",
+    routePath: "/edu/survey",
+    menuCode: "HMENU_EDU_SURVEY",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EduSurveyHero", instanceKey: "edu-survey-hero", layoutZone: "header", propsSummary: ["brandSubtitle", "surveyTitle"] },
+      { componentId: "EduSurveyForm", instanceKey: "edu-survey-form", layoutZone: "content", propsSummary: ["questionCount", "responseCount", "submitState"] }
+    ]
+  },
+  "edu-certificate": {
+    pageId: "edu-certificate",
+    routePath: "/edu/certificate",
+    menuCode: "HMENU_EDU_CERTIFICATE",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EduCertificateHero", instanceKey: "edu-certificate-hero", layoutZone: "header", propsSummary: ["brandSubtitle", "userName"] },
+      { componentId: "EduCertificateDetail", instanceKey: "edu-certificate-detail", layoutZone: "content", propsSummary: ["learnerName", "courseName", "issuedAt"] }
+    ]
+  },
+  "mypage-email": {
+    pageId: "mypage-email",
+    routePath: "/mypage/email",
+    menuCode: "HMENU_MYPAGE_EMAIL",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MypageEmailHero", instanceKey: "mypage-email-hero", layoutZone: "header", propsSummary: ["brandSubtitle", "memberId"] },
+      { componentId: "MypageEmailForm", instanceKey: "mypage-email-form", layoutZone: "content", propsSummary: ["email", "phoneNumber", "verificationState"] }
+    ]
+  },
+  "mypage-staff": {
+    pageId: "mypage-staff",
+    routePath: "/mypage/staff",
+    menuCode: "HMENU_MYPAGE_STAFF",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MypageStaffHero", instanceKey: "mypage-staff-hero", layoutZone: "header", propsSummary: ["brandSubtitle", "staffCount"] },
+      { componentId: "MypageStaffTable", instanceKey: "mypage-staff-table", layoutZone: "content", propsSummary: ["rows", "selectedStaffId", "roleCount"] }
+    ]
+  },
+  "payment-receipt": {
+    pageId: "payment-receipt",
+    routePath: "/payment/receipt",
+    menuCode: "HMENU_PAYMENT_RECEIPT",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PaymentReceiptHero", instanceKey: "payment-receipt-hero", layoutZone: "header", propsSummary: ["brandSubtitle", "receiptId"] },
+      { componentId: "PaymentReceiptDetail", instanceKey: "payment-receipt-detail", layoutZone: "content", propsSummary: ["paymentAmount", "paymentMethod", "approvedAt"] }
+    ]
+  },
+  "version-management": {
+    pageId: "version-management",
+    routePath: "/admin/system/version",
+    menuCode: "AMENU_VERSION_MANAGEMENT",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "VersionManagementSummary", instanceKey: "version-management-summary", layoutZone: "header", propsSummary: ["summaryCards"] },
+      { componentId: "VersionManagementGovernance", instanceKey: "version-management-governance", layoutZone: "content", propsSummary: ["compatibilityRuns", "artifactLocks", "fleetGovernanceNextSteps"] },
+      { componentId: "VersionManagementDbGit", instanceKey: "version-management-db-git", layoutZone: "content", propsSummary: ["backupSettingsForm", "backupProfiles", "recentRemoteJobs"] },
+      { componentId: "VersionManagementOverview", instanceKey: "version-management-overview", layoutZone: "content", propsSummary: ["overview", "installedPackages"] },
+      { componentId: "VersionManagementControlPlane", instanceKey: "version-management-control-plane", layoutZone: "content", propsSummary: ["projectPipeline", "pipelineArtifactLineage", "pipelineRollbackPlan"] },
+      { componentId: "VersionManagementReleaseDetail", instanceKey: "version-management-release-detail", layoutZone: "content", propsSummary: ["selectedReleaseUnit", "selectedReleaseCommonArtifacts", "selectedReleasePackages"] },
+      { componentId: "VersionManagementUpgradePlanner", instanceKey: "version-management-upgrade-planner", layoutZone: "footer", propsSummary: ["artifactDraft", "targetArtifactSet"] }
+    ]
+  },
+  "unified-log": {
+    pageId: "unified-log",
+    routePath: "/admin/system/unified_log",
+    menuCode: "AMENU_UNIFIED_LOG",
+    domainCode: "platform",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "UnifiedLogSummary", instanceKey: "unified-trace-summary", layoutZone: "actions", propsSummary: ["traceCount", "pageCount", "errorLikeCount"] },
+      { componentId: "UnifiedLogFilters", instanceKey: "observability-filters", layoutZone: "actions", propsSummary: ["traceId", "pageId", "actionCode", "tab"] },
+      { componentId: "UnifiedLogOps", instanceKey: "unified-trace-ops", layoutZone: "content", propsSummary: ["selectedUnifiedItem", "uniqueTraceCount"] },
+      { componentId: "UnifiedLogTable", instanceKey: "unified-log-table", layoutZone: "content", propsSummary: ["rows", "pageIndex", "totalCount"] }
     ]
   },
 };

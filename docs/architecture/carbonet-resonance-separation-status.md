@@ -660,19 +660,13 @@ Immediate execution slices under this priority:
   - move codex and workbench admin composition off runtime-admin ownership
   - reduce direct `feature/admin` dependency on `platform.codex` and `platform.workbench`
   - current progress:
-    - `CodexProvisionAdminApiController` and `CodexProvisionPageController` are owned by `platform.codex.web`
-    - active AI inventory docs now reference the platform codex controller as the action API owner
-    - `platform.workbench` controller and service signatures now consume `egovframework.com.platform.request.workbench.*` contracts instead of `feature.admin.dto.request.*`
-    - `platform.codex` controller and provisioning/admin execution signatures now consume `egovframework.com.platform.request.codex.CodexProvisionRequest` and `platform.codex.model.CodexProvisionResponse`
-    - `platform.codex` history and inspection entrypoints now consume `platform.codex.model.CodexExecutionHistoryResponse`
-    - `platform.codex` execution entrypoints and internal history persistence now consume `platform.codex.model.CodexAdminActorContext` and `platform.codex.model.CodexExecutionLog` instead of direct `feature.admin.model.vo` codex types
-    - `CodexProvisionAdminApiController` now depends on `platform.codex.service.CodexExecutionAdminPort`, and `feature.admin.service.CodexExecutionAdminService` compatibility contract has been removed so the concrete implementation is owned only by `platform.codex.service.impl.CodexExecutionAdminServiceImpl`
-    - `platform.observability` summary contracts now consume `platform.observability.model.EmissionResultFilterSnapshot`, `EmissionResultSummaryView`, `SecurityAuditSnapshot`, and `SecurityAuditAggregate`, with bridge-level conversion from legacy `feature.admin.model.vo.*`
-    - unified-log submenu bootstrap ownership is moved from `feature.admin.service.impl.AdminUnifiedLogSubmenuBootstrap` to `platform.codex.service.AdminUnifiedLogSubmenuBootstrapSupport`
-    - access-history, error-log, and security-audit menu bootstrap ownership is moved from `feature.admin.service.impl.*MenuBootstrap` to `platform.codex.service.*BootstrapSupport`
-    - backup-operations, file-management, and content-menu-management bootstrap ownership is moved from `feature.admin.service.impl.*MenuBootstrap` to `platform.codex.service.*BootstrapSupport`
-    - screen-management, emission-survey, and emission-definition-studio bootstrap ownership is moved from `feature.admin.service.impl.*MenuBootstrap` to `platform.codex.service.*BootstrapSupport`
-    - remaining emission menu bootstrap ownership is moved from `feature.admin.service.impl.*MenuBootstrap` to `platform.codex.service.*BootstrapSupport` for validation, site-management, gwp-values, data-history, survey-data, and lci-classification
+    - [CLOSED] all `*MenuBootstrap` in `feature/admin` have been moved, deleted, or trimmed.
+    - [CLOSED] home monitoring and integrated dashboard bootstraps moved to `platform.codex.service.*BootstrapSupport`.
+    - [CLOSED] member registration, member approval, company approval, and system menu management bootstraps moved to `platform.codex.service.*BootstrapSupport`.
+    - [CLOSED] `SrSelfHealingService`, `SrTicketRecordVO`, `SrWorkbenchStackItemVO`, and `SrTicketSafePlanTool` moved to `platform.workbench.*`.
+    - [CLOSED] `SrTicketCodexRunnerService`, `SrTicketRunnerExecutionVO`, `ScreenCommandCenterService`, and `ScreenCommandCenterServiceImpl` moved to `platform.codex.*`.
+    - [CLOSED] `ReactAppMenuUrlNormalizationBootstrap` trimmed to core normalization logic.
+    - [CLOSED] redundant log-related bootstraps deleted from `feature/admin`.
 - `Priority 1C`
   - move remaining page-model/bootstrap assembly that still makes runtime admin the apparent owner of control-plane features
 

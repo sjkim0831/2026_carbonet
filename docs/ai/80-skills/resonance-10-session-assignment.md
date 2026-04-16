@@ -408,12 +408,13 @@
 - 공식 handoff 문구:
   - `HANDOFF READY: 09 may continue from implemented operator UI, runtime screens, and component outputs derived from guided-build-flow, screen-builder, asset-studio, and page-assembly inputs; blocker count is 0 for current frontend runtime scope.`
 
-### 06. 백엔드 제어 평면
+### 06. 백엔드 제어 평면 (Backend Control Plane)
 
 - 상태: `IN_PROGRESS`
-- 추정 진행률: `90%`
-- 운영 메모: 제어 평면 진입점은 `platform.*` 패키지로 대부분 올라왔고, runtime-control의 현재 구현은 MyBatis XML이 아니라 `RuntimeControlPlaneServiceImpl` 의 JSONL 저장 경로를 기준으로 동작합니다. 따라서 stale `feature/admin` mapper/XML 테스트는 제거하고 현재 서비스 계약 테스트로 갱신하는 단계까지 진행됐습니다
-- 다음 1개 행동: `platform.runtimecontrol` 기준 서비스 테스트와 DB draft 문서가 같은 truth를 보도록 정리하고, stale handoff 문서 경로를 계속 치웁니다
+- 담당: `account-06`
+- 운영 메모: 제어 평면 진입점은 `platform.*` 패키지로 대부분 올라왔고, `RuntimeControlPlaneServiceImpl`은 이제 `RSN_*` 테이블 가버넌스 퍼시스턴스를 지원합니다 (JSONL 병행 기록). `admin-migration-20260330` 아카이브를 포함한 stale handoff 정리도 완료되었습니다.
+- 다음 1개 행동: `RSN_VERIFICATION_RUN` 기반의 메뉴-화면 검증 이력 저장 기능을 `platform.runtimecontrol` 서비스에 통합하고, 09번 레인과 협력하여 검증 모델 정합성을 확인합니다.
+
 - 상시 운영 해석: 운영자가 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 제어 평면 인터페이스, 레지스트리, 수명주기, 비교, 보정, 릴리스 서비스를 구현합니다
 - 최근 변경 파일:

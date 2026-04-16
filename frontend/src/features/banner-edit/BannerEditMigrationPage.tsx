@@ -72,13 +72,14 @@ export function BannerEditMigrationPage() {
         {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
         <CollectionResultPanel
+          data-help-id="banner-edit-scope"
           icon="edit_square"
           title={en ? "Edit Scope" : "편집 범위"}
           description={en ? "This screen is the next step from Banner List and now reads core banner fields from the backend mapper." : "이 화면은 배너 목록 다음 단계이며 이제 백엔드 매퍼를 통해 배너 기본 정보를 조회하고 저장합니다."}
         >
           {en ? "Core fields are persisted through COMTNBANNER, while unsupported schedule metadata stays on the current runtime overlay." : "기본 필드는 COMTNBANNER에 저장되고, 현재 스키마에 없는 일정 메타데이터는 런타임 overlay로 유지됩니다."}
         </CollectionResultPanel>
-        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4" data-help-id="banner-edit-summary">
           {summaryCards.map((card) => (
             <SummaryMetricCard
               key={`${card.title}-${card.value}`}
@@ -121,7 +122,7 @@ export function BannerEditMigrationPage() {
                 <AdminInput value={endAt} onChange={(event) => setEndAt(event.target.value)} />
               </div>
             </div>
-            <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-[var(--kr-gov-border-light)] pt-5">
+            <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-[var(--kr-gov-border-light)] pt-5" data-help-id="banner-edit-actions">
               <a
                 className="inline-flex items-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-4 py-2 text-sm font-bold"
                 href={buildLocalizedPath("/admin/content/banner_list", "/en/admin/content/banner_list")}

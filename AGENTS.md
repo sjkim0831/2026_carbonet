@@ -1,6 +1,12 @@
-# Carbonet Local Agent Rules
+# Resonance AI Framework: Carbonet Local Agent Rules
 
-These repository-local rules tighten the default AI workflow for Carbonet delivery and runtime freshness work.
+These repository-local rules govern the **Resonance AI Framework** (the intelligent orchestration layer) and tighten the default AI workflow for Carbonet delivery and runtime freshness work.
+
+## Resonance Core Principles
+
+- **Resonance = Agent + Memory + Tool + Feedback + Evolution**
+- Every action must be traceable, auditable, and subject to the **Reflect -> Improve -> Repeat** loop.
+- Use the `resonance-ai-orchestrator` skill for complex, multi-step orchestration tasks.
 
 ## Build And Restart Rule
 

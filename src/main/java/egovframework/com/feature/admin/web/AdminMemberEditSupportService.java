@@ -1,7 +1,9 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
+import egovframework.com.platform.codex.model.AuthorInfoVO;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

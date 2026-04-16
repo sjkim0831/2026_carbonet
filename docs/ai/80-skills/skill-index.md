@@ -18,6 +18,12 @@ See also:
   - Use for: any implementation that touches shared controllers, templates, contracts, or docs.
   - Boundary: use to plan ownership first, then hand off actual design or implementation work to a primary domain skill.
   - Key references: `STRUCTURE.md`, `docs/ai/00-governance/ai-fast-path.md`, `docs/ai/00-governance/ai-session-partitioning.md`
+- `resonance-ai-orchestrator`
+  - Purpose: interpret Carbonet Resonance work as control-plane orchestration with runtime evidence, then extend toward fuller multi-agent behavior without overclaiming current capability.
+  - Group: coordination / architecture
+  - Use for: Resonance AI framework design, Codex execution governance, runtime compare or repair flows, verification evidence, memory/feedback architecture, and requests asking what Resonance means in the current Carbonet repository.
+  - Boundary: use to classify current-versus-target Resonance capability first; for concrete Codex console work hand off to `carbonet-codex-execution-console`, and for freshness proof pair with `carbonet-fast-bootstrap-ops`.
+  - Key references: `.codex/skills/resonance-ai-orchestrator/SKILL.md`, `docs/ai/10-architecture/resonance-ai-framework.md`, `docs/architecture/resonance-design-patterns.md`, `docs/architecture/carbonet-resonance-separation-status.md`
 - `carbonet-common-project-boundary-switcher`
   - Purpose: keep common-platform ownership and project-specific ownership easy to switch later through ports, adapters, wrappers, and definition-plus-binding splits.
   - Group: coordination
@@ -117,6 +123,12 @@ Builder resource-ownership continuation note:
   - Use for: Jenkins plus Nomad coordination, main/sub web nodes, shared idle-node pools, per-system DB isolation, Nginx entrypoints, latest-vs-archive file placement, centralized scaffolding/build/deploy flow, main-server runtime-truth rules, version binding and upgrade rollout flow, active-release tracking, installable module or plug-in attachment rules, and tmux rollout layout.
   - Boundary: use for runtime/server-role allocation and deployment-topology guidance, not for application feature implementation or Codex runner internals.
   - Key references: `.codex/skills/carbonet-runtime-topology-ops/SKILL.md`, `docs/ai/80-skills/skill-boundaries.md`, `docs/ai/80-skills/skill-gaps.md`
+- `carbonet-resilience-engineering`
+  - Purpose: implement resilience patterns and Chaos Engineering, moving from basic instance termination to comprehensive reliability engineering.
+  - Group: infrastructure operations / cross-cutting architecture
+  - Use for: fault injection (latency, errors, resource exhaustion), Circuit Breakers, Bulkheads, self-healing automation, and observability-driven reliability verification.
+  - Boundary: use for reliability and fault-tolerance design; use `carbonet-builder-observability` for the underlying inventory and monitoring infrastructure.
+  - Key references: `.codex/skills/carbonet-resilience-engineering/SKILL.md`, `docs/architecture/resilience-and-chaos-engineering.md`
 
 Add new skills here with:
 

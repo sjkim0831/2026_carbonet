@@ -52,7 +52,7 @@ public class AdminCertificateApprovalService {
                 "", Arrays.asList(file("발급신청서.pdf", "440 KB"), file("감축실적명세서.xlsx", "1.8 MB"))));
     }
 
-    Map<String, Object> buildPagePayload(
+    public Map<String, Object> buildPagePayload(
             String pageIndexParam,
             String searchKeyword,
             String requestType,

@@ -1,10 +1,12 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
-import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
+import egovframework.com.platform.codex.model.AuthorInfoVO;
+import egovframework.com.platform.codex.model.FeatureCatalogItemVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogSectionVO;
-import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
-import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.codex.model.UserFeatureOverrideVO;
+import egovframework.com.platform.codex.service.AuthGroupManageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;

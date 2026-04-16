@@ -184,7 +184,7 @@ export function EduCertificateMigrationPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[0.34fr_0.66fr]">
-          <aside className="space-y-6">
+          <aside className="space-y-6" data-help-id="edu-certificate-hero">
             <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -252,7 +252,7 @@ export function EduCertificateMigrationPage() {
               </div>
             </div>
 
-            <article className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+            <article className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm" data-help-id="edu-certificate-detail">
               <div className="grid md:grid-cols-[1.5fr_0.9fr]">
                 <div className="bg-[#fafafa] p-6 md:p-10">
                   <div className="mx-auto max-w-[520px] border-[12px] border-double border-slate-200 bg-white p-8 shadow-sm">

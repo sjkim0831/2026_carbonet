@@ -5,8 +5,6 @@ const frontendRoot = process.cwd();
 const srcRoot = path.join(frontendRoot, "src");
 const repoRoot = path.resolve(frontendRoot, "..");
 
-const routeDefinitionsPath = path.join(srcRoot, "app", "routes", "definitions.ts");
-const pageRegistryPath = path.join(srcRoot, "app", "routes", "pageRegistry.tsx");
 const manifestPath = path.join(srcRoot, "platform", "screen-registry", "pageManifests.ts");
 const helpContentPath = path.join(srcRoot, "platform", "screen-registry", "helpContent.ts");
 const helpJsonPath = path.join(repoRoot, "src", "main", "resources", "help", "page-help.json");
@@ -23,22 +21,51 @@ const screenCommandPath = path.join(
   "impl",
   "ScreenCommandCenterServiceImpl.java"
 );
+const routeSourceRoots = [
+  path.join(srcRoot, "app", "routes"),
+  path.join(srcRoot, "features"),
+  path.join(srcRoot, "platform", "routes")
+];
 
 function read(filePath) {
   return fs.readFileSync(filePath, "utf8");
 }
 
-function parseRoutes(routeSource) {
+function listSourceFiles(baseDir) {
+  if (!fs.existsSync(baseDir)) {
+    return [];
+  }
+  const results = [];
+  function walk(currentDir) {
+    for (const entry of fs.readdirSync(currentDir, { withFileTypes: true })) {
+      const resolved = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        walk(resolved);
+        continue;
+      }
+      if (entry.isFile() && (resolved.endsWith(".ts") || resolved.endsWith(".tsx"))) {
+        results.push(resolved);
+      }
+    }
+  }
+  walk(baseDir);
+  return results;
+}
+
+function parseRoutes(routeSources) {
   const routePattern =
-    /\{\s*id:\s*"([^"]+)",\s*label:\s*"[^"]*",\s*group:\s*"([^"]+)",\s*koPath:\s*"([^"]+)",\s*enPath:\s*"([^"]+)"\s*\}/g;
+    /\{\s*id:\s*"([^"]+)",\s*label:\s*"([^"]+)",\s*group:\s*"([^"]+)",\s*koPath:\s*"([^"]+)",\s*enPath:\s*"([^"]+)"\s*\}/g;
   const routes = new Map();
-  for (const match of routeSource.matchAll(routePattern)) {
-    routes.set(match[1], {
-      id: match[1],
-      group: match[2],
-      koPath: match[3],
-      enPath: match[4]
-    });
+  for (const routeSource of routeSources) {
+    for (const match of routeSource.matchAll(routePattern)) {
+      routes.set(match[1], {
+        id: match[1],
+        label: match[2],
+        group: match[3],
+        koPath: match[4],
+        enPath: match[5]
+      });
+    }
   }
   return routes;
 }
@@ -55,30 +82,37 @@ function parseSharedLoaders(source) {
   return result;
 }
 
-function parsePageRegistry(source, sharedLoaders) {
+function parsePageRegistry(sources) {
   const result = new Map();
-  const registryPattern = /"([^"]+)":\s*lazyNamed\(([\s\S]*?),\s*"([^"]+)"\)/g;
-  for (const match of source.matchAll(registryPattern)) {
-    const routeId = match[1];
-    const loaderExpression = match[2].trim();
-    const exportName = match[3];
-    let importPath = "";
-    const directImport = /import\("([^"]+)"\)/.exec(loaderExpression);
-    if (directImport) {
-      importPath = directImport[1];
-    } else {
-      const sharedLoader = sharedLoaders.get(loaderExpression);
-      if (sharedLoader) {
-        importPath = sharedLoader.importPath;
+  const registryPattern = /\{\s*id:\s*"([^"]+)",\s*exportName:\s*"([^"]+)",\s*loader:\s*([^}\n]+?)\s*\}/g;
+  for (const { filePath, source } of sources) {
+    const sharedLoaders = parseSharedLoaders(source);
+    for (const match of source.matchAll(registryPattern)) {
+      const routeId = match[1];
+      const exportName = match[2];
+      const loaderExpression = match[3].trim().replace(/,$/, "");
+      let importPath = "";
+      const directImport = /import\("([^"]+)"\)/.exec(loaderExpression);
+      if (directImport) {
+        importPath = directImport[1];
+      } else {
+        const sharedLoader = sharedLoaders.get(loaderExpression);
+        if (sharedLoader) {
+          importPath = sharedLoader.importPath;
+        }
       }
+      if (!importPath) {
+        continue;
+      }
+      const resolvedImport = resolveLocalImport(filePath, importPath);
+      if (!resolvedImport) {
+        continue;
+      }
+      result.set(routeId, {
+        sourceFile: resolvedImport,
+        exportName
+      });
     }
-    if (!importPath) {
-      continue;
-    }
-    result.set(routeId, {
-      sourceFile: path.resolve(path.dirname(pageRegistryPath), `${importPath}.tsx`),
-      exportName
-    });
   }
   return result;
 }
@@ -142,7 +176,19 @@ function parseScreenCommandIds(source) {
 }
 
 function parseHelpIds(source) {
-  return new Set([...source.matchAll(/data-help-id=["{]?"([^"]+)"/g)].map((match) => match[1]));
+  const helpIds = new Set([
+    ...source.matchAll(/data-help-id=["{]?"([^"]+)"/g),
+    ...source.matchAll(/dataHelpId=["{]?"([^"]+)"/g)
+  ].map((match) => match[1]));
+  const dynamicExternalConnectionHelpIds = [
+    ...source.matchAll(/data-help-id=\{helpId\(mode,\s*"([^"]+)"\)\}/g),
+    ...source.matchAll(/dataHelpId=\{helpId\(mode,\s*"([^"]+)"\)\}/g)
+  ].map((match) => match[1]);
+  for (const suffix of dynamicExternalConnectionHelpIds) {
+    helpIds.add(`external-connection-add-${suffix}`);
+    helpIds.add(`external-connection-edit-${suffix}`);
+  }
+  return helpIds;
 }
 
 function resolveLocalImport(fromFile, importPath) {
@@ -173,6 +219,16 @@ function collectHelpIds(filePath, visited = new Set()) {
       helpIds.add(id);
     }
   }
+  const exportPattern = /export[\s\S]*?from\s+"(\.[^"]+)";/g;
+  for (const match of source.matchAll(exportPattern)) {
+    const resolved = resolveLocalImport(filePath, match[1]);
+    if (!resolved) {
+      continue;
+    }
+    for (const id of collectHelpIds(resolved, visited)) {
+      helpIds.add(id);
+    }
+  }
   return helpIds;
 }
 
@@ -180,15 +236,49 @@ function relative(filePath) {
   return path.relative(frontendRoot, filePath) || ".";
 }
 
-const routeDefinitionsSource = read(routeDefinitionsPath);
-const pageRegistrySource = read(pageRegistryPath);
+function classifyIssue(message) {
+  if (message.startsWith("Route mismatch")) {
+    return "manifest-drift";
+  }
+  if (message.startsWith("Missing data-help-id=") || message.startsWith("helpContent anchor ") || message.startsWith("page-help.json anchor ")) {
+    return "help-marker-drift";
+  }
+  if (message.startsWith("ScreenCommandCenter ")) {
+    return "backend-metadata-drift";
+  }
+  if (message.startsWith("No component mapping found") || message.startsWith("Component source missing")) {
+    return "page-module-drift";
+  }
+  return "other";
+}
+
+function classifyWarning(message) {
+  if (message.includes("has no page manifest yet")) {
+    return "missing-manifest";
+  }
+  if (message.includes("has no component instance keys")) {
+    return "empty-manifest";
+  }
+  return "other";
+}
+
+function summarizeByCategory(messages, classifier) {
+  const summary = new Map();
+  for (const message of messages) {
+    const category = classifier(message);
+    summary.set(category, (summary.get(category) || 0) + 1);
+  }
+  return [...summary.entries()].sort((left, right) => left[0].localeCompare(right[0]));
+}
+
 const manifestSource = read(manifestPath);
 const helpContentSource = read(helpContentPath);
 const screenCommandSource = read(screenCommandPath);
+const routeSourceFiles = routeSourceRoots.flatMap((root) => listSourceFiles(root));
+const routeSources = routeSourceFiles.map((filePath) => ({ filePath, source: read(filePath) }));
 
-const routes = parseRoutes(routeDefinitionsSource);
-const sharedLoaders = parseSharedLoaders(pageRegistrySource);
-const routeToFile = parsePageRegistry(pageRegistrySource, sharedLoaders);
+const routes = parseRoutes(routeSources.map((entry) => entry.source));
+const routeToFile = parsePageRegistry(routeSources);
 const manifests = parsePageManifests(manifestSource);
 const helpContent = parseHelpContent(helpContentSource);
 const helpJson = parseHelpJson(helpJsonPath);
@@ -277,6 +367,19 @@ for (const [pageId] of helpJson) {
 
 const header = `UI governance audit: ${issues.length} issue(s), ${warnings.length} warning(s)`;
 console.log(header);
+
+const issueSummary = summarizeByCategory(issues, classifyIssue);
+const warningSummary = summarizeByCategory(warnings, classifyWarning);
+
+if (issueSummary.length > 0 || warningSummary.length > 0) {
+  console.log("\nCategory summary:");
+  for (const [category, count] of issueSummary) {
+    console.log(`- issue:${category}=${count}`);
+  }
+  for (const [category, count] of warningSummary) {
+    console.log(`- warning:${category}=${count}`);
+  }
+}
 
 if (issues.length > 0) {
   console.log("\nIssues:");

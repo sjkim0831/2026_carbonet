@@ -1,6 +1,6 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.service.AdminLoginHistoryService;
+import egovframework.com.platform.observability.service.AdminLoginHistoryService;
 import egovframework.com.feature.auth.service.AuthService;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;

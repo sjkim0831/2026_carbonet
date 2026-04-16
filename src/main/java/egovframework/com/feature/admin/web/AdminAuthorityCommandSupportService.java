@@ -1,5 +1,7 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.platform.codex.service.AdminAuthorityPagePayloadSupport;
+
 import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.feature.admin.model.vo.AuthorRoleProfileVO;
 import egovframework.com.feature.auth.util.ClientIpUtil;

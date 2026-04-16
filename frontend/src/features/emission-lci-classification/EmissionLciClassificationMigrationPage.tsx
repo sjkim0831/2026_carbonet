@@ -228,7 +228,7 @@ export function EmissionLciClassificationMigrationPage() {
             : "이 화면은 배출 변수 관리, 정의 관리, GWP 값 관리, 설문 관리가 함께 읽는 EMLCI 공통코드 원본을 수정합니다."}
         </PageStatusNotice>
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="emission-lci-classification-summary">
           {summaryCards.map((card, index) => (
             <SummaryMetricCard
               key={`${stringOf(card.title)}-${index}`}
@@ -239,7 +239,7 @@ export function EmissionLciClassificationMigrationPage() {
           ))}
         </section>
 
-        <section className="gov-card">
+        <section className="gov-card" data-help-id="emission-lci-classification-detail">
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-[2fr,1fr,1fr,auto]">
             <div>
               <label className="mb-1 block text-sm font-bold" htmlFor="lciSearchKeyword">{en ? "Keyword" : "검색어"}</label>
@@ -272,7 +272,7 @@ export function EmissionLciClassificationMigrationPage() {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr,1fr]">
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr,1fr]" data-help-id="emission-lci-classification-table">
           <div className="gov-card">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>

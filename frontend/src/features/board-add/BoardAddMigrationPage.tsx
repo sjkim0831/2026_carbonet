@@ -314,6 +314,7 @@ export function BoardAddMigrationPage() {
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
 
         <CollectionResultPanel
+          data-help-id="board-add-scope"
           icon="campaign"
           title={en ? "Distribution Scope" : "배포 범위"}
           description={en ? "This screen is for first-pass notice setup and operator review, keeping the shared admin create-page layout." : "이 화면은 공지 초안 작성과 운영 검토 준비를 위한 단계이며, 공통 관리자 등록형 레이아웃을 따릅니다."}
