@@ -8,11 +8,11 @@ import egovframework.com.feature.admin.model.vo.PageManagementVO;
 
 import java.util.List;
 
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 
-@Repository("adminCodeManageMapper")
+@Component("adminCodeManageMapper")
 public class AdminCodeManageMapper extends BaseMapperSupport {
 
     public List<ClassCodeVO> selectClassCodeList() {

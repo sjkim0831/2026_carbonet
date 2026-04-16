@@ -2,7 +2,7 @@ package egovframework.com.common.mapper;
 
 import java.util.List;
 
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.common.model.ComDefaultCodeVO;
@@ -23,7 +23,7 @@ import egovframework.com.common.service.CmmnDetailCode;
  * @see
  *
  */
-@Repository("cmmUseMapper")
+@Component("cmmUseMapper")
 public class CmmUseMapper extends BaseMapperSupport {
 
     /**

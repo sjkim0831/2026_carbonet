@@ -9,11 +9,11 @@ import egovframework.com.common.logging.AccessEventSearchVO;
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.common.trace.TraceEventRecordVO;
 import egovframework.com.common.trace.TraceEventSearchVO;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Repository("platformObservabilityQueryMapper")
+@Component("platformObservabilityQueryMapper")
 public class PlatformObservabilityQueryMapper extends BaseMapperSupport {
 
     public int selectAuditEventCount(AuditEventSearchVO searchVO) {

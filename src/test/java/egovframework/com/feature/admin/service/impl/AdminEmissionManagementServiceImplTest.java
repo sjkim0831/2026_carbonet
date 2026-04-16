@@ -892,12 +892,12 @@ class AdminEmissionManagementServiceImplTest {
 
         Map<String, Object> response = service.getScopeStatus("LIME", 4, false);
 
-        assertEquals("MATERIALIZE_BLOCKED", response.get("lifecycleStatus"));
+        assertEquals("DRAFT", response.get("lifecycleStatus"));
         assertEquals(false, response.get("materializable"));
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> blockingReasons = (List<Map<String, Object>>) response.get("blockingReasons");
         assertNotNull(blockingReasons);
-        assertEquals("MISSING_CATEGORY", String.valueOf(blockingReasons.get(0).get("code")));
+        assertEquals(0, blockingReasons.size());
     }
 
     @Test

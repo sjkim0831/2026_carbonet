@@ -1,12 +1,12 @@
 package egovframework.com.feature.admin.mapper;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
-@Repository("blocklistPersistenceMapper")
+@Component("blocklistPersistenceMapper")
 public class BlocklistPersistenceMapper extends BaseMapperSupport {
 
     public List<Map<String, String>> selectBlockRows() {

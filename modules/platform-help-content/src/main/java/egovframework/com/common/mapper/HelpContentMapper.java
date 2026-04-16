@@ -3,11 +3,11 @@ package egovframework.com.common.mapper;
 import egovframework.com.common.help.HelpItemVO;
 import egovframework.com.common.help.HelpPageVO;
 import egovframework.com.common.mapper.support.BaseMapperSupport;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Repository("helpContentMapper")
+@Component("helpContentMapper")
 public class HelpContentMapper extends BaseMapperSupport {
 
     public HelpPageVO selectHelpPage(String pageId) {

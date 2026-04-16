@@ -1,12 +1,12 @@
 package egovframework.com.platform.dbchange.mapper;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
-@Repository("dbChangeCaptureMapper")
+@Component("dbChangeCaptureMapper")
 public class DbChangeCaptureMapper extends BaseMapperSupport {
 
     public List<Map<String, Object>> selectAllPromotionPolicies() {

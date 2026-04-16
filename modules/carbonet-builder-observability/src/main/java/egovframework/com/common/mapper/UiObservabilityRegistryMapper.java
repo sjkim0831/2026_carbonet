@@ -5,12 +5,12 @@ import egovframework.com.common.trace.UiComponentRegistryVO;
 import egovframework.com.common.trace.UiComponentUsageVO;
 import egovframework.com.common.trace.UiPageComponentDetailVO;
 import egovframework.com.common.trace.UiPageManifestVO;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
-@Repository("uiObservabilityRegistryMapper")
+@Component("uiObservabilityRegistryMapper")
 public class UiObservabilityRegistryMapper extends BaseMapperSupport {
 
     public int countUiPageManifest(String pageId) {

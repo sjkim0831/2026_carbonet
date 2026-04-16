@@ -1,12 +1,12 @@
 package egovframework.com.feature.admin.mapper;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
-@Repository("adminEmissionGwpValueMapper")
+@Component("adminEmissionGwpValueMapper")
 public class AdminEmissionGwpValueMapper extends BaseMapperSupport {
 
     @SuppressWarnings("unchecked")

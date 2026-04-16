@@ -1,11 +1,11 @@
 package egovframework.com.platform.runtimecontrol.mapper;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-@Repository("runtimeControlPlaneMapper")
+@Component("runtimeControlPlaneMapper")
 public class RuntimeControlPlaneMapper extends BaseMapperSupport {
 
     private static final String NAMESPACE = "egovframework.com.platform.runtimecontrol.mapper.RuntimeControlPlaneMapper";

@@ -3,12 +3,12 @@ package egovframework.com.feature.auth.mapper;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.feature.auth.dto.response.LoginResponseDTO;
 
-@Repository("authLoginMapper")
+@Component("authLoginMapper")
 public class AuthLoginMapper extends BaseMapperSupport {
 
     public LoginResponseDTO selectGeneralLoginUser(String userId) {
@@ -28,5 +28,25 @@ public class AuthLoginMapper extends BaseMapperSupport {
         params.put("userSe", userSe);
         params.put("userId", userId);
         return selectOne("authLoginMapper.selectLoginUser", params);
+    }
+
+    public Map<String, Object> selectActiveAuthToken(String userId) {
+        return selectOne("authLoginMapper.selectActiveAuthToken", userId);
+    }
+
+    public int insertAuthToken(Map<String, Object> params) {
+        return insert("authLoginMapper.insertAuthToken", params);
+    }
+
+    public int deleteAuthTokenByUserId(String userId) {
+        return delete("authLoginMapper.deleteAuthTokenByUserId", userId);
+    }
+
+    public int deleteAuthTokenByTokenKey(String tokenKey) {
+        return delete("authLoginMapper.deleteAuthTokenByTokenKey", tokenKey);
+    }
+
+    public int touchAuthToken(String tokenKey) {
+        return update("authLoginMapper.touchAuthToken", tokenKey);
     }
 }

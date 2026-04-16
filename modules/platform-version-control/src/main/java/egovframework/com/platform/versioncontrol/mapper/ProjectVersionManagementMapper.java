@@ -1,13 +1,13 @@
 package egovframework.com.platform.versioncontrol.mapper;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@Repository("projectVersionManagementMapper")
+@Component("projectVersionManagementMapper")
 public class ProjectVersionManagementMapper extends BaseMapperSupport {
 
     private static final String NAMESPACE = "egovframework.com.platform.versioncontrol.mapper.ProjectVersionManagementMapper";

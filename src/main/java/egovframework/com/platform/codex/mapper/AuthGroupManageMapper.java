@@ -9,12 +9,12 @@ import egovframework.com.platform.codex.model.FeatureCatalogItemVO;
 import egovframework.com.platform.codex.model.FeatureReferenceCountVO;
 import egovframework.com.platform.codex.model.UserAuthorityTargetVO;
 import egovframework.com.platform.codex.model.UserFeatureOverrideVO;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
-@Repository("authGroupManageMapper")
+@Component("authGroupManageMapper")
 public class AuthGroupManageMapper extends BaseMapperSupport {
 
     public List<AuthorInfoVO> selectAuthorList() {

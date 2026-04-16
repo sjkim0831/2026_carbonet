@@ -3,11 +3,11 @@ package egovframework.com.platform.codex.mapper;
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.feature.admin.dto.request.AdminMenuFeatureCommandDTO;
 import egovframework.com.platform.codex.model.MenuFeatureVO;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Repository("menuFeatureManageMapper")
+@Component("menuFeatureManageMapper")
 public class MenuFeatureManageMapper extends BaseMapperSupport {
 
     public List<MenuFeatureVO> selectMenuPageOptions(AdminMenuFeatureCommandDTO params) {

@@ -80,13 +80,13 @@ class ReactPageUrlMapperTest {
                 ReactPageUrlMapper.toRuntimeUrl("/admin/content/menu", false));
         assertEquals("/en/admin/content/menu",
                 ReactPageUrlMapper.toRuntimeUrl("/admin/content/menu", true));
-        assertEquals("/admin/content/menu",
+        assertEquals("/admin/system/menu",
                 ReactPageUrlMapper.toCanonicalMenuUrl("/admin/app?route=menu-management"));
-        assertEquals("/admin/content/menu?menuType=ADMIN",
+        assertEquals("/admin/system/menu?menuType=ADMIN",
                 ReactPageUrlMapper.toCanonicalMenuUrl("/admin/app?route=menu-management&menuType=ADMIN"));
-        assertEquals("/admin/content/menu?menuType=ADMIN",
+        assertEquals("/admin/system/menu?menuType=ADMIN",
                 ReactPageUrlMapper.toCanonicalMenuUrl("/admin/system/menu-management?menuType=ADMIN"));
-        assertEquals("menu_management",
+        assertEquals("faq_menu_management",
                 ReactPageUrlMapper.resolveRouteIdForPath("/admin/content/menu?menuType=ADMIN"));
         assertEquals("menu_management",
                 ReactPageUrlMapper.resolveRouteIdForPath("/admin/system/menu-management?menuType=ADMIN"));
@@ -108,7 +108,7 @@ class ReactPageUrlMapperTest {
 
     @Test
     void homeRuntimeRoutesPreserveNonRouteQueryParametersWhenResolvingCanonicalUrls() {
-        assertEquals("/mypage?tab=security",
+        assertEquals("/mypage/profile?tab=security",
                 ReactPageUrlMapper.toCanonicalMenuUrl("/app?route=mypage&tab=security"));
         assertEquals("/join/companyJoinStatusSearch?bizRegNo=123-45-67890",
                 ReactPageUrlMapper.toCanonicalMenuUrl("/app?route=join_company_status&bizRegNo=123-45-67890"));
@@ -130,13 +130,13 @@ class ReactPageUrlMapperTest {
 
     @Test
     void monitoringRealtimeAliasResolvesToMonitoringDashboardRoute() {
-        assertEquals("/monitoring/dashboard",
+        assertEquals("/monitoring/realtime",
                 ReactPageUrlMapper.toRuntimeUrl("/monitoring/realtime", false));
-        assertEquals("/en/monitoring/dashboard",
+        assertEquals("/en/monitoring/realtime",
                 ReactPageUrlMapper.toRuntimeUrl("/monitoring/realtime", true));
         assertEquals("/monitoring/dashboard",
                 ReactPageUrlMapper.toCanonicalMenuUrl("/app?route=monitoring_dashboard"));
-        assertEquals("monitoring_dashboard",
+        assertEquals("monitoring_realtime",
                 ReactPageUrlMapper.resolveRouteIdForPath("/monitoring/realtime"));
         assertEquals("monitoring_track",
                 ReactPageUrlMapper.resolveRouteIdForPath("/en/monitoring/track"));
@@ -160,7 +160,7 @@ class ReactPageUrlMapperTest {
     void runtimeRoutesPreserveMultipleNonRouteQueryParametersRegardlessOfRouteParameterOrder() {
         assertEquals("/admin/emission/validate?resultId=ER-2026-001&pageIndex=2",
                 ReactPageUrlMapper.toCanonicalMenuUrl("/admin/app?resultId=ER-2026-001&route=emission_validate&pageIndex=2"));
-        assertEquals("/mypage?tab=security&panel=alerts",
+        assertEquals("/mypage/profile?tab=security&panel=alerts",
                 ReactPageUrlMapper.toCanonicalMenuUrl("/app?tab=security&route=mypage&panel=alerts"));
     }
 

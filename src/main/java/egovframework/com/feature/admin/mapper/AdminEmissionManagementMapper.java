@@ -4,12 +4,12 @@ import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.feature.admin.model.vo.EmissionCategoryVO;
 import egovframework.com.feature.admin.model.vo.EmissionFactorVO;
 import egovframework.com.feature.admin.model.vo.EmissionVariableDefinitionVO;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
-@Repository("adminEmissionManagementMapper")
+@Component("adminEmissionManagementMapper")
 public class AdminEmissionManagementMapper extends BaseMapperSupport {
 
     public List<EmissionCategoryVO> selectEmissionCategories(String searchKeyword) {

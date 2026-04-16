@@ -37,7 +37,7 @@ spring:
       connection-timeout: 30000
       initialization-fail-timeout: -1
   jpa:
-    database-platform: org.hibernate.dialect.CUBRIDDialect
+    database-platform: org.hibernate.community.dialect.CUBRIDDialect
     hibernate:
       ddl-auto: none
     properties:
@@ -91,7 +91,7 @@ logging:
       com: info
 
 Globals:
-  auth: security
+  Auth: security
 
 token:
   accessSecret: ${TOKEN_ACCESS_SECRET}
@@ -168,8 +168,8 @@ org:
   egovframe:
     crypto:
       algorithm: SHA-256
-      algorithmKey: egovframe
-      algorithmKeyHash: gdyYs/IZqY86VcWhT8emCYfqY1ahw2vtLG+/FzNqtrQ=
+      algorithmKey: ${CARBONET_CRYPTO_ALGORITHM_KEY:carbonet-local-boot-2026-04}
+      algorithmKeyHash: ${CARBONET_CRYPTO_ALGORITHM_KEY_HASH:fQcqhjtd7uTxAUvw3iDoarzye1P0SfYJPYJM5s9G60w=}
 
     security:
       loginUrl: /signin/loginView
@@ -179,7 +179,7 @@ org:
       csrfAccessDeniedUrl: /signin/csrfAccessDenied
       defaultTargetUrl: /main
       dataSource: dataSource
-      excludeList: /css/**,/images/**,/js/**,/uat/**,/home/**,/signin/**,/join/**,/admin/login/**,/actuator/**,/api/telemetry/**,/api/frontend/error/report
+      permitAllList: ^/css/.*$,^/images/.*$,^/js/.*$,^/uat/.*$,^/home(?:/.*)?$,^/signin/.*$,^/en/signin/.*$,^/join/.*$,^/en/join/.*$,^/admin/login/.*$,^/en/admin/login/.*$,^/react-shell/.*$,^/assets/react/.*$,^/admin/assets/react/.*$,^/en/admin/assets/react/.*$,^/actuator/.*$,^/api/telemetry/.*$,^/api/frontend/session$,^/api/frontend/error/report$
       csrf: true
       xframeOptions: sameorigin
       sniff: false

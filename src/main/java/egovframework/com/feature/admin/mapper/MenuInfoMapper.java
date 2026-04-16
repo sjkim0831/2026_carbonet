@@ -5,11 +5,11 @@ import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 
 import java.util.List;
 
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 
-@Repository("menuInfoMapper")
+@Component("menuInfoMapper")
 public class MenuInfoMapper extends BaseMapperSupport {
 
     public List<MenuInfoDTO> selectMenuUrlListByPrefix(String prefix) {

@@ -3,11 +3,11 @@ package egovframework.com.platform.observability.mapper;
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.platform.observability.model.LoginHistorySearchVO;
 import egovframework.com.platform.observability.model.LoginHistoryVO;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Repository("adminLoginHistoryMapper")
+@Component("adminLoginHistoryMapper")
 public class AdminLoginHistoryMapper extends BaseMapperSupport {
 
     public void insertLoginHistory(LoginHistoryVO loginHistoryVO) {

@@ -5,9 +5,9 @@ import egovframework.com.common.logging.AccessEventRecordVO;
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.common.trace.TraceEventRecordVO;
 import egovframework.com.common.error.ErrorEventRecordVO;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
-@Repository("observabilityMapper")
+@Component("observabilityMapper")
 public class ObservabilityMapper extends BaseMapperSupport {
 
     public void insertAuditEvent(AuditEvent auditEvent) {

@@ -6,12 +6,12 @@ import egovframework.com.common.trace.SystemAssetInventoryVO;
 import egovframework.com.common.trace.SystemAssetLifecycleEvidenceVO;
 import egovframework.com.common.trace.SystemAssetLifecyclePlanVO;
 import egovframework.com.common.trace.SystemAssetScanLogVO;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
-@Repository("systemAssetInventoryMapper")
+@Component("systemAssetInventoryMapper")
 public class SystemAssetInventoryMapper extends BaseMapperSupport {
     private static final String NAMESPACE = "egovframework.com.common.mapper.SystemAssetInventoryMapper";
 

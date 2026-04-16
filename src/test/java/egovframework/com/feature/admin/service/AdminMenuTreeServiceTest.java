@@ -13,14 +13,13 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class AdminMenuTreeServiceTest {
 
     @Test
-    void menuManagementPrefersSystemEnvironmentMenuWhenLegacyContentMenuAlsoExists() throws Exception {
+    void menuManagementKeepsSystemAndLegacyContentMenusWhenBothExist() throws Exception {
         MenuInfoService menuInfoService = mock(MenuInfoService.class);
         AuthGroupManageService authGroupManageService = mock(AuthGroupManageService.class);
         CurrentUserContextService currentUserContextService = mock(CurrentUserContextService.class);
@@ -48,7 +47,14 @@ class AdminMenuTreeServiceTest {
         assertEquals("/admin/system/menu", menuManagement.getU());
 
         AdminMenuDomainDTO contentDomain = tree.get("콘텐츠");
-        assertTrue(contentDomain == null || contentDomain.getGroups().isEmpty());
+        assertNotNull(contentDomain);
+        assertEquals(1, contentDomain.getGroups().size());
+        AdminMenuGroupDTO contentGroup = contentDomain.getGroups().get(0);
+        assertEquals("운영", contentGroup.getTitle());
+        assertEquals(1, contentGroup.getLinks().size());
+        AdminMenuLinkDTO legacyMenuManagement = contentGroup.getLinks().get(0);
+        assertEquals("메뉴 관리", legacyMenuManagement.getText());
+        assertEquals("/admin/content/menu", legacyMenuManagement.getU());
     }
 
     private static MenuInfoDTO menu(String code, String codeNm, String codeDc, String menuUrl, String menuIcon, int sortOrdr) {

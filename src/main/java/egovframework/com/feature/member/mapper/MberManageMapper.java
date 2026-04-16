@@ -2,7 +2,7 @@ package egovframework.com.feature.member.mapper;
 
 import java.util.List;
 
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.feature.member.model.vo.MberManageVO;
@@ -26,7 +26,7 @@ import egovframework.com.feature.member.model.vo.UserDefaultVO;
  *
  * </pre>
  */
-@Repository("mberManageMapper")
+@Component("mberManageMapper")
 public class MberManageMapper extends BaseMapperSupport{
 
     /**

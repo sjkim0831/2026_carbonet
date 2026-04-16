@@ -5,11 +5,11 @@ import egovframework.com.common.trace.UiComponentRegistryVO;
 import egovframework.com.common.trace.UiComponentUsageVO;
 import egovframework.com.common.trace.UiPageComponentDetailVO;
 import egovframework.com.common.trace.UiPageManifestVO;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Repository("frameworkBuilderObservabilityMapper")
+@Component("frameworkBuilderObservabilityMapper")
 public class FrameworkBuilderObservabilityMapper extends BaseMapperSupport {
 
     public List<UiPageManifestVO> selectUiPageManifestList() {
