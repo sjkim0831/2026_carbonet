@@ -67,3 +67,39 @@ Design-driven tasks should also start from:
 - Runtime logs are written under `var/logs/`.
 - Local uploaded files are stored under `var/file/`.
 - Build output is written under `target/`.
+
+---
+
+## 멀티 프로젝트 독립 런타임 플랫폼 (Multi-Project Independent Runtime)
+
+Carbonet은 단일 앱 배포(`carbonet.jar`) 방식 외에도, **공통 엔진 위에서 여러 프로젝트(고객사)가 독립적으로 배포되고 실행되는 아키텍처**를 지원합니다. 이를 통해 각 프로젝트는 고유한 DB와 포트를 가지며 장애가 격리됩니다.
+
+상세 아키텍처 및 운영 방법은 [독립 런타임 배포 가이드](docs/operations/independent-runtime-deployment-guide.md)를 참고하세요.
+
+### 🚀 관리 명령어 (Makefile)
+
+프로젝트 최상단의 `Makefile`을 통해 복잡한 배포 및 운영 과정을 쉽게 제어할 수 있습니다.
+
+**1. 신규 프로젝트 런칭 (P004 예시)**
+```bash
+make new-project project=p004
+make db-create project=p004
+```
+
+**2. 로컬 개발 (Docker)**
+```bash
+make local-docker project=p004 port=18001
+```
+
+**3. 빌드 및 서버 배포**
+```bash
+make build project=p004
+make deploy project=p004 port=18001
+```
+
+**4. 운영 상태 및 롤백**
+```bash
+make status
+make rollback project=p004
+make cleanup project=p004
+```

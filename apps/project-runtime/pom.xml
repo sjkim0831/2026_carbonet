@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>egovframework</groupId>
+        <artifactId>carbonet</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>project-runtime</artifactId>
+    <packaging>jar</packaging>
+
+    <name>project-runtime</name>
+    <description>Independent runtime for Carbonet projects</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>egovframework</groupId>
+            <artifactId>carbonet-common-core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>egovframework</groupId>
+            <artifactId>common-auth</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>egovframework</groupId>
+            <artifactId>stable-execution-gate</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>egovframework</groupId>
+            <artifactId>screenbuilder-carbonet-adapter</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>egovframework</groupId>
+            <artifactId>carbonet-web-support</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>egovframework</groupId>
+            <artifactId>platform-observability-query</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>egovframework</groupId>
+            <artifactId>platform-observability-payload</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>project-runtime</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>egovframework.com.ProjectRuntimeApplication</mainClass>
+                    <layout>ZIP</layout>
+                </configuration>
+
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

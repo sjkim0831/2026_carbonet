@@ -38,4 +38,3 @@ echo "[restart-18000] fresh restart started"
 (cd "$ROOT_DIR" && mvn -q -pl apps/carbonet-app -am -DskipTests package)
 bash "$ROOT_DIR/ops/scripts/restart-18000-runtime.sh"
 echo "[restart-18000] fresh restart completed"
-// agent note: updated by FreeAgent Ultra
