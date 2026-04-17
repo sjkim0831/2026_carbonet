@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-16T02:41:31.406Z",
+  "generatedAt": "2026-04-17T07:39:28.732Z",
   "sources": {
     "pageManifest": "frontend/src/platform/screen-registry/pageManifests.ts",
     "apiMap": "docs/ai/40-backend/controller-service-map.csv",
@@ -21,7 +21,7 @@
     "functionCount": 59,
     "uniqueFunctionCount": 45,
     "frontendE2eCount": 7,
-    "backendTestCount": 6,
+    "backendTestCount": 0,
     "highRiskPageCount": 26,
     "highRiskApiCount": 1,
     "governedTestProfileCount": 12,
@@ -2706,13 +2706,6 @@
       "frontend/e2e/menu-management-route.spec.ts",
       "frontend/e2e/runtime-pages.spec.ts"
     ],
-    "backend": [
-      "src/test/java/egovframework/com/common/util/ReactPageUrlMapperTest.java",
-      "src/test/java/egovframework/com/feature/admin/service/AdminBannerManagementServiceTest.java",
-      "src/test/java/egovframework/com/feature/admin/service/AdminMenuTreeServiceTest.java",
-      "src/test/java/egovframework/com/feature/admin/service/AdminPopupManagementServiceTest.java",
-      "src/test/java/egovframework/com/feature/admin/service/impl/AdminEmissionManagementServiceImplTest.java",
-      "src/test/java/egovframework/com/platform/runtimecontrol/service/impl/RuntimeControlPlaneServiceImplTest.java"
-    ]
+    "backend": []
   }
 }

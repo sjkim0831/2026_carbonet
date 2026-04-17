@@ -1,6 +1,6 @@
 # Latest Handoff
 
-Updated on `2026-04-15`.
+Updated on `2026-04-17`.
 
 ## Current Position
 
@@ -16,6 +16,10 @@ Updated on `2026-04-15`.
 - `BUILDER_STRUCTURE_GOVERNANCE`
 - `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`
 - `APP_ASSEMBLY_BUILD_RUNTIME_CLOSURE`
+- `BUILDER_COMPATIBILITY_SHIM_REMOVAL` (9/10 removed)
+- `CONTROL_PLANE_RDB_PERSISTENCE_CLOSURE` (Version/Repair data moved to COMMON_DB)
+- `PROJECT_CONTEXT_DYNAMICIZATION_CLOSURE` (Removed hardcoded "carbonet" project IDs)
+- `FRONTEND_ROUTE_SCOPE_SPLIT_CLOSURE` (Added routeScope: PLATFORM | RUNTIME)
 
 This means the following are now frozen for the current wave:
 

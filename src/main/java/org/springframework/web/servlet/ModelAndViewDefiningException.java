@@ -1,6 +1,6 @@
 package org.springframework.web.servlet;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 /**
  * Compatibility shim for legacy code paths that still reference the removed

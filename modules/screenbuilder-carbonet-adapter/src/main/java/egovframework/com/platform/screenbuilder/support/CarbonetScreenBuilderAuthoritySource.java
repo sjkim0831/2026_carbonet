@@ -3,7 +3,7 @@ package egovframework.com.platform.screenbuilder.support;
 import egovframework.com.platform.screenbuilder.support.model.ScreenBuilderAuthorityDecision;
 import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 public interface CarbonetScreenBuilderAuthoritySource {

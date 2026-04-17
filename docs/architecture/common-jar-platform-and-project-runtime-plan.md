@@ -205,6 +205,41 @@ Use this deployment model:
 
 Do not force all projects to move together just because a new common jar exists.
 
+## Central Project Selection Rule
+
+Independent project deployment still allows one central management screen.
+
+Recommended operating model:
+
+1. each project runtime boots separately with the same approved common runtime jar
+2. each runtime exposes its own `projectId`, health, and entry metadata
+3. the operations or governance screen reads the project registry
+4. operators choose a project from one screen and jump to the project route or domain
+
+That means both of these are acceptable:
+
+- one shared common runtime package plus many project runtime processes
+- many project runtime processes each already including the common jars
+
+The central screen should not depend on a single process hosting every project at
+once.
+
+## Address Branching Rule
+
+Project access may be split by either:
+
+- route prefix such as `/r/P001`
+- domain such as `p001.example.com`
+
+The registry must keep these fields per project:
+
+- selector path for the central screen
+- route prefix for path-based routing
+- external base URL for outside access
+- domain host when domain-based routing is used
+
+This keeps project selection, gateway routing, and external handoff aligned.
+
 ## K8s Model
 
 Kubernetes is compatible with this plan.
@@ -296,6 +331,16 @@ Recommended shape:
   /carbonet-runtime
   /carbonet-adapter
 ```
+
+Current repository starter pair:
+
+- `projects/project-template`
+- `projects/project-template-adapter`
+
+Current deployable reference pair:
+
+- `projects/carbonet-runtime`
+- `projects/carbonet-adapter`
 
 Rule:
 

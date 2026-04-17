@@ -10,12 +10,12 @@ import java.util.Map;
 public interface PlatformObservabilityAdminPagePort {
 
     Map<String, Object> buildErrorLogPagePayload(String pageIndexParam, String searchKeyword, String requestedInsttId,
-                                                 String sourceType, String errorType, javax.servlet.http.HttpServletRequest request,
+                                                 String sourceType, String errorType, jakarta.servlet.http.HttpServletRequest request,
                                                  boolean isEn);
 
     Map<String, Object> buildSecurityHistoryPagePayload(String pageIndexParam, String searchKeyword, String userSe,
                                                         String insttId, String actionStatus,
-                                                        javax.servlet.http.HttpServletRequest request, boolean isEn);
+                                                        jakarta.servlet.http.HttpServletRequest request, boolean isEn);
 
     Map<String, Object> buildSecurityPolicyPagePayload(boolean isEn);
 
@@ -70,7 +70,7 @@ public interface PlatformObservabilityAdminPagePort {
 
     Map<String, Object> buildLoginHistoryPagePayload(String pageIndexParam, String searchKeyword, String userSe,
                                                      String loginResult, String insttId,
-                                                     javax.servlet.http.HttpServletRequest request, boolean isEn);
+                                                     jakarta.servlet.http.HttpServletRequest request, boolean isEn);
 
     List<Map<String, String>> loadAccessHistoryCompanyOptions();
 

@@ -222,14 +222,18 @@ export async function prefetchRouteBootstrap(route: MigrationPageId, path: strin
   url.searchParams.set("route", route);
   url.searchParams.set("path", normalizedPath);
 
-  const { body: responsePayload } = await fetchJsonWithResponse<{ reactBootstrapPayload?: Partial<Record<bootstrapApi.BootstrapPayloadKey, unknown>> }>(
-    url.toString(),
-    {
-      headers: {
-        "X-Carbonet-Path": normalizedPath
+  try {
+    const { body: responsePayload } = await fetchJsonWithResponse<{ reactBootstrapPayload?: Partial<Record<bootstrapApi.BootstrapPayloadKey, unknown>> }>(
+      url.toString(),
+      {
+        headers: {
+          "X-Carbonet-Path": normalizedPath
+        }
       }
-    }
-  );
+    );
 
-  bootstrapApi.mergeRuntimeBootstrap(responsePayload.reactBootstrapPayload || {});
+    bootstrapApi.mergeRuntimeBootstrap(responsePayload.reactBootstrapPayload || {});
+  } catch {
+    // Bootstrap prefetch is opportunistic. Keep navigation working even if the prefetch path falls back to HTML.
+  }
 }

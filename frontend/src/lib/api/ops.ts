@@ -18,6 +18,7 @@ import type {
   ExternalUsagePagePayload,
   ExternalWebhooksPagePayload,
   OperationsCenterPagePayload,
+  ProjectRuntimeRegistryPayload,
   PerformancePagePayload,
   SchedulerManagementPagePayload,
   SensorListPagePayload
@@ -70,6 +71,57 @@ export async function fetchOperationsCenterPage() {
   return fetchPageJson<OperationsCenterPagePayload>("/admin/monitoring/center/page-data", {
     fallbackMessage: "Failed to load operations center page"
   });
+}
+
+export async function fetchProjectRuntimeRegistry() {
+  return fetchOpsPageJson<ProjectRuntimeRegistryPayload>(
+    "/api/operations/governance/runtime/projects/registry",
+    undefined,
+    "Failed to load project runtime registry"
+  );
+}
+
+export async function mutateProjectRuntime(projectId: string, action: "start" | "stop" | "restart") {
+  return postLocalizedOpsAction<{ success: boolean; message?: string; output?: string }>(
+    `/api/operations/governance/runtime/projects/${projectId}/${action}`,
+    `/api/operations/governance/runtime/projects/${projectId}/${action}`,
+    {},
+    `Failed to ${action} project ${projectId}.`
+  );
+}
+
+export async function saveProjectRuntime(projectId: string, payload: Record<string, unknown>) {
+  return postLocalizedOpsAction<{ success: boolean; message?: string }>(
+    `/api/operations/governance/runtime/projects/${projectId}/save`,
+    `/api/operations/governance/runtime/projects/${projectId}/save`,
+    payload,
+    `Failed to save project ${projectId} configuration.`
+  );
+}
+
+export async function deleteProjectRuntime(projectId: string) {
+  return postLocalizedOpsAction<{ success: boolean; message?: string }>(
+    `/api/operations/governance/runtime/projects/${projectId}/delete`,
+    `/api/operations/governance/runtime/projects/${projectId}/delete`,
+    {},
+    `Failed to delete project ${projectId}.`
+  );
+}
+
+export async function applyProjectRouting(projectId: string) {
+  return postLocalizedOpsAction<{ success: boolean; message?: string; output?: string }>(
+    `/api/operations/governance/runtime/projects/${projectId}/apply-routing`,
+    `/api/operations/governance/runtime/projects/${projectId}/apply-routing`,
+    {},
+    `Failed to apply Nginx routing for project ${projectId}.`
+  );
+}
+
+export async function fetchProjectAdapters(projectId: string) {
+  return fetchPageJson<Array<{ name: string; size: number; lastModified: number }>>(
+    `/api/operations/governance/runtime/projects/${projectId}/adapters`,
+    { fallbackMessage: `Failed to load adapters for project ${projectId}` }
+  );
 }
 
 export async function fetchPerformancePage() {

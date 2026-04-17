@@ -46,6 +46,27 @@ export type OperationsCenterPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
+export type ProjectRuntimeRegistryItem = Record<string, string> & {
+  projectId?: string;
+  projectName?: string;
+  owner?: string;
+  status?: string;
+  runtimeMode?: string;
+  sharedRuntimeId?: string;
+  compatibilityClass?: string;
+  selectorPath?: string;
+  routePrefix?: string;
+  externalBaseUrl?: string;
+  domainHost?: string;
+  managementPath?: string;
+  infoPath?: string;
+  bootTarget?: string;
+};
+
+export type ProjectRuntimeRegistryPayload = {
+  items?: ProjectRuntimeRegistryItem[];
+};
+
 export type PerformancePagePayload = Record<string, unknown> & {
   overallStatus?: string;
   refreshedAt?: string;

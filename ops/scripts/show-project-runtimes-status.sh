@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Show status of all independent project runtimes on the remote server
-# Usage: bash ops/scripts/show-project-runtimes-status.sh [REMOTE_TARGET]
+# Usage: bash ops/scripts/show-project-runtimes-status.sh [REMOTE_TARGET] [REMOTE_ROOT]
 
 REMOTE_TARGET="${1:-carbonet2026@136.117.100.221}"
 REMOTE_ROOT="${2:-/opt/projects/carbonet}"
@@ -16,22 +16,36 @@ echo "------------------------------------------------------------------------"
 
 # Remote execution to gather status
 ssh -o StrictHostKeyChecking=no "$REMOTE_TARGET" "
-    cd $REMOTE_ROOT/var/releases
-    for p_dir in \$(ls -d */ 2>/dev/null | sed 's/\///'); do
-        # Check service status
-        status=\$(sudo systemctl is-active carbonet@\$p_dir 2>/dev/null || echo 'inactive')
+    cd $REMOTE_ROOT
+    if [[ ! -d \"var/run/project-runtime\" ]]; then
+        echo \"No project runtimes directory found at $REMOTE_ROOT/var/run/project-runtime\"
+        exit 0
+    fi
+    for p_dir in \$(ls -d var/run/project-runtime/*/ 2>/dev/null); do
+        project_id=\$(basename \"\$p_dir\")
+        # Check service status using new management script
+        status=\$(bash ops/scripts/manage-project-runtime.sh status \"\$project_id\" | grep -o 'RUNNING\|STOPPED' || echo 'UNKNOWN')
         
-        # Check active version via symlink
+        # Parse port from manifest
+        port_info=\$(python3 -c \"
+import json, re
+try:
+  with open('data/version-control/project-runtime-manifest.json') as f:
+    data = json.load(f)
+  cmd = data.get('projects', {}).get('\$project_id', {}).get('runtime', {}).get('bootCommand', '')
+  match = re.search(r'--server\\.port=(\d+)', cmd)
+  print(match.group(1) if match else '18000')
+except Exception:
+  print('18000')
+\" 2>/dev/null || echo '18000')
+
+        # Check active version via release dir if it exists
         version='unknown'
-        if [ -L \"\$p_dir/current\" ]; then
-            version=\$(readlink \"\$p_dir/current\" | xargs basename)
+        if [ -L \"var/releases/\$project_id/current\" ]; then
+            version=\$(readlink \"var/releases/\$project_id/current\" | xargs basename)
         fi
         
-        # Check if port is listening (assume default 18000 for now, could be improved)
-        # For simplicity, we just show if the process exists
-        port_info='18000' # Default
-        
-        printf '%-10s | %-15s | %-10s | %-20s\n' \"\$p_dir\" \"\$status\" \"\$port_info\" \"\$version\"
+        printf '%-10s | %-15s | %-10s | %-20s\n' \"\$project_id\" \"\$status\" \"\$port_info\" \"\$version\"
     done
 "
 echo "========================================================================"

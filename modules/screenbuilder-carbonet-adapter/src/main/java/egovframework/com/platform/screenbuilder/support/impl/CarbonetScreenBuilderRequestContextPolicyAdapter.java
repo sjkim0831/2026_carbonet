@@ -2,7 +2,7 @@ package egovframework.com.platform.screenbuilder.support.impl;
 
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderRequestContextPolicyPort;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Locale;
 
 public class CarbonetScreenBuilderRequestContextPolicyAdapter implements ScreenBuilderRequestContextPolicyPort {

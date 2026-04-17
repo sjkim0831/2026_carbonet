@@ -4,6 +4,7 @@ public class ErrorEventSearchVO {
 
     private int firstIndex;
     private int recordCountPerPage;
+    private String projectId;
     private String searchKeyword;
     private String sourceType;
     private String errorType;
@@ -17,6 +18,8 @@ public class ErrorEventSearchVO {
     public void setFirstIndex(int firstIndex) { this.firstIndex = firstIndex; }
     public int getRecordCountPerPage() { return recordCountPerPage; }
     public void setRecordCountPerPage(int recordCountPerPage) { this.recordCountPerPage = recordCountPerPage; }
+    public String getProjectId() { return projectId; }
+    public void setProjectId(String projectId) { this.projectId = projectId; }
     public String getSearchKeyword() { return searchKeyword; }
     public void setSearchKeyword(String searchKeyword) { this.searchKeyword = searchKeyword; }
     public String getSourceType() { return sourceType; }

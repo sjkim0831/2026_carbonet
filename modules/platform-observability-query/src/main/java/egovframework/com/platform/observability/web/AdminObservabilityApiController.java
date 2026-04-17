@@ -28,7 +28,12 @@ import java.util.Set;
 @RequestMapping({
         "/api/platform/observability",
         "/en/api/platform/observability",
-        "/api/admin/observability"
+        "/api/admin/observability",
+        "/en/api/admin/observability",
+        "/admin/api/platform/observability",
+        "/en/admin/api/platform/observability",
+        "/admin/api/admin/observability",
+        "/en/admin/api/admin/observability"
 })
 public class AdminObservabilityApiController {
 
@@ -40,6 +45,7 @@ public class AdminObservabilityApiController {
     public ResponseEntity<Map<String, Object>> searchAuditEvents(
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "pageSize", required = false) String pageSizeParam,
+            @RequestParam(value = "projectId", required = false) String projectId,
             @RequestParam(value = "traceId", required = false) String traceId,
             @RequestParam(value = "actorId", required = false) String actorId,
             @RequestParam(value = "actionCode", required = false) String actionCode,
@@ -52,6 +58,7 @@ public class AdminObservabilityApiController {
         AuditEventSearchVO searchVO = new AuditEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));
+        searchVO.setProjectId(safe(projectId));
         searchVO.setTraceId(safe(traceId));
         searchVO.setActorId(safe(actorId));
         searchVO.setActionCode(safe(actionCode));
@@ -70,6 +77,7 @@ public class AdminObservabilityApiController {
     public ResponseEntity<Map<String, Object>> searchTraceEvents(
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "pageSize", required = false) String pageSizeParam,
+            @RequestParam(value = "projectId", required = false) String projectId,
             @RequestParam(value = "traceId", required = false) String traceId,
             @RequestParam(value = "pageId", required = false) String pageId,
             @RequestParam(value = "componentId", required = false) String componentId,
@@ -83,6 +91,7 @@ public class AdminObservabilityApiController {
         TraceEventSearchVO searchVO = new TraceEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));
+        searchVO.setProjectId(safe(projectId));
         searchVO.setTraceId(safe(traceId));
         searchVO.setPageId(safe(pageId));
         searchVO.setComponentId(safe(componentId));
@@ -105,6 +114,7 @@ public class AdminObservabilityApiController {
             @RequestParam(value = "tab", required = false) String tab,
             @RequestParam(value = "logType", required = false) String logType,
             @RequestParam(value = "detailType", required = false) String detailType,
+            @RequestParam(value = "projectId", required = false) String projectId,
             @RequestParam(value = "resultCode", required = false) String resultCode,
             @RequestParam(value = "actorId", required = false) String actorId,
             @RequestParam(value = "actorRole", required = false) String actorRole,
@@ -132,6 +142,7 @@ public class AdminObservabilityApiController {
         searchDTO.setTab(safe(tab));
         searchDTO.setLogType(safe(logType));
         searchDTO.setDetailType(safe(detailType));
+        searchDTO.setProjectId(safe(projectId));
         searchDTO.setResultCode(safe(resultCode));
         searchDTO.setActorId(safe(actorId));
         searchDTO.setActorRole(safe(actorRole));

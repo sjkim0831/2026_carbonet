@@ -20,7 +20,14 @@ cp "$JAR_PATH" "$RUN_DIR/operations-console.jar"
 cd "$RUN_DIR"
 
 # Execute through stable gate only rule
-exec java -jar operations-console.jar \
+# Using PropertiesLauncher (-Dloader.path) to optionally load shared common libraries from var/lib/common
+COMMON_LIB_DIR="$ROOT_DIR/var/lib/common"
+LOADER_PATH="lib/"
+if [[ -d "$COMMON_LIB_DIR" ]]; then
+  LOADER_PATH="lib/,$COMMON_LIB_DIR/"
+fi
+
+exec java -Dloader.path="$LOADER_PATH" -jar operations-console.jar \
   --spring.profiles.active=prod \
   --app.role=ops \
   --logging.file.path="$LOG_DIR" \

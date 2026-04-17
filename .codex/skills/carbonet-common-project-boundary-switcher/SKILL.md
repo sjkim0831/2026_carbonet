@@ -30,6 +30,10 @@ Read only what you need:
 - Read [`/opt/projects/carbonet/docs/architecture/reusable-read-module-separation-plan.md`](/opt/projects/carbonet/docs/architecture/reusable-read-module-separation-plan.md) when the task involves reusable list/detail/dashboard queries or screen-installable read models.
 - Read [`/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md`](/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md) when the task affects reusable jars, frontend shared bundles, or version-pinned rollout.
 - Read [`/opt/projects/carbonet/docs/architecture/stable-adapter-and-common-core-versioning.md`](/opt/projects/carbonet/docs/architecture/stable-adapter-and-common-core-versioning.md) when the user wants AI agents to keep evolving the common system while project adapters remain stable and versioned.
+- Read [`/opt/projects/carbonet/docs/architecture/project-runtime-independent-boot-and-package-rule.md`](/opt/projects/carbonet/docs/architecture/project-runtime-independent-boot-and-package-rule.md) when the request asks whether project runtime and common runtime can be packaged or booted separately later, whether new projects can be added from thin packages, whether separate build/package paths are required, or whether a management screen is needed for package and runtime governance.
+- Read [`/opt/projects/carbonet/docs/architecture/new-project-bootstrap-and-adapter-binding-design.md`](/opt/projects/carbonet/docs/architecture/new-project-bootstrap-and-adapter-binding-design.md) when the request also involves external source handoff, project-only delivery boundaries, or deciding which parts stay common binary versus project-owned source.
+- Read [`/opt/projects/carbonet/docs/architecture/new-project-bootstrap-example-p003.md`](/opt/projects/carbonet/docs/architecture/new-project-bootstrap-example-p003.md) when the request involves central project selection, route-prefix versus domain split, or showing how a concrete project should appear in the shared governance screen.
+- Read [`/opt/projects/carbonet/docs/architecture/project-db-project-id-instt-id-query-contract.md`](/opt/projects/carbonet/docs/architecture/project-db-project-id-instt-id-query-contract.md) when legacy file tables or shared member/institution tables must be project-scoped first at the repository boundary before full DB backfill.
 - Read [`/opt/projects/carbonet/docs/architecture/fleet-common-upgrade-operating-model.md`](/opt/projects/carbonet/docs/architecture/fleet-common-upgrade-operating-model.md) when the task is about keeping many projects on maintained common versions, automatic compatibility runs, update waves, or common maintenance operations across customers.
 - Read [`/opt/projects/carbonet/docs/architecture/artifact-registry-and-project-version-governance.md`](/opt/projects/carbonet/docs/architecture/artifact-registry-and-project-version-governance.md) when the task affects artifact preservation, project-installed version records, adapter change history, or project-management-console upgrade flow.
 - Read [`/opt/projects/carbonet/docs/architecture/artifact-and-release-naming-contract.md`](/opt/projects/carbonet/docs/architecture/artifact-and-release-naming-contract.md) when the task affects artifact naming, release-unit IDs, runtime-package IDs, or deploy-trace identity rules.
@@ -53,6 +57,11 @@ Read only what you need:
 - fleet-wide common-core maintenance and patch rollout
 - compatibility matrix, upgrade candidate, and ring rollout governance
 - artifact registry and adapter change recording governance
+- project-wide framework upgrade planning across many modules
+- separating operations/admin product lanes from project business lanes
+- independent project package build and boot path design
+- project-runtime versus operations-console separate startup planning
+- deciding whether package/runtime governance needs a screen now or later
 - "do this first so future conversion is easy"
 
 ## Core Rule
@@ -101,10 +110,13 @@ Default handling:
    - core-owned DTOs instead of project DTOs
    - ports instead of direct project service calls
    - stable adapter contract before faster common-core iteration
+   - configuration-backed adapter registries before endpoint-specific condition branches
    - definition tables plus binding tables instead of hard-coded mixed rows
    - thin project controllers and thin project adapters
    - property-driven defaults and starter templates before custom project logic
    - install validators before claiming "fast bootstrap"
+   - separate build/package outputs before promising independent boot
+   - registry and manifest governance before building a package-management screen
 5. Only after that, continue with feature implementation.
 
 ## Menu Rule
@@ -159,6 +171,45 @@ Prefer these lanes:
 
 If the user wants future separation, keep editor workflow and admin-console logic out of runtime core jars.
 
+## Operations Split Rule
+
+If the user says operations screens, operator consoles, runtime-control pages, monitoring, backup, verification, deploy, or platform governance will be split later, do not leave them mixed inside project business runtime by default.
+
+Prefer these lanes:
+
+- `platform/common-core`
+- `project-runtime`
+- `operations-console`
+
+When the current repository still ships them together, make the boundary explicit first:
+
+- operations route family
+- operations bootstrap payload owner
+- operations menu ownership
+- operations adapter/config registry
+
+Do not make operations separation depend on copying project code later.
+Make the runtime and payload contract separable now, even if packaging split comes later.
+
+## Adapter Registry Rule
+
+When framework upgrades or endpoint-contract upgrades can hit many modules or many projects, do not solve them with repeated route-specific `if` branches across controllers.
+
+Prefer:
+
+- one adapter or support owner for the compatibility boundary
+- one configuration-backed endpoint-to-contract registry
+- one stable project-facing contract
+- one place to add new version bindings
+
+Examples:
+
+- bootstrap endpoint to requested-path and default-route binding
+- framework version to adapter implementation binding
+- operations endpoint to payload-owner binding
+
+If a change would otherwise require touching tens or hundreds of modules, stop and create the registry/adapter seam first.
+
 ## DB Rule
 
 Do not force two tables for everything.
@@ -197,6 +248,9 @@ Adapter safety rule:
 - when breaking adapter changes are unavoidable, publish a new versioned contract line instead of silently rewriting existing project adapters
 - common-core patch and minor releases should be designed to keep project adapters unchanged in the normal case
 - fleet updates should create compatibility candidates and ring rollout plans instead of immediately changing all production projects
+- endpoint and bootstrap compatibility rules should be movable to configuration where practical so patch/minor upgrades do not require source edits in every project
+- if independent boot is a near-term goal, each runnable app must own its own package output path, config source, and startup command rather than sharing one transitional assembled jar
+- do not build a management screen first when the underlying package registry, version manifest, and gate compatibility rules are still unstable; establish CLI/doc/manifest governance first, then add the screen as an operator surface
 
 When business-facing screens are involved, prefer:
 
@@ -218,6 +272,14 @@ For many-project maintenance, prefer this order:
 4. run build, adapter contract, DB diff, and smoke checks per project
 5. update only passing projects automatically
 6. route failing projects to adapter-fix tickets
+
+For large fleet upgrades such as "200 modules" or repeated 5.0 -> 5.1 lines, explicitly answer these before implementation:
+
+1. what stays in common-core
+2. what stays in project adapter
+3. what moves to configuration-backed registry
+4. what belongs to operations-console rather than project runtime
+5. whether the current change reduces or increases future per-project touch count
 7. roll out by rings instead of all-at-once production updates
 
 Default policy:

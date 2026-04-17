@@ -2,7 +2,7 @@ package egovframework.com.platform.service.observability;
 
 import egovframework.com.common.menu.model.SiteMapNode;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 public interface AdminSiteMapPort {

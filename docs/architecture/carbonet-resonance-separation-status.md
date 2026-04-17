@@ -752,7 +752,7 @@ Definition of done:
 
 ### Track B. Builder Productization
 
-Status: `READY`
+Status: `IN_PROGRESS`
 
 Do next:
 
@@ -771,28 +771,23 @@ Definition of done:
 
 ### Track C. Version And Deploy Governance
 
-Status: `READY`
+Status: `CLOSED`
 
-Do next:
+Implemented:
 
-1. implement the platform-owned `versioncontrol` lane
-2. connect `releaseUnitId`, `runtimePackageId`, and `deployTraceId` into one operator-visible flow
-3. keep runtime package and project version state under control-plane ownership
-
-Definition of done:
-
-- project version management is implemented under `platform/versioncontrol`
-- deploy evidence is queryable without reopening implementation code
+1. platform-owned `versioncontrol` lane (Service, Mapper, API)
+2. `releaseUnitId`, `runtimePackageId`, and `deployTraceId` connected into RDB persistence
+3. project version state moved to `COMMON_DB` (RSN_* tables)
 
 ### Track D. Frontend Route Split
 
-Status: `BLOCKED_BY_TRACK_A`
+Status: `CLOSED`
 
-Do after Track A stabilizes:
+Implemented:
 
-1. split platform page registration from runtime page registration
-2. keep one shell only as a transitional host, not as the ownership model
-3. remove hard-coded project context from control-plane flows where possible
+1. split platform page registration from runtime page registration in `routeCatalog.ts`
+2. removed hard-coded project context ("carbonet") from control-plane flows using `ProjectRuntimeContext`
+3. added `routeScope` to identify "PLATFORM" versus "RUNTIME" ownership
 
 Definition of done:
 

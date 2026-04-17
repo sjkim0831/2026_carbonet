@@ -20,6 +20,7 @@ When projects consume common jars and installable packages, the most important p
 It is:
 
 - adapter contract
+- execution gate contract
 - core DTO contract
 - manifest contract
 - capability-key contract
@@ -29,8 +30,29 @@ These should change much more slowly than the internal common implementation.
 Use this split:
 
 1. `STABLE_ADAPTER_SURFACE`
-2. `VERSIONED_COMMON_CORE`
-3. `PROJECT_EXECUTOR`
+2. `STABLE_EXECUTION_GATE`
+3. `VERSIONED_COMMON_CORE`
+4. `PROJECT_EXECUTOR`
+
+## Gate-Only Execution Rule
+
+Projects and operations consoles should execute common behavior only through a stable common-owned gate.
+
+Do not treat internal common services as a public execution surface.
+
+Required rule:
+
+- `project-runtime -> stable execution gate -> common-core internals`
+- `operations-console -> stable execution gate -> common-core internals`
+- common-core internals may change behind that gate
+- project code must not bypass the gate to call version-sensitive internals directly
+
+If a project or operations page can still call internal common services directly, the boundary is not stable enough for low-touch framework upgrades.
+
+The same rule also applies to independent runtime packaging:
+
+- separate project-runtime and operations-console boot later only if both already execute common behavior through the same stable gate family
+- do not try to split boot paths while direct common-internal calls still exist in controllers or runtime services
 
 ## Stable Adapter Rule
 
@@ -40,6 +62,7 @@ Project adapters may:
 
 - import common ports
 - import common DTO contracts
+- import stable execution gates
 - bind project menu, route, authority, DB, and API sources
 - translate project payloads into common-owned descriptors
 - expose project executor capability implementations
@@ -48,6 +71,7 @@ Project adapters should not:
 
 - absorb growing business logic
 - duplicate common validation or compare logic
+- become alternate execution paths around the stable gate
 - become the place where common compatibility bugs are fixed project by project
 
 The adapter should stay thin enough that a project can survive many common-core updates without adapter rewrites.
@@ -67,6 +91,7 @@ The common system and common jars should remain free to evolve in:
 These changes are acceptable if and only if they preserve:
 
 - stable adapter contracts
+- stable execution gates
 - stable DTO meaning
 - stable manifest semantics
 - stable capability keys
@@ -78,6 +103,7 @@ Every common line that may affect projects should be versioned explicitly.
 Track at minimum:
 
 - `commonCoreVersion`
+- `executionGateVersion`
 - `adapterContractVersion`
 - `apiContractVersion`
 - `manifestContractVersion`
@@ -151,6 +177,7 @@ Use this rule:
 
 Good candidates for stable contracts:
 
+- execution gates for bootstrap, command execution, runtime lookup, and operations actions
 - menu catalog ports
 - command page ports
 - authority contract ports
@@ -186,6 +213,7 @@ Installable API, theme, screen, and business-process packages must also follow s
 Required package metadata:
 
 - package version
+- required execution gate version
 - required adapter contract version
 - required manifest contract version
 - required capability set
@@ -196,6 +224,25 @@ Projects should be able to install a newer package version without rewriting sta
 
 If adapter rewrites are required, the package upgrade should be treated as a contract-aware upgrade and blocked until explicitly approved.
 
+## Separate Runtime Package Rule
+
+If the roadmap includes:
+
+- thin new-project creation
+- separate project runtime boot
+- separate operations-console boot
+
+then package outputs must be separated as well.
+
+Required direction:
+
+- `project-runtime` builds its own runnable artifact
+- `operations-console` builds its own runnable artifact
+- shared common artifacts remain reusable jars, not copied runtime sources
+- startup scripts and runtime paths must target those different artifacts explicitly
+
+Do not leave one forever-mixed runnable jar and still claim the repository is ready for independent runtime operation.
+
 ## AI Agent Safety Rule
 
 AI agents may change common-core code frequently.
@@ -204,6 +251,7 @@ They must not treat project adapters as disposable implementation detail.
 
 Before changing common code that crosses project boundaries, require review of:
 
+- execution-gate impact
 - adapter contract impact
 - DTO contract impact
 - manifest impact
@@ -245,6 +293,7 @@ See also:
 The repository should move toward:
 
 - common core that can change often
+- execution gates that change rarely
 - adapter surfaces that change rarely
 - project executors that remain project-owned
 - versioned contracts whenever the stable boundary must move
@@ -252,11 +301,13 @@ The repository should move toward:
 The normal project-upgrade expectation should be:
 
 - update common jars
+- keep execution gate usage unchanged
 - keep adapter code unchanged
 - keep project business code unchanged unless business behavior itself changed
 
 not:
 
+- let projects call changed common internals directly
 - rewrite project adapter code after every common-core improvement
 
 For many-project maintenance, use the fleet operating model:

@@ -10,6 +10,9 @@
             <if test="traceId != null and traceId != ''">
                 AND TRACE_ID = #{traceId}
             </if>
+            <if test="projectId != null and projectId != ''">
+                AND PROJECT_ID = #{projectId}
+            </if>
             <if test="actorId != null and actorId != ''">
                 AND ACTOR_ID = #{actorId}
             </if>
@@ -39,6 +42,9 @@
         <where>
             <if test="traceId != null and traceId != ''">
                 AND TRACE_ID = #{traceId}
+            </if>
+            <if test="projectId != null and projectId != ''">
+                AND PROJECT_ID = #{projectId}
             </if>
             <if test="pageId != null and pageId != ''">
                 AND PAGE_ID = #{pageId}
@@ -70,6 +76,9 @@
 
     <sql id="accessEventWhere">
         <where>
+            <if test="projectId != null and projectId != ''">
+                AND PROJECT_ID = #{projectId}
+            </if>
             <if test="insttId != null and insttId != ''">
                 AND COALESCE(TARGET_COMPANY_CONTEXT_ID, COMPANY_CONTEXT_ID, ACTOR_INSTT_ID, '') = #{insttId}
             </if>
@@ -99,6 +108,9 @@
 
     <sql id="errorEventWhere">
         <where>
+            <if test="projectId != null and projectId != ''">
+                AND PROJECT_ID = #{projectId}
+            </if>
             <if test="sourceType != null and sourceType != ''">
                 AND SOURCE_TYPE = #{sourceType}
             </if>
@@ -141,6 +153,7 @@
     <select id="selectAuditEventList" parameterType="egovframework.com.common.audit.AuditEventSearchVO" resultType="egovframework.com.common.audit.AuditEventRecordVO">
         SELECT
             AUDIT_ID AS auditId,
+            PROJECT_ID AS projectId,
             TRACE_ID AS traceId,
             REQUEST_ID AS requestId,
             ACTOR_ID AS actorId,
@@ -169,6 +182,7 @@
     <select id="selectAuditEventListCompact" parameterType="egovframework.com.common.audit.AuditEventSearchVO" resultType="egovframework.com.common.audit.AuditEventRecordVO">
         SELECT
             AUDIT_ID AS auditId,
+            PROJECT_ID AS projectId,
             TRACE_ID AS traceId,
             REQUEST_ID AS requestId,
             ACTOR_ID AS actorId,
@@ -203,6 +217,7 @@
     <select id="selectTraceEventList" parameterType="egovframework.com.common.trace.TraceEventSearchVO" resultType="egovframework.com.common.trace.TraceEventRecordVO">
         SELECT
             EVENT_ID AS eventId,
+            PROJECT_ID AS projectId,
             TRACE_ID AS traceId,
             SPAN_ID AS spanId,
             PARENT_SPAN_ID AS parentSpanId,
@@ -225,6 +240,7 @@
     <select id="selectTraceEventListCompact" parameterType="egovframework.com.common.trace.TraceEventSearchVO" resultType="egovframework.com.common.trace.TraceEventRecordVO">
         SELECT
             EVENT_ID AS eventId,
+            PROJECT_ID AS projectId,
             TRACE_ID AS traceId,
             SPAN_ID AS spanId,
             PARENT_SPAN_ID AS parentSpanId,
@@ -253,6 +269,7 @@
     <select id="selectAccessEventList" parameterType="egovframework.com.common.logging.AccessEventSearchVO" resultType="egovframework.com.common.logging.AccessEventRecordVO">
         SELECT
             EVENT_ID AS eventId,
+            PROJECT_ID AS projectId,
             TRACE_ID AS traceId,
             REQUEST_ID AS requestId,
             PAGE_ID AS pageId,
@@ -286,6 +303,7 @@
     <select id="selectAccessEventListCompact" parameterType="egovframework.com.common.logging.AccessEventSearchVO" resultType="egovframework.com.common.logging.AccessEventRecordVO">
         SELECT
             EVENT_ID AS eventId,
+            PROJECT_ID AS projectId,
             TRACE_ID AS traceId,
             REQUEST_ID AS requestId,
             PAGE_ID AS pageId,
@@ -325,6 +343,7 @@
     <select id="selectErrorEventList" parameterType="egovframework.com.common.error.ErrorEventSearchVO" resultType="egovframework.com.common.error.ErrorEventRecordVO">
         SELECT
             ERROR_ID AS errorId,
+            PROJECT_ID AS projectId,
             TRACE_ID AS traceId,
             REQUEST_ID AS requestId,
             PAGE_ID AS pageId,
@@ -351,6 +370,7 @@
     <select id="selectErrorEventListCompact" parameterType="egovframework.com.common.error.ErrorEventSearchVO" resultType="egovframework.com.common.error.ErrorEventRecordVO">
         SELECT
             ERROR_ID AS errorId,
+            PROJECT_ID AS projectId,
             TRACE_ID AS traceId,
             REQUEST_ID AS requestId,
             PAGE_ID AS pageId,

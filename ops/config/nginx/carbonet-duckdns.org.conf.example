@@ -1,6 +1,17 @@
-upstream carbonet_app {
-    include /etc/nginx/carbonet/carbonet-main-upstream.inc;
-    include /etc/nginx/carbonet/carbonet-idle-upstream.inc;
+upstream carbonet_ops {
+    server 127.0.0.1:18001 max_fails=3 fail_timeout=5s;
+    keepalive 32;
+}
+
+# Example: Project P001 upstream
+upstream project_p001 {
+    server 127.0.0.1:18000 max_fails=3 fail_timeout=5s;
+    keepalive 32;
+}
+
+# Example: Project P002 upstream
+upstream project_p002 {
+    server 127.0.0.1:18002 max_fails=3 fail_timeout=5s;
     keepalive 32;
 }
 
@@ -43,11 +54,26 @@ server {
         return 301 https://carbonet.duckdns.org/home;
     }
 
-    location = /home {
-        proxy_pass http://carbonet_app;
+    # Route Admin and Ops API to Operations Console (18001)
+    location /admin {
+        proxy_pass http://carbonet_ops;
+    }
+
+    location /api/operations {
+        proxy_pass http://carbonet_ops;
+    }
+
+    # Route specific project prefixes to their respective upstreams
+    location /r/P001/ {
+        proxy_pass http://project_p001/;
+    }
+
+    location /r/P002/ {
+        proxy_pass http://project_p002/;
     }
 
     location / {
-        proxy_pass http://carbonet_app;
+        # Fallback to ops console or a default landing page
+        proxy_pass http://carbonet_ops;
     }
 }

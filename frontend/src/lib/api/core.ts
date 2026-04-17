@@ -263,7 +263,8 @@ export async function fetchJsonWithResponse<T>(
 ): Promise<{ response: Response; body: T }> {
   const response = await apiFetch(url, {
     credentials: "include",
-    ...(init || {})
+    ...(init || {}),
+    headers: buildJsonRequestHeaders(init?.headers)
   });
   const body = await readJsonResponse<T>(response);
   return { response, body };

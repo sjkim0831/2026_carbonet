@@ -1,4 +1,5 @@
 import { normalizeRegistryPath } from "../../framework/registry/pathNormalization";
+import { EXTERNAL_ROUTE_FAMILIES } from "../../platform/routes/platformRouteRegistry";
 import {
   ALL_ROUTE_CLOSEOUT_BINDINGS,
   ALL_ROUTE_FAMILY_CLOSEOUTS,
@@ -20,6 +21,7 @@ export type RouteInstallDeployCloseout = RouteFamilyCloseout["installDeploy"];
 export type RouteSystemization = RouteFamilyCloseout["systemization"];
 export type RouteOwnershipTrace = {
   routeId: MigrationPageId;
+  routeScope: "RUNTIME" | "PLATFORM";
   routeLabel: string;
   canonicalRoute: string;
   localizedRoutes: {
@@ -48,6 +50,10 @@ const ROUTE_CLOSEOUT_PATH_MAP = new Map<string, RouteFamilyCloseout>();
 const ROUTE_OWNERSHIP_TRACE_MAP = new Map<MigrationPageId, RouteOwnershipTrace>();
 const ROUTE_OWNERSHIP_TRACE_PATH_MAP = new Map<string, RouteOwnershipTrace>();
 
+const PLATFORM_FAMILY_IDS = new Set<string>(
+  EXTERNAL_ROUTE_FAMILIES.map((family) => family.closeout.familyId)
+);
+
 function reportRouteCatalogIssue(message: string) {
   if (typeof console !== "undefined") {
     console.error(`[route-catalog] ${message}`);
@@ -71,6 +77,7 @@ ALL_ROUTE_DEFINITIONS.forEach((definition) => {
 
   const ownershipTrace: RouteOwnershipTrace = {
     routeId: definition.id,
+    routeScope: PLATFORM_FAMILY_IDS.has(closeout.familyId) ? "PLATFORM" : "RUNTIME",
     routeLabel: definition.label,
     canonicalRoute: definition.koPath,
     localizedRoutes: {

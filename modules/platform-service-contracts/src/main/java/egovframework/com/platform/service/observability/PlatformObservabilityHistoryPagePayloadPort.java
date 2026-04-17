@@ -1,6 +1,6 @@
 package egovframework.com.platform.service.observability;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 public interface PlatformObservabilityHistoryPagePayloadPort {

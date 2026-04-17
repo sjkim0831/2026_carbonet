@@ -67,11 +67,15 @@ archive_artifact() {
 }
 
 deploy_main() {
-  log "Deploying release package to main target ($MAIN_TARGET)"
+  log "Deploying release package to main target ($MAIN_TARGET) using Blue/Green Zero-Downtime strategy"
   
-  # Sync the files to the remote server using the script we created
+  # Set a default base port based on project (you can enhance this to be dynamic)
+  local BASE_PORT=18000
+  if [ "$PROJECT_ID" == "p004" ]; then BASE_PORT=18002; fi
+
+  # Sync the files to the remote server using the BG script we created
   # We override the ROOT_DIR inside the subshell to point to the cloned repo
-  (cd "$BUILD_DIR" && bash ops/scripts/deploy-project-release.sh "$PROJECT_ID" "$MAIN_TARGET" "$MAIN_REMOTE_ROOT")
+  (cd "$BUILD_DIR" && bash ops/scripts/deploy-project-bg.sh "$PROJECT_ID" "$BASE_PORT" "$MAIN_TARGET" "$MAIN_REMOTE_ROOT")
 }
 
 main() {

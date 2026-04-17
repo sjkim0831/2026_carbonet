@@ -3,6 +3,7 @@ package egovframework.com.common.logging;
 public class AccessEventRecordVO {
 
     private String eventId;
+    private String projectId;
     private String traceId;
     private String requestId;
     private String pageId;
@@ -29,6 +30,8 @@ public class AccessEventRecordVO {
 
     public String getEventId() { return eventId; }
     public void setEventId(String eventId) { this.eventId = eventId; }
+    public String getProjectId() { return projectId; }
+    public void setProjectId(String projectId) { this.projectId = projectId; }
     public String getTraceId() { return traceId; }
     public void setTraceId(String traceId) { this.traceId = traceId; }
     public String getRequestId() { return requestId; }

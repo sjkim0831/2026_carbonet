@@ -1100,12 +1100,15 @@ export async function fetchTraceEvents(params?: {
 
 export async function fetchHelpManagementPage(pageId: string): Promise<HelpManagementPagePayload> {
   const query = buildQueryString({ pageId });
-  return fetchPageJson<HelpManagementPagePayload>(`${buildAdminApiPath("/api/platform/help-management/page")}${query}`, {
+  return fetchPageJson<HelpManagementPagePayload>(
+    `${buildLocalizedPath("/admin/api/platform/help-management/page", "/en/admin/api/platform/help-management/page")}${query}`,
+    {
     init: {
       apiId: "admin.help-management.page"
     },
     fallbackMessage: "Failed to load help management page"
-  });
+    }
+  );
 }
 
 export async function saveHelpManagementPage(payload: {
@@ -1116,8 +1119,9 @@ export async function saveHelpManagementPage(payload: {
   activeYn: string;
   items: HelpManagementItem[];
 }) {
-  return postAdminValidatedJson<{ success: boolean; pageId: string; message: string }>(
-    "/api/platform/help-management/save",
+  return postLocalizedValidatedJson<{ success: boolean; pageId: string; message: string }>(
+    "/admin/api/platform/help-management/save",
+    "/en/admin/api/platform/help-management/save",
     payload,
     "Failed to save help management page",
     {
@@ -1131,12 +1135,15 @@ export async function saveHelpManagementPage(payload: {
 
 export async function fetchScreenCommandPage(pageId: string): Promise<ScreenCommandPagePayload> {
   const query = buildQueryString({ pageId });
-  return fetchPageJson<ScreenCommandPagePayload>(`${buildAdminApiPath("/api/platform/help-management/screen-command/page")}${query}`, {
+  return fetchPageJson<ScreenCommandPagePayload>(
+    `${buildLocalizedPath("/admin/api/platform/help-management/screen-command/page", "/en/admin/api/platform/help-management/screen-command/page")}${query}`,
+    {
     init: {
       apiId: "admin.help-management.screen-command.page"
     },
     fallbackMessage: "Failed to load screen command page"
-  });
+    }
+  );
 }
 
 export async function saveScreenCommandMenuMapping(payload: {
@@ -1146,8 +1153,9 @@ export async function saveScreenCommandMenuMapping(payload: {
   menuUrl: string;
   domainCode: string;
 }) {
-  return postAdminValidatedJson<{ success: boolean; message: string; pageId: string; menuCode: string; routePath: string }>(
-    "/api/platform/help-management/screen-command/map-menu",
+  return postLocalizedValidatedJson<{ success: boolean; message: string; pageId: string; menuCode: string; routePath: string }>(
+    "/admin/api/platform/help-management/screen-command/map-menu",
+    "/en/admin/api/platform/help-management/screen-command/map-menu",
     payload,
     "Failed to save screen command menu mapping",
     {

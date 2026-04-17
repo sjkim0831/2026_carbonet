@@ -8,6 +8,7 @@ import lombok.Setter;
 public class TraceEventRecordVO {
 
     private String eventId;
+    private String projectId;
     private String traceId;
     private String spanId;
     private String parentSpanId;
@@ -23,6 +24,10 @@ public class TraceEventRecordVO {
 
     public String getEventId() {
         return eventId;
+    }
+
+    public String getProjectId() {
+        return projectId;
     }
 
     public String getTraceId() {

@@ -17,7 +17,6 @@
     <name>common-auth</name>
 
     <build>
-        <sourceDirectory>${project.basedir}/../../src/main/java</sourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

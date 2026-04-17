@@ -58,7 +58,6 @@ egovframework/com/framework/builder/model/FrameworkBuilderCompatibilityCheckRequ
 egovframework/com/platform/screenbuilder/support/ScreenBuilderArtifactSetNormalizer.class
 egovframework/com/framework/builder/model/FrameworkBuilderCompatibilityResultItemVO.class
 egovframework/com/platform/screenbuilder/support/impl/FileScreenBuilderLegacyRegistrySourceAdapter.class
-egovframework/com/platform/screenbuilder/service/impl/ScreenBuilderDraftServiceImpl$1.class
 egovframework/com/platform/screenbuilder/support/ScreenBuilderRuntimeComparePolicyPort.class
 egovframework/com/common/trace/UiComponentUsageVO.class
 egovframework/com/framework/builder/support/FrameworkBuilderObservabilityPort.class

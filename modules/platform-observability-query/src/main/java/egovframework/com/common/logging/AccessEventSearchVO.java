@@ -4,6 +4,7 @@ public class AccessEventSearchVO {
 
     private int firstIndex;
     private int recordCountPerPage;
+    private String projectId;
     private String searchKeyword;
     private String insttId;
     private String actorId;
@@ -15,6 +16,8 @@ public class AccessEventSearchVO {
     public void setFirstIndex(int firstIndex) { this.firstIndex = firstIndex; }
     public int getRecordCountPerPage() { return recordCountPerPage; }
     public void setRecordCountPerPage(int recordCountPerPage) { this.recordCountPerPage = recordCountPerPage; }
+    public String getProjectId() { return projectId; }
+    public void setProjectId(String projectId) { this.projectId = projectId; }
     public String getSearchKeyword() { return searchKeyword; }
     public void setSearchKeyword(String searchKeyword) { this.searchKeyword = searchKeyword; }
     public String getInsttId() { return insttId; }

@@ -15,6 +15,25 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUN_DIR="$ROOT_DIR/var/run/project-runtime/$PROJECT_ID"
 PID_FILE="$RUN_DIR/project-runtime.pid"
+MANIFEST_FILE="$ROOT_DIR/data/version-control/project-runtime-manifest.json"
+
+get_port() {
+  if [[ -f "$MANIFEST_FILE" ]]; then
+    python3 -c "
+import json, re
+try:
+  with open('$MANIFEST_FILE') as f:
+    data = json.load(f)
+  cmd = data.get('projects', {}).get('$PROJECT_ID', {}).get('runtime', {}).get('bootCommand', '')
+  match = re.search(r'--server\.port=(\d+)', cmd)
+  print(match.group(1) if match else '18000')
+except Exception:
+  print('18000')
+" 2>/dev/null || echo "18000"
+  else
+    echo "18000"
+  fi
+}
 
 status() {
     if [[ -f "$PID_FILE" ]]; then
@@ -38,9 +57,10 @@ start() {
         return 0
     fi
 
-    echo "Starting Project $PROJECT_ID..."
+    local port=$(get_port)
+    echo "Starting Project $PROJECT_ID on port $port..."
     # Delegate to the actual start script, running in background using nohup
-    nohup bash "$ROOT_DIR/ops/scripts/start-project-runtime.sh" "$PROJECT_ID" > /dev/null 2>&1 &
+    nohup bash "$ROOT_DIR/ops/scripts/start-project-runtime.sh" "$PROJECT_ID" "$port" > /dev/null 2>&1 &
     NEW_PID=$!
     
     # Save PID

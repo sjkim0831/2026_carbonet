@@ -8,9 +8,9 @@ public interface PlatformObservabilityPagePayloadPort {
                                                      String deliveryKeyword, String deliveryPage,
                                                      String activityAction, String activityKeyword, String activityPage);
 
-    Map<String, Object> buildPerformancePagePayload(javax.servlet.http.HttpServletRequest request, boolean isEn);
+    Map<String, Object> buildPerformancePagePayload(jakarta.servlet.http.HttpServletRequest request, boolean isEn);
 
-    Map<String, Object> buildOperationsCenterPagePayload(javax.servlet.http.HttpServletRequest request, boolean isEn);
+    Map<String, Object> buildOperationsCenterPagePayload(jakarta.servlet.http.HttpServletRequest request, boolean isEn);
 
     Map<String, Object> buildSensorListPagePayload(boolean isEn);
 

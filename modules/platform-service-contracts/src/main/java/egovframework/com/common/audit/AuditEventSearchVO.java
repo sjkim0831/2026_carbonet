@@ -9,6 +9,7 @@ public class AuditEventSearchVO {
 
     private int firstIndex;
     private int recordCountPerPage;
+    private String projectId;
     private String traceId;
     private String actorId;
     private String actionCode;
@@ -23,6 +24,14 @@ public class AuditEventSearchVO {
 
     public void setRecordCountPerPage(int recordCountPerPage) {
         this.recordCountPerPage = recordCountPerPage;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
     }
 
     public void setActionCode(String actionCode) {

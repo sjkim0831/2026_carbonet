@@ -2,7 +2,7 @@ package egovframework.com.feature.admin.framework.builder.support.impl;
 
 import egovframework.com.framework.builder.support.FrameworkBuilderRequestContextPort;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Locale;
 
 public class CarbonetFrameworkBuilderRequestContextAdapter implements FrameworkBuilderRequestContextPort {

@@ -9,7 +9,7 @@ import { EMISSION_MONITORING_FAMILY } from "./emissionMonitoringFamily";
 import { HOME_EXPERIENCE_FAMILY } from "./homeExperienceFamily";
 import { TRADE_PAYMENT_FAMILY } from "./tradePaymentFamily";
 
-const APP_ROUTE_FAMILIES = [
+export const APP_ROUTE_FAMILIES = [
   APP_OWNED_FAMILY,
   ADMIN_MEMBER_FAMILY,
   TRADE_PAYMENT_FAMILY,
@@ -19,7 +19,7 @@ const APP_ROUTE_FAMILIES = [
   HOME_EXPERIENCE_FAMILY
 ] as const;
 
-const ALL_ROUTE_FAMILIES = [
+export const ALL_ROUTE_FAMILIES = [
   ...APP_ROUTE_FAMILIES,
   ...EXTERNAL_ROUTE_FAMILIES
 ] as const;

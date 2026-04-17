@@ -11,6 +11,8 @@ public class InsttInfoVO implements Serializable {
 
     /** 기관 ID */
     private String insttId;
+    /** 프로젝트 ID */
+    private String projectId;
     /** 기관 명 */
     private String insttNm;
     /** 대표자 명 */
@@ -50,6 +52,14 @@ public class InsttInfoVO implements Serializable {
 
     public void setInsttId(String insttId) {
         this.insttId = insttId;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
     }
 
     public String getInsttNm() {

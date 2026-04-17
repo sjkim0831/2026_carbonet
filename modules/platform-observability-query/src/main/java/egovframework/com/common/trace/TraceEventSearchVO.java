@@ -4,6 +4,7 @@ public class TraceEventSearchVO {
 
     private int firstIndex;
     private int recordCountPerPage;
+    private String projectId;
     private String traceId;
     private String pageId;
     private String componentId;
@@ -17,6 +18,8 @@ public class TraceEventSearchVO {
     public void setFirstIndex(int firstIndex) { this.firstIndex = firstIndex; }
     public int getRecordCountPerPage() { return recordCountPerPage; }
     public void setRecordCountPerPage(int recordCountPerPage) { this.recordCountPerPage = recordCountPerPage; }
+    public String getProjectId() { return projectId; }
+    public void setProjectId(String projectId) { this.projectId = projectId; }
     public String getTraceId() { return traceId; }
     public void setTraceId(String traceId) { this.traceId = traceId; }
     public String getPageId() { return pageId; }

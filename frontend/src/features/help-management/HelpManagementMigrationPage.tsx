@@ -63,7 +63,7 @@ export function HelpManagementMigrationPage() {
         pageId: "help-management",
         actionCode: "HELP_CONTENT_SAVE",
         searchKeyword: pageId
-      })
+      }).catch(() => null)
     ]);
     setPayload(next);
     setAuditPage(auditPayload);

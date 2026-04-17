@@ -10,6 +10,7 @@ public class AdminUnifiedLogRowResponse {
     private String logId;
     private String logType;
     private String detailType;
+    private String projectId;
     private String occurredAt;
     private String resultCode;
     private String actorId;

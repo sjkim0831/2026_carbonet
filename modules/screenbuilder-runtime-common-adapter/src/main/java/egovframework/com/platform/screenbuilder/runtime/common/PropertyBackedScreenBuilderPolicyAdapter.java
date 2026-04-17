@@ -7,7 +7,7 @@ import egovframework.com.platform.screenbuilder.support.ScreenBuilderRequestCont
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderRuntimeComparePolicyPort;
 import egovframework.com.platform.screenbuilder.support.model.ScreenBuilderMenuDescriptor;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;

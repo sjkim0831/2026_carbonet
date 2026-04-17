@@ -12,6 +12,7 @@ public class AdminUnifiedLogSearchRequestDTO {
     private String tab;
     private String logType;
     private String detailType;
+    private String projectId;
     private String resultCode;
     private String actorId;
     private String actorRole;

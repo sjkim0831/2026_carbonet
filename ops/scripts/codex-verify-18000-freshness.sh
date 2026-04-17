@@ -45,9 +45,10 @@ RUNTIME_JAR_PATH="${RUNTIME_JAR_PATH:-$RUN_DIR/carbonet-${PORT}.jar}"
 PID_FILE="${PID_FILE:-$RUN_DIR/carbonet-${PORT}.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/carbonet-${PORT}.log}"
 HEALTH_URL="${HEALTH_URL:-$(carbonet_runtime_health_url)}"
-STARTUP_MARKER="${STARTUP_MARKER:-Tomcat started on port(s): ${PORT}}"
+STARTUP_MARKER="${STARTUP_MARKER:-Tomcat started on port ${PORT}}"
 VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-60}"
 VERIFY_EXTENDED_WAIT_SECONDS="${VERIFY_EXTENDED_WAIT_SECONDS:-180}"
+VERIFY_LOG_TAIL_LINES="${VERIFY_LOG_TAIL_LINES:-20000}"
 VERIFY_EXTERNAL_MONITORING_BOOTSTRAP="${VERIFY_EXTERNAL_MONITORING_BOOTSTRAP:-false}"
 VERIFY_CLOB_FALLBACK_LOGS="${VERIFY_CLOB_FALLBACK_LOGS:-true}"
 CLOB_FALLBACK_LOG_PATTERN="${CLOB_FALLBACK_LOG_PATTERN:-Access event persistence failed due to CLOB binding|Audit event persistence failed due to CLOB binding|Error event persistence failed due to CLOB binding|Trace payload persistence failed due to CLOB binding|Failed to persist access event after compact retry|Failed to persist audit event after compact retry|Failed to persist error event after compact retry|Failed to persist trace event after retry without payload}"
@@ -77,25 +78,16 @@ port_is_listening() {
 }
 
 log_has_startup_marker() {
-  [[ -f "$LOG_FILE" ]] && grep -q "$STARTUP_MARKER" "$LOG_FILE"
+  [[ -f "$LOG_FILE" ]] && grep -a -F -q "$STARTUP_MARKER" < <(tail -n "$VERIFY_LOG_TAIL_LINES" "$LOG_FILE")
 }
 
 log_since_latest_startup_has() {
   local pattern="$1"
   [[ -f "$LOG_FILE" ]] || return 1
-  awk -v marker="$STARTUP_MARKER" -v pattern="$pattern" '
-    index($0, marker) {
-      seen = 1
-      found = 0
-      next
-    }
-    seen && $0 ~ pattern {
-      found = 1
-    }
-    END {
-      exit(found ? 0 : 1)
-    }
-  ' "$LOG_FILE"
+  local latest_startup_line=""
+  latest_startup_line="$(grep -a -nF "$STARTUP_MARKER" < <(tail -n "$VERIFY_LOG_TAIL_LINES" "$LOG_FILE") | tail -n 1 | cut -d: -f1 || true)"
+  [[ -n "$latest_startup_line" ]] || return 1
+  grep -a -Eq "$pattern" < <(tail -n "$VERIFY_LOG_TAIL_LINES" "$LOG_FILE" | tail -n "+$latest_startup_line")
 }
 
 health_is_up() {

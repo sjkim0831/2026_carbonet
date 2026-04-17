@@ -8,6 +8,7 @@ import lombok.Setter;
 public class ErrorEventRecordVO {
 
     private String errorId;
+    private String projectId;
     private String traceId;
     private String requestId;
     private String pageId;
@@ -27,6 +28,10 @@ public class ErrorEventRecordVO {
 
     public String getErrorId() {
         return errorId;
+    }
+
+    public String getProjectId() {
+        return projectId;
     }
 
     public String getTraceId() {
@@ -95,6 +100,10 @@ public class ErrorEventRecordVO {
 
     public void setErrorId(String errorId) {
         this.errorId = errorId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
     }
 
     public void setTraceId(String traceId) {

@@ -8,6 +8,7 @@ import lombok.Setter;
 public class AuditEventRecordVO {
 
     private String auditId;
+    private String projectId;
     private String traceId;
     private String requestId;
     private String actorId;

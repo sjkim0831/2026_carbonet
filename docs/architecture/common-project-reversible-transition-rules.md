@@ -29,6 +29,7 @@ Do not ask only:
 Also ask:
 
 - "how easily can this move later without rewrite?"
+- "can execution stay forced through one stable common gate later?"
 
 That means every change should be classified for both:
 
@@ -161,6 +162,31 @@ Do not let reusable core services depend on:
 
 Use wrappers only as compatibility shims.
 
+## Gate Rule
+
+If common behavior must be executed from project runtime or operations/admin runtime, require a common-owned execution gate.
+
+Do not allow:
+
+- `project controller -> internal common service`
+- `operations screen -> internal common service`
+- `project runtime -> framework-version-specific common helper`
+
+Prefer:
+
+- `project runtime -> common execution gate`
+- `operations console -> common execution gate`
+- `common execution gate -> common internals and version-specific adapters`
+
+The gate should be:
+
+- common-owned
+- stable across normal patch and minor upgrades
+- DTO and contract based
+- free from direct project package types
+
+If a change request creates a new direct call path into common internals, stop and add or extend the gate instead.
+
 ## Page Systemization Rule
 
 When a request is really about turning existing pages into reusable system assets, do not stop at controller or route moves.
@@ -203,7 +229,7 @@ When the current repository still uses one shared admin surface, do not force an
 Prefer this order:
 
 1. classify admin screens into `COMMON_ADMIN_OPS`, `PROJECT_ADMIN`, `COMMON_DEF_PROJECT_BIND`, or `MIXED_TRANSITION`
-2. separate authority scope, API port, route scope, and data scope
+2. separate authority scope, API port, execution gate, route scope, and data scope
 3. keep shared UI shells and component families where that reduces migration risk
 4. separate runtime packaging only after screen ownership and adapter boundaries are explicit
 
@@ -252,6 +278,18 @@ If fast cross-project reuse is a goal:
 - backend reusable core should move toward versioned `jar`
 - frontend reusable core should move toward shared package or bundle
 - projects should contribute thin adapters and overlays
+- projects and operations consoles should execute reusable behavior only through common gates
+
+## Upgrade Heuristic
+
+For large framework upgrades or many-module waves such as "200 modules", require this check before implementation:
+
+1. which flows are already forced through a common gate
+2. which flows still bypass the gate
+3. which bypasses must be removed before the upgrade wave
+4. whether operations-console and project-runtime each have stable gates where needed
+
+If the answer is "projects still call common internals directly", the repository is not ready for low-touch fleet upgrades.
 
 ## Immediate Heuristics
 

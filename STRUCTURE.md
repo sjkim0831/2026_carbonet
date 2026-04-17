@@ -43,10 +43,21 @@ Also avoid `docs/ai/60-operations/session-orchestration/archive/` and `**/*examp
   - full-stack frontend authoring source for routes, screen registry, page manifests, and framework contracts
 - `modules`
   - reusable backend module lines
+  - `carbonet-common-core`: The monolithic core containing shared business logic, controllers, and services (formerly in root src/main/java).
   - builder core, builder adapters, platform contracts, platform observability/help/runtime-control/version-control families
 - `apps`
   - executable runtime assemblies
-  - current executable app target under `apps/carbonet-app`
+  - `carbonet-app`: Legacy full-assembly app target.
+  - `project-runtime`: Independent execution lane for project business logic, dynamically binding to an adapter.
+  - `operations-console`: Platform lane for system administration and package governance.
+- `projects`
+  - `carbonet-adapter`: Example of a thin project adapter providing custom menu/authority bindings for project-runtime.
+- `data/version-control`
+  - Source of Truth JSON files (`package-registry.json`, `compatibility-matrix.json`, `project-runtime-manifest.json`) for package governance.
+- `var/run`
+  - Independent boot targets for runtimes:
+  - `project-runtime/<project-id>/`: Directory containing `project-runtime.jar`, `lib/adapter.jar`, and `config/manifest.json`.
+  - `operations-console/`: Directory for the platform control plane.
 - `templates`
   - project bootstrap templates and install manifests
 - `ops`

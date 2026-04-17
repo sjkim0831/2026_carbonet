@@ -22,16 +22,16 @@ in the same turn.
 
 | Row | Shim Class | Target Removal Trigger | Current State |
 | --- | --- | --- | --- |
-| `1` | `CarbonetScreenBuilderComponentRegistrySourceBridge` | All Component Registry read/write logic moved to `platform` | `PENDING_DEPENDENCY` |
-| `2` | `CarbonetMenuInfoCommandAdapter` | `MenuInfoService` moved to `platform` or common-admin-runtime | `PENDING_DEPENDENCY` |
+| `1` | `CarbonetScreenBuilderComponentRegistrySourceBridge` | All Component Registry read/write logic moved to `platform` | `DELETED` |
+| `2` | `CarbonetMenuInfoCommandAdapter` | `MenuInfoService` moved to `platform` or common-admin-runtime | `DELETED` |
 | `3` | `CarbonetScreenBuilderAuthoritySourceBridge` | Authority scope logic moved to `platform-auth` | `PENDING_DEPENDENCY` |
-| `4` | `CarbonetAdminMenuTreeReadAdapter` | `AdminMenuTreeService` moved to `platform` | `PENDING_DEPENDENCY` |
-| `5` | `CarbonetScreenBuilderCommandPageSourceBridge` | `ScreenCommandCenterService` moved to `platform` | `PENDING_DEPENDENCY` |
-| `6` | `CarbonetScreenBuilderMenuSourceBridge` | `MenuInfoService` moved to `platform` | `PENDING_DEPENDENCY` |
-| `7` | `CarbonetMenuInfoReadAdapter` | `MenuInfoService` moved to `platform` | `PENDING_DEPENDENCY` |
-| `8` | `CarbonetAdminSummaryReadAdapter` | `AdminSummaryService` moved to `platform` | `PENDING_DEPENDENCY` |
-| `9` | `CarbonetFullStackGovernanceRegistryReadAdapter` | Governance registry moved to `platform` | `PENDING_DEPENDENCY` |
-| `10` | `CarbonetAdminRouteSourceBridge` | React route forwarding moved to `carbonet-web-support` | `PENDING_DEPENDENCY` |
+| `4` | `CarbonetAdminMenuTreeReadAdapter` | `AdminMenuTreeService` moved to `platform` | `DELETED` |
+| `5` | `CarbonetScreenBuilderCommandPageSourceBridge` | `ScreenCommandCenterService` moved to `platform` | `DELETED` |
+| `6` | `CarbonetScreenBuilderMenuSourceBridge` | `MenuInfoService` moved to `platform` | `DELETED` |
+| `7` | `CarbonetMenuInfoReadAdapter` | `MenuInfoService` moved to `platform` | `DELETED` |
+| `8` | `CarbonetAdminSummaryReadAdapter` | `AdminSummaryService` moved to `platform` | `DELETED` |
+| `9` | `CarbonetFullStackGovernanceRegistryReadAdapter` | Governance registry moved to `platform` | `DELETED` |
+| `10` | `CarbonetAdminRouteSourceBridge` | React route forwarding moved to `carbonet-web-support` | `DELETED` |
 
 ## Reading Order
 

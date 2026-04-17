@@ -86,6 +86,7 @@ Read only what you need:
    - health or route responds
    - newest jar copied into `var/run`
    - when the task is a page or route, request the exact changed URL after restart and confirm it returns the React shell or expected page response
+   - when the task changes bootstrap routing or page-shell entry behavior, also request the exact bootstrap endpoint and confirm the returned route/payload owner is correct
 5. If the task changed an existing route or workflow, run a pre-change and post-change baseline on the same exact path whenever feasible:
    - route response or redirect
    - metadata endpoint when available
@@ -107,6 +108,9 @@ Read only what you need:
 - When remote DB or remote app restart is involved, do not claim success from script launch alone.
   Verify remote stop/start/restart state, remote port listen state, and an internal route response from the remote host itself.
 - When the task adds or changes a concrete route such as `/edu/...` or `/admin/...`, verify that exact route over HTTP after `codex-verify-18000-freshness.sh`.
+- When the task adds or changes a bootstrap adapter, bootstrap registry, login entry path, or shell route resolver, verify both:
+  - the page URL such as `/admin/login/loginView`
+  - the paired bootstrap URL such as `/admin/login/api/app/bootstrap`
 - If changes can affect hard refresh behavior, mention whether shell freshness and asset freshness are both preserved.
 
 ## Verification Minimum
@@ -117,6 +121,12 @@ After making relevant changes, verify at least:
 - backend package if runtime jar contents changed
 - local restart if `:18000` behavior changed
 - a runtime signal such as startup log, listening port, or HTTP response
+
+When bootstrap compatibility changed, verify at least:
+
+- bootstrap endpoint returns the intended route id
+- bootstrap endpoint returns the intended requested-path or equivalent binding signal
+- page URL does not regress into redirect loops
 
 ## Response Shape
 

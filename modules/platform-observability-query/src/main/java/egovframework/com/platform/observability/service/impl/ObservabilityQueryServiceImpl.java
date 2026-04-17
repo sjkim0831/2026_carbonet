@@ -133,6 +133,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         AccessEventSearchVO searchVO = new AccessEventSearchVO();
         searchVO.setFirstIndex(0);
         searchVO.setRecordCountPerPage(resolveFetchWindow(searchDTO));
+        searchVO.setProjectId(safe(searchDTO.getProjectId()));
         searchVO.setSearchKeyword(safe(searchDTO.getSearchKeyword()));
         searchVO.setInsttId(safe(searchDTO.getInsttId()));
         searchVO.setActorId(safe(searchDTO.getActorId()));
@@ -145,6 +146,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
             row.setLogId(item.getEventId());
             row.setLogType("ACCESS");
             row.setDetailType(safe(item.getFeatureType()));
+            row.setProjectId(item.getProjectId());
             row.setOccurredAt(item.getCreatedAt());
             row.setResultCode(item.getResponseStatus() == null ? "" : String.valueOf(item.getResponseStatus()));
             row.setActorId(item.getActorId());
@@ -187,6 +189,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         AuditEventSearchVO searchVO = new AuditEventSearchVO();
         searchVO.setFirstIndex(0);
         searchVO.setRecordCountPerPage(resolveFetchWindow(searchDTO));
+        searchVO.setProjectId(safe(searchDTO.getProjectId()));
         searchVO.setTraceId(safe(searchDTO.getTraceId()));
         searchVO.setActorId(safe(searchDTO.getActorId()));
         searchVO.setActionCode(safe(searchDTO.getActionCode()));
@@ -200,6 +203,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
             row.setLogId(item.getAuditId());
             row.setLogType("AUDIT");
             row.setDetailType(safe(item.getActionCode()));
+            row.setProjectId(item.getProjectId());
             row.setOccurredAt(item.getCreatedAt());
             row.setResultCode(item.getResultStatus());
             row.setActorId(item.getActorId());
@@ -242,6 +246,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         ErrorEventSearchVO searchVO = new ErrorEventSearchVO();
         searchVO.setFirstIndex(0);
         searchVO.setRecordCountPerPage(resolveFetchWindow(searchDTO));
+        searchVO.setProjectId(safe(searchDTO.getProjectId()));
         searchVO.setSearchKeyword(safe(searchDTO.getSearchKeyword()));
         searchVO.setSourceType(safe(searchDTO.getDetailType()));
         searchVO.setErrorType(safe(searchDTO.getDetailType()));
@@ -256,6 +261,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
             row.setLogId(item.getErrorId());
             row.setLogType("ERROR");
             row.setDetailType(safe(item.getErrorType()));
+            row.setProjectId(item.getProjectId());
             row.setOccurredAt(item.getCreatedAt());
             row.setResultCode(item.getResultStatus());
             row.setActorId(item.getActorId());
@@ -280,6 +286,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         TraceEventSearchVO searchVO = new TraceEventSearchVO();
         searchVO.setFirstIndex(0);
         searchVO.setRecordCountPerPage(resolveFetchWindow(searchDTO));
+        searchVO.setProjectId(safe(searchDTO.getProjectId()));
         searchVO.setTraceId(safe(searchDTO.getTraceId()));
         searchVO.setPageId(safe(searchDTO.getPageId()));
         searchVO.setComponentId(safe(searchDTO.getComponentId()));
@@ -294,6 +301,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
             row.setLogId(item.getEventId());
             row.setLogType("TRACE");
             row.setDetailType(safe(item.getEventType()));
+            row.setProjectId(item.getProjectId());
             row.setOccurredAt(item.getCreatedAt());
             row.setResultCode(item.getResultCode());
             row.setPageId(item.getPageId());
@@ -345,6 +353,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
 
     private boolean matchesUnifiedFilters(AdminUnifiedLogSearchRequestDTO searchDTO, AdminUnifiedLogRowResponse row) {
         return matches(searchDTO.getActorId(), row.getActorId())
+                && matches(searchDTO.getProjectId(), row.getProjectId())
                 && matches(searchDTO.getActorRole(), row.getActorRole())
                 && matches(searchDTO.getInsttId(), row.getInsttId())
                 && matches(searchDTO.getMemberType(), row.getMemberType())
@@ -406,6 +415,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         String haystack = String.join(" ",
                 safe(row.getActorId()),
                 safe(row.getActorRole()),
+                safe(row.getProjectId()),
                 safe(row.getInsttId()),
                 safe(row.getMenuCode()),
                 safe(row.getPageId()),

@@ -1839,6 +1839,7 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     summary: "운영 상태, 우선 대응 큐, 도메인 위젯, 최근 조치 이력과 아직 차단된 incident lifecycle 계약을 함께 점검합니다.",
     items: [
       { id: "status", title: "현재 운영 상태", body: "전체 상태와 갱신 시각을 확인하고 센서 등록/설정/목록 화면으로 이동합니다.", anchorSelector: '[data-help-id="operations-center-status"]' },
+      { id: "project-selector", title: "프로젝트 런타임 선택", body: "중앙 화면에서 프로젝트 runtime 상태와 route prefix, 외부 도메인을 확인하고 해당 프로젝트로 이동합니다.", anchorSelector: '[data-help-id="operations-center-project-selector"]' },
       { id: "closeout", title: "완료 게이트", body: "현재 가능한 상황판 조회와 아직 필요한 실측 metric 출처, 인지 처리, escalation, 담당자 배정, closeout 이력을 구분합니다.", anchorSelector: '[data-help-id="operations-center-closeout-gate"]' },
       { id: "action-contract", title: "Incident 조치 계약", body: "백엔드 lifecycle, 권한, 감사가 연결되기 전까지 인지 처리, 담당자 배정, escalation, closeout 조치는 비활성화됩니다.", anchorSelector: '[data-help-id="operations-center-action-contract"]' },
       { id: "core-summary", title: "핵심 운영 요약", body: "회원, 배출, 보안/시스템 신호를 우선 보고 상세 화면으로 이동합니다.", anchorSelector: '[data-help-id="operations-center-core-summary"]' },

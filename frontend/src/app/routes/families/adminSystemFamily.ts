@@ -47,7 +47,8 @@ const ADMIN_SYSTEM_ROUTE_DEFINITIONS = [
   { id: "db-promotion-policy", label: "DB 반영 정책 카탈로그", group: "admin", koPath: "/admin/system/db-promotion-policy", enPath: "/en/admin/system/db-promotion-policy" },
   { id: "backup-config", label: "백업 설정", group: "admin", koPath: "/admin/system/backup_config", enPath: "/en/admin/system/backup_config" },
   { id: "backup-execution", label: "백업 실행", group: "admin", koPath: "/admin/system/backup", enPath: "/en/admin/system/backup" },
-  { id: "restore-execution", label: "복구 실행", group: "admin", koPath: "/admin/system/restore", enPath: "/en/admin/system/restore" }
+  { id: "restore-execution", label: "복구 실행", group: "admin", koPath: "/admin/system/restore", enPath: "/en/admin/system/restore" },
+  { id: "package-governance", label: "패키지 거버넌스", group: "admin", koPath: "/admin/system/package-governance", enPath: "/en/admin/system/package-governance" }
 ] as const satisfies RouteDefinitionsOf;
 
 const ADMIN_SYSTEM_PAGE_UNITS = [
@@ -96,7 +97,8 @@ const ADMIN_SYSTEM_PAGE_UNITS = [
   { id: "db-sync-deploy", exportName: "DbSyncDeployMigrationPage", loader: () => import("../../../features/db-sync-deploy/DbSyncDeployMigrationPage") },
   { id: "backup-config", exportName: "BackupConfigMigrationPage", loader: () => import("../../../features/backup-config/BackupConfigMigrationPage") },
   { id: "backup-execution", exportName: "BackupConfigMigrationPage", loader: () => import("../../../features/backup-config/BackupConfigMigrationPage") },
-  { id: "restore-execution", exportName: "BackupConfigMigrationPage", loader: () => import("../../../features/backup-config/BackupConfigMigrationPage") }
+  { id: "restore-execution", exportName: "BackupConfigMigrationPage", loader: () => import("../../../features/backup-config/BackupConfigMigrationPage") },
+  { id: "package-governance", exportName: "PackageGovernanceScreen", loader: () => import("../../../platform/operations/governance/PackageGovernanceScreen") }
 ] as const satisfies PageUnitsOf<typeof ADMIN_SYSTEM_ROUTE_DEFINITIONS>;
 
 export const ADMIN_SYSTEM_FAMILY = createRouteFamily(ADMIN_SYSTEM_ROUTE_DEFINITIONS, ADMIN_SYSTEM_PAGE_UNITS, {
