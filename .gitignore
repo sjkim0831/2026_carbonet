@@ -5,6 +5,7 @@
 # Runtime logs
 /var/logs/
 /var/run/
+/var/releases/
 /${sys:LOG_PATH}/
 /var/logs/carbonet-18001.log
 /src/main/resources/static/react-migration/
