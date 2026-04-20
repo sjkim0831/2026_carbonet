@@ -23,6 +23,8 @@ Environment overrides:
   LOG_FILE
   HEALTH_URL
   STARTUP_MARKER
+  FRONTEND_RESOURCE_DIR
+  FRONTEND_APP_RESOURCE_DIR
   VERIFY_WAIT_SECONDS
   VERIFY_EXTENDED_WAIT_SECONDS
   VERIFY_EXTERNAL_MONITORING_BOOTSTRAP=true
@@ -46,6 +48,10 @@ PID_FILE="${PID_FILE:-$RUN_DIR/carbonet-${PORT}.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/carbonet-${PORT}.log}"
 HEALTH_URL="${HEALTH_URL:-$(carbonet_runtime_health_url)}"
 STARTUP_MARKER="${STARTUP_MARKER:-Tomcat started on port ${PORT}}"
+FRONTEND_RESOURCE_DIR="${FRONTEND_RESOURCE_DIR:-$ROOT_DIR/src/main/resources/static/react-app}"
+FRONTEND_APP_RESOURCE_DIR="${FRONTEND_APP_RESOURCE_DIR:-$ROOT_DIR/apps/carbonet-app/src/main/resources/static/react-app}"
+FRONTEND_MANIFEST_PATH="$FRONTEND_RESOURCE_DIR/.vite/manifest.json"
+FRONTEND_APP_MANIFEST_PATH="$FRONTEND_APP_RESOURCE_DIR/.vite/manifest.json"
 VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-60}"
 VERIFY_EXTENDED_WAIT_SECONDS="${VERIFY_EXTENDED_WAIT_SECONDS:-180}"
 VERIFY_LOG_TAIL_LINES="${VERIFY_LOG_TAIL_LINES:-20000}"
@@ -159,6 +165,70 @@ compute_hash() {
   cksum "$file_path" | awk '{print $1 ":" $2}'
 }
 
+compute_stream_hash() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum | awk '{print $1}'
+    return 0
+  fi
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 | awk '{print $1}'
+    return 0
+  fi
+  cksum | awk '{print $1 ":" $2}'
+}
+
+jar_entry_hash() {
+  local jar_path="$1"
+  local entry_path=""
+  local tmp_dir=""
+  command -v jar >/dev/null 2>&1 || fail "jar command is required to verify frontend assets inside jar"
+  tmp_dir="$(mktemp -d)"
+  for entry_path in \
+    "BOOT-INF/classes/static/react-app/.vite/manifest.json" \
+    "static/react-app/.vite/manifest.json"; do
+    if (cd "$tmp_dir" && jar xf "$jar_path" "$entry_path") >/dev/null 2>&1 && [[ -f "$tmp_dir/$entry_path" ]]; then
+      compute_hash "$tmp_dir/$entry_path"
+      rm -rf "$tmp_dir"
+      return 0
+    fi
+  done
+  rm -rf "$tmp_dir"
+  return 1
+}
+
+verify_frontend_file_list() {
+  local tmp_dir=""
+  local app_files=""
+  local jar_files=""
+  command -v jar >/dev/null 2>&1 || fail "jar command is required to verify frontend assets inside jar"
+  tmp_dir="$(mktemp -d)"
+  app_files="$tmp_dir/app-files.txt"
+  jar_files="$tmp_dir/jar-files.txt"
+
+  (cd "$FRONTEND_APP_RESOURCE_DIR" && find . -type f | sed 's#^\./#static/react-app/#' | sort) > "$app_files"
+  jar tf "$RUNTIME_JAR_PATH" \
+    | awk '
+      index($0, "BOOT-INF/classes/static/react-app/") == 1 {
+        sub("^BOOT-INF/classes/", "", $0);
+        print;
+        next;
+      }
+      index($0, "static/react-app/") == 1 {
+        print;
+      }
+    ' \
+    | grep -v '/$' \
+    | sort > "$jar_files"
+
+  if ! cmp -s "$app_files" "$jar_files"; then
+    diff -u "$app_files" "$jar_files" | sed -n '1,80p' >&2 || true
+    rm -rf "$tmp_dir"
+    fail "runtime jar frontend file list differs from carbonet-app resources"
+  fi
+
+  rm -rf "$tmp_dir"
+}
+
 require_file() {
   local file_path="$1"
   [[ -f "$file_path" ]] || fail "missing file: $file_path"
@@ -220,6 +290,16 @@ TARGET_HASH="$(compute_hash "$TARGET_JAR_PATH")"
 RUNTIME_HASH="$(compute_hash "$RUNTIME_JAR_PATH")"
 [[ "$TARGET_HASH" == "$RUNTIME_HASH" ]] || fail "runtime jar hash differs from target jar"
 
+require_file "$FRONTEND_MANIFEST_PATH"
+require_file "$FRONTEND_APP_MANIFEST_PATH"
+FRONTEND_MANIFEST_HASH="$(compute_hash "$FRONTEND_MANIFEST_PATH")"
+FRONTEND_APP_MANIFEST_HASH="$(compute_hash "$FRONTEND_APP_MANIFEST_PATH")"
+[[ "$FRONTEND_APP_MANIFEST_HASH" == "$FRONTEND_MANIFEST_HASH" ]] || fail "frontend manifest differs between root resources and carbonet-app resources"
+RUNTIME_FRONTEND_MANIFEST_HASH="$(jar_entry_hash "$RUNTIME_JAR_PATH" || true)"
+[[ -n "$RUNTIME_FRONTEND_MANIFEST_HASH" ]] || fail "frontend manifest not found inside runtime jar"
+[[ "$RUNTIME_FRONTEND_MANIFEST_HASH" == "$FRONTEND_APP_MANIFEST_HASH" ]] || fail "runtime jar contains stale frontend manifest"
+verify_frontend_file_list
+
 TARGET_MTIME="$(stat -c %Y "$TARGET_JAR_PATH" 2>/dev/null || true)"
 RUNTIME_MTIME="$(stat -c %Y "$RUNTIME_JAR_PATH" 2>/dev/null || true)"
 [[ -n "$TARGET_MTIME" && -n "$RUNTIME_MTIME" ]] || fail "failed to read jar mtimes"
@@ -279,6 +359,8 @@ info "port OK: $PORT"
 info "target jar: $TARGET_JAR_PATH"
 info "runtime jar: $RUNTIME_JAR_PATH"
 info "jar hash OK: $TARGET_HASH"
+info "frontend manifest hash OK: $FRONTEND_APP_MANIFEST_HASH"
+info "frontend file list OK"
 info "startup marker OK: $STARTUP_MARKER"
 if [[ "$VERIFY_CLOB_FALLBACK_LOGS" == "true" ]]; then
   info "CLOB fallback logs OK since latest startup"

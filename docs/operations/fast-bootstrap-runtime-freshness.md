@@ -64,11 +64,12 @@ If you explicitly need process restart only, use:
 The latest user-visible output reaches the running server through this chain:
 
 1. `frontend/src`
-2. frontend build output written into source-controlled static resources
-3. `target/classes`
-4. packaged app jar, typically `apps/carbonet-app/target/carbonet.jar`
-5. `var/run/carbonet-18000.jar`
-6. Java process started by `ops/scripts/start-18000.sh`
+2. frontend build output written into source-controlled static resources under `src/main/resources/static/react-app`
+3. frontend build output mirrored into the packaged app resources under `apps/carbonet-app/src/main/resources/static/react-app`
+4. `target/classes`
+5. packaged app jar, typically `apps/carbonet-app/target/carbonet.jar`
+6. `var/run/carbonet-18000.jar`
+7. Java process started by `ops/scripts/start-18000.sh`
 
 If any earlier stage is stale, later stages can also be stale.
 
@@ -83,6 +84,7 @@ Purpose:
 Behavior:
 
 - runs frontend build
+- removes stale `apps/carbonet-app/target/classes/static/react-app` assets before packaging
 - runs backend package
 - restarts `:18000` through the runtime-only helper
 
@@ -101,6 +103,7 @@ Purpose:
 Behavior:
 
 - runs frontend build
+- removes stale `apps/carbonet-app/target/classes/static/react-app` assets before packaging
 - runs backend package
 - restarts `:18000` through the supervised runtime flow
 
@@ -133,6 +136,7 @@ Use when:
 Guard:
 
 - runtime-only restart now refuses to start when the packaged app jar is older than `src/main/resources/static/react-app` assets or the Vite manifest
+- freshness verification compares the Vite manifest and React file list in the running jar with both root static resources and `apps/carbonet-app` static resources
 - this prevents stale frontend bundles from being copied into `var/run` when someone restarts before packaging finishes
 
 ### `ops/scripts/start-18000.sh`

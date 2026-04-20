@@ -3,7 +3,6 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
   fetchEmissionCategories,
-  fetchEmissionGwpValuesPage,
   fetchEmissionSurveyAdminPage,
   fetchEmissionTiers,
   fetchEmissionVariableDefinitions,
@@ -16,6 +15,7 @@ import type {
   EmissionSurveyAdminSection
 } from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { normalizeUnitValue, UNIT_OPTIONS } from "../emission-common/unitOptions";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { PageStatusNotice } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
@@ -25,8 +25,6 @@ type DraftRow = {
   rowId: string;
   values: Record<string, string>;
 };
-
-type GwpCandidateRow = Record<string, string>;
 
 type DraftCase = {
   rows: DraftRow[];
@@ -60,49 +58,6 @@ type SurveyCalculationScopeState = {
   blockingMessage: string;
 };
 
-const UNIT_OPTIONS = [
-  { value: "carat", label: "carat | 캐럿" },
-  { value: "cg", label: "cg | 센티그램" },
-  { value: "ct", label: "ct | 캐럿 (중복)" },
-  { value: "cwt", label: "cwt | 헌드레드웨이트" },
-  { value: "dag", label: "dag | 데카그램" },
-  { value: "dg", label: "dg | 데시그램" },
-  { value: "dr (Av)", label: "dr (Av) | 드람 (상형)" },
-  { value: "dwt", label: "dwt | 페니웨이트" },
-  { value: "g", label: "g | 그램" },
-  { value: "gr", label: "gr | 그레인" },
-  { value: "hg", label: "hg | 헥토그램" },
-  { value: "kg", label: "kg | 킬로그램" },
-  { value: "kg SWU", label: "kg SWU | 킬로그램 분리작업단위" },
-  { value: "kt", label: "kt | 킬로톤" },
-  { value: "lb av", label: "lb av | 파운드 (상형)" },
-  { value: "long tn", label: "long tn | 롱톤 (영국 톤)" },
-  { value: "mg", label: "mg | 밀리그램" },
-  { value: "Mg", label: "Mg | 메가그램 (톤)" },
-  { value: "Mt", label: "Mt | 메가톤" },
-  { value: "ng", label: "ng | 나노그램" },
-  { value: "oz av", label: "oz av | 온스 (상형)" },
-  { value: "oz t", label: "oz t | 온스 (트로이)" },
-  { value: "pg", label: "pg | 피코그램" },
-  { value: "sh tn", label: "sh tn | 쇼트톤 (미국 톤)" },
-  { value: "t", label: "t | 톤" },
-  { value: "ug", label: "ug | 마이크로그램" }
-] as const;
-
-const UNIT_OPTION_VALUES = new Set<string>(UNIT_OPTIONS.map((option) => option.value));
-
-const UNIT_VALUE_ALIASES: Record<string, string> = {
-  ton: "t",
-  "t/yr": "t",
-  "ton/yr": "t",
-  "kg/yr": "kg",
-  "mg/yr": "mg",
-  "ug/yr": "ug",
-  "g/yr": "g",
-  "pg/yr": "pg",
-  "ng/yr": "ng"
-};
-
 function stringOf(row: Record<string, unknown> | null | undefined, key: string) {
   if (!row) {
     return "";
@@ -115,42 +70,37 @@ function buildDraftKey(classificationKey: string, sectionCode: string, caseCode:
   return `${classificationKey}:${sectionCode}:${caseCode}`;
 }
 
-function normalizeUnitValue(value: string) {
-  const raw = String(value || "").trim();
-  if (!raw) {
-    return "";
-  }
-  if (UNIT_OPTION_VALUES.has(raw)) {
-    return raw;
-  }
-  const codeOnly = raw.includes("|") ? raw.split("|")[0].trim() : raw;
-  if (UNIT_OPTION_VALUES.has(codeOnly)) {
-    return codeOnly;
-  }
-  const normalizedAlias = UNIT_VALUE_ALIASES[raw] || UNIT_VALUE_ALIASES[codeOnly];
-  if (normalizedAlias && UNIT_OPTION_VALUES.has(normalizedAlias)) {
-    return normalizedAlias;
-  }
-  return raw;
-}
-
 function normalizeRowValues(values: Record<string, string>) {
   const nextValues = { ...values };
+  Object.keys(nextValues).forEach((key) => {
+    if (String(nextValues[key] || "").trim() === "-") {
+      nextValues[key] = "";
+    }
+  });
   if ("annualUnit" in nextValues) {
     nextValues.annualUnit = normalizeUnitValue(nextValues.annualUnit || "");
   }
   if ("costUnit" in nextValues) {
     nextValues.costUnit = normalizeUnitValue(nextValues.costUnit || "");
   }
+  const emissionFactor = String(nextValues.emissionFactor || nextValues.gwpValue || nextValues.gwpDirectValue || "").trim();
+  if (emissionFactor) {
+    nextValues.emissionFactor = emissionFactor;
+  }
   return nextValues;
-}
-
-function normalizeText(value: string) {
-  return String(value || "").trim().toLowerCase();
 }
 
 function stringValue(value: unknown) {
   return value === null || value === undefined ? "" : String(value);
+}
+
+function decimalValue(value: unknown) {
+  const normalized = stringValue(value).replace(/,/g, "").trim();
+  if (!normalized) {
+    return 0;
+  }
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function numberValue(value: unknown) {
@@ -181,38 +131,6 @@ function resolveCategoryByClassification(categories: EmissionCategoryItem[], cla
     return { matchedCategory: prefixMatches[0], ambiguous: false };
   }
   return { matchedCategory: null, ambiguous: prefixMatches.length > 1 };
-}
-
-function hasGwpMapping(values: Record<string, string>) {
-  return Boolean(
-    String(values.gwpMappedRowId || "").trim()
-      || String(values.gwpDirectValue || "").trim()
-  );
-}
-
-function requiresGwpMapping(section: EmissionSurveyAdminSection, values: Record<string, string>) {
-  const materialName = String(values.materialName || "").trim();
-  if (!materialName) {
-    return false;
-  }
-  return (section.sectionCode || "").startsWith("OUTPUT_");
-}
-
-function mapPriority(row: GwpCandidateRow, keyword: string) {
-  const commonName = normalizeText(String(row.commonName || ""));
-  const source = normalizeText(String(row.source || ""));
-  const note = normalizeText(String(row.note || ""));
-  const normalizedKeyword = normalizeText(keyword);
-  if (source.includes("ecoinvent") || note.includes("ecoinvent")) {
-    return 0;
-  }
-  if (commonName === normalizedKeyword) {
-    return 1;
-  }
-  if (commonName.includes(normalizedKeyword)) {
-    return 2;
-  }
-  return 3;
 }
 
 function buildRowsFromSection(section: EmissionSurveyAdminSection | undefined): DraftRow[] {
@@ -260,13 +178,37 @@ function resolveSharedSectionRows(
   };
 }
 
-function buildEditableColumns(columns: Array<Record<string, string>>) {
-  return columns;
+function supportsEmissionFactorColumn(sectionCode?: string) {
+  return Boolean(sectionCode);
+}
+
+function emissionFactorColumnTemplate() {
+  return {
+    key: "emissionFactor",
+    label: "배출계수",
+    headerPath: JSON.stringify(["배출계수"])
+  };
+}
+
+function buildEditableColumns(section: EmissionSurveyAdminSection | undefined) {
+  const columns = ((section?.columns || []) as Array<Record<string, string>>);
+  const hasAmountColumn = columns.some((column) => stringOf(column, "key") === "amount");
+  if (!supportsEmissionFactorColumn(section?.sectionCode) || !hasAmountColumn) {
+    return columns;
+  }
+  if (columns.some((column) => stringOf(column, "key") === "emissionFactor")) {
+    return columns;
+  }
+  const nextColumns = [...columns];
+  const amountIndex = nextColumns.findIndex((column) => stringOf(column, "key") === "amount");
+  const insertIndex = amountIndex >= 0 ? amountIndex + 1 : nextColumns.length;
+  nextColumns.splice(insertIndex, 0, emissionFactorColumnTemplate());
+  return nextColumns;
 }
 
 function createEmptyRow(section: EmissionSurveyAdminSection | undefined, index: number): DraftRow {
   const values: Record<string, string> = {};
-  buildEditableColumns(((section?.columns || []) as Array<Record<string, string>>)).forEach((column) => {
+  buildEditableColumns(section).forEach((column) => {
     const key = stringOf(column, "key");
     if (key) {
       values[key] = "";
@@ -381,6 +323,10 @@ function buildHeaderModel(columns: HeaderColumn[]) {
 
 function stripSectionNumber(label: string) {
   return String(label || "").replace(/^\s*\d+\s*[.)-]?\s*/, "").trim();
+}
+
+function isExcludedPreviewSection(sectionCode?: string) {
+  return String(sectionCode || "") === "OUTPUT_PRODUCTS";
 }
 
 function isUnitColumnKey(key: string) {
@@ -507,120 +453,6 @@ function useClassificationSelection(page: EmissionSurveyAdminPagePayload | undef
   };
 }
 
-function GwpMappingModal({
-  open,
-  materialName,
-  searchKeyword,
-  searchRows,
-  loading,
-  valueType,
-  directValue,
-  onClose,
-  onSearchKeywordChange,
-  onSearch,
-  onSelectValueType,
-  onDirectValueChange,
-  onApplyCandidate,
-  onApplyDirect
-}: {
-  open: boolean;
-  materialName: string;
-  searchKeyword: string;
-  searchRows: GwpCandidateRow[];
-  loading: boolean;
-  valueType: "AR4" | "AR5" | "AR6";
-  directValue: string;
-  onClose: () => void;
-  onSearchKeywordChange: (value: string) => void;
-  onSearch: () => void;
-  onSelectValueType: (value: "AR4" | "AR5" | "AR6") => void;
-  onDirectValueChange: (value: string) => void;
-  onApplyCandidate: (row: GwpCandidateRow) => void;
-  onApplyDirect: () => void;
-}) {
-  if (!open) {
-    return null;
-  }
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
-      <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[var(--kr-gov-radius)] bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <div>
-            <h3 className="text-lg font-black text-[var(--kr-gov-text-primary)]">GWP 매핑 선택</h3>
-            <p className="mt-1 text-sm text-slate-500">물질명: {materialName || "-"}</p>
-          </div>
-          <MemberButton onClick={onClose} type="button" variant="secondary">닫기</MemberButton>
-        </div>
-        <div className="space-y-4 p-5">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[2fr,1fr,auto]">
-            <label className="block">
-              <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">검색어</span>
-              <AdminInput value={searchKeyword} onChange={(event) => onSearchKeywordChange(event.target.value)} />
-            </label>
-            <label className="block">
-              <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">값 기준</span>
-              <AdminSelect value={valueType} onChange={(event) => onSelectValueType(event.target.value as "AR4" | "AR5" | "AR6")}>
-                <option value="AR4">AR4</option>
-                <option value="AR5">AR5</option>
-                <option value="AR6">AR6</option>
-              </AdminSelect>
-            </label>
-            <div className="flex items-end">
-              <MemberButton onClick={onSearch} type="button" variant="primary">{loading ? "검색 중..." : "검색"}</MemberButton>
-            </div>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-slate-200">
-            <div className="grid grid-cols-[1.5fr,0.8fr,0.8fr,0.8fr,1fr,1fr,90px] border-b border-slate-200 bg-slate-50 text-xs font-bold text-slate-600">
-              <div className="px-3 py-2">Common Name</div>
-              <div className="px-3 py-2">AR4</div>
-              <div className="px-3 py-2">AR5</div>
-              <div className="px-3 py-2">AR6</div>
-              <div className="px-3 py-2">출처</div>
-              <div className="px-3 py-2">임의 입력값</div>
-              <div className="px-3 py-2 text-center">선택</div>
-            </div>
-            <div className="max-h-[45vh] overflow-y-auto">
-              {searchRows.length === 0 ? (
-                <div className="px-4 py-8 text-sm text-slate-500">검색 결과가 없습니다.</div>
-              ) : (
-                searchRows.map((row) => (
-                  <div className="grid grid-cols-[1.5fr,0.8fr,0.8fr,0.8fr,1fr,1fr,90px] border-b border-slate-100 text-sm last:border-b-0" key={String(row.rowId || row.commonName || Math.random())}>
-                    <div className="px-3 py-3">
-                      <p className="font-bold text-slate-900">{String(row.commonName || "-")}</p>
-                      <p className="mt-1 text-xs text-slate-500">{String(row.note || "-")}</p>
-                      <p className="mt-1 text-[11px] font-bold text-[var(--kr-gov-blue)]">
-                        {mapPriority(row, searchKeyword) === 0 ? "1순위 Ecoinvent" : mapPriority(row, searchKeyword) === 1 ? "정확 일치" : "후보"}
-                      </p>
-                    </div>
-                    <div className="px-3 py-3">{String(row.ar4Value || "-")}</div>
-                    <div className="px-3 py-3">{String(row.ar5Value || "-")}</div>
-                    <div className="px-3 py-3">{String(row.ar6Value || "-")}</div>
-                    <div className="px-3 py-3 text-xs text-slate-600">{String(row.source || "-")}</div>
-                    <div className="px-3 py-3 font-mono text-xs text-slate-600">{String(row.manualInputValue || "-")}</div>
-                    <div className="flex items-center justify-center px-3 py-3">
-                      <MemberButton onClick={() => onApplyCandidate(row)} size="sm" type="button" variant="secondary">선택</MemberButton>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-rose-200 bg-rose-50/60 p-4">
-            <p className="text-sm font-bold text-rose-700">직접 입력</p>
-            <div className="mt-3 flex flex-wrap items-end gap-3">
-              <label className="block min-w-[220px] flex-1">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-rose-700">직접 배출계수 값</span>
-                <AdminInput value={directValue} onChange={(event) => onDirectValueChange(event.target.value)} />
-              </label>
-              <MemberButton onClick={onApplyDirect} type="button" variant="secondary">직접입력 적용</MemberButton>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function SectionEditor({
   section,
   activeRows,
@@ -628,8 +460,7 @@ function SectionEditor({
   onToggleExpanded,
   onAddRow,
   onRemoveRow,
-  onChangeCell,
-  onOpenGwpMapping
+  onChangeCell
 }: {
   section: EmissionSurveyAdminSection;
   activeRows: DraftRow[];
@@ -638,9 +469,8 @@ function SectionEditor({
   onAddRow: () => void;
   onRemoveRow: (rowId: string) => void;
   onChangeCell: (rowId: string, key: string, value: string) => void;
-  onOpenGwpMapping: (row: DraftRow) => void;
 }) {
-  const columns = buildEditableColumns(((section.columns || []) as Array<Record<string, string>>));
+  const columns = buildEditableColumns(section);
   const displayColumns = buildDisplayColumnLabels(columns);
   const gridTemplateColumns = buildGridTemplate(displayColumns, section.sectionCode);
   const headerModel = buildHeaderModel(displayColumns);
@@ -676,7 +506,7 @@ function SectionEditor({
           ) : (
             <div className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white">
               {headerModel.hasMergedHeader ? (
-                <div className="grid border-b border-slate-200 bg-slate-100" style={{ gridTemplateColumns: `${gridTemplateColumns} 96px` }}>
+                <div className="grid border-b border-slate-200 bg-slate-100" style={{ gridTemplateColumns }}>
                   <div className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]" style={{ gridRow: `span ${headerModel.depth}` }}>행</div>
                   {headerModel.cells.map((cell) => (
                     <div
@@ -687,28 +517,28 @@ function SectionEditor({
                       {cell.lines.map((line, index) => <span className="block leading-4" key={`${cell.key}-${index}`}>{line}</span>)}
                     </div>
                   ))}
-                  <div className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]" style={{ gridRow: `span ${headerModel.depth}` }}>GWP</div>
                   <div className="px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]" style={{ gridRow: `span ${headerModel.depth}` }}>관리</div>
                 </div>
               ) : (
-                <div className="grid border-b border-slate-200 bg-slate-100" style={{ gridTemplateColumns: `${gridTemplateColumns} 96px` }}>
+                <div className="grid border-b border-slate-200 bg-slate-100" style={{ gridTemplateColumns }}>
                   <div className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]">행</div>
                   {headerModel.columns.map((column) => (
                     <div className="border-r border-slate-200 px-2 py-2 text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)] last:border-r-0" key={`header-${column.key}`} title={column.fullLabel}>
                       {column.displayLines.map((line, index) => <span className="block leading-4" key={`${column.key}-${index}`}>{line}</span>)}
                     </div>
                   ))}
-                  <div className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]">GWP</div>
                   <div className="px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]">관리</div>
                 </div>
               )}
               {activeRows.map((row, index) => (
-                <div className={`grid border-b border-slate-200 last:border-b-0 ${requiresGwpMapping(section, row.values) && !hasGwpMapping(row.values) ? "bg-rose-50/70" : ""}`} key={row.rowId} style={{ gridTemplateColumns: `${gridTemplateColumns} 96px` }}>
+                <div className="grid border-b border-slate-200 last:border-b-0" key={row.rowId} style={{ gridTemplateColumns }}>
                   <div className="flex items-center justify-center border-r border-slate-200 bg-slate-50 px-2 py-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{index + 1}</div>
                   {headerModel.columns.map((column) => (
                     <label className="block border-r border-slate-200 px-2 py-2 last:border-r-0" key={`${row.rowId}-${column.key}`} title={column.fullLabel}>
                       <span className="sr-only">{column.fullLabel}</span>
-                      {isUnitColumnKey(column.key) ? (
+                      {column.key === "emissionFactor" ? (
+                        <AdminInput onChange={(event) => onChangeCell(row.rowId, column.key, event.target.value)} value={row.values[column.key] || ""} />
+                      ) : isUnitColumnKey(column.key) ? (
                         <AdminSelect onChange={(event) => onChangeCell(row.rowId, column.key, event.target.value)} value={row.values[column.key] || ""}>
                           <option value="">선택</option>
                           {UNIT_OPTIONS.map((option) => (
@@ -720,17 +550,6 @@ function SectionEditor({
                       )}
                     </label>
                   ))}
-                  <div className="flex flex-col items-center justify-center gap-1 border-r border-slate-200 px-2 py-2">
-                    <MemberButton onClick={() => onOpenGwpMapping(row)} size="sm" type="button" variant="secondary">매핑</MemberButton>
-                    {requiresGwpMapping(section, row.values) && !hasGwpMapping(row.values) ? (
-                      <span className="text-center text-[10px] font-bold text-rose-700">오류
-                        <br />
-                        관리자 문의
-                      </span>
-                    ) : (
-                      <span className="text-center text-[10px] font-bold text-emerald-700">{hasGwpMapping(row.values) ? "완료" : "-"}</span>
-                    )}
-                  </div>
                   <div className="flex items-center justify-center px-2 py-2">
                     <MemberButton onClick={() => onRemoveRow(row.rowId)} size="sm" type="button" variant="secondary">삭제</MemberButton>
                   </div>
@@ -757,12 +576,6 @@ export function EmissionSurveyAdminMigrationPage() {
   const [activeCases, setActiveCases] = useState<SectionCaseState>({});
   const [expandedSections, setExpandedSections] = useState<SectionExpandState>({});
   const [selectedProductName, setSelectedProductName] = useState("");
-  const [mappingTarget, setMappingTarget] = useState<{ sectionCode: string; rowId: string; materialName: string } | null>(null);
-  const [mappingSearchKeyword, setMappingSearchKeyword] = useState("");
-  const [mappingRows, setMappingRows] = useState<GwpCandidateRow[]>([]);
-  const [mappingLoading, setMappingLoading] = useState(false);
-  const [mappingValueType, setMappingValueType] = useState<"AR4" | "AR5" | "AR6">("AR4");
-  const [mappingDirectValue, setMappingDirectValue] = useState("");
   const [calculationScope, setCalculationScope] = useState<SurveyCalculationScopeState>({
     loading: false,
     ready: false,
@@ -792,6 +605,38 @@ export function EmissionSurveyAdminMigrationPage() {
   const smallRows = (findCurrentMiddle(classification.tree, classification.majorCode, classification.middleCode)?.smallRows || []).map((item) => ({ value: item.code, label: item.label }));
   const productRows = (((page?.productOptions || []) as Array<Record<string, string>>)).map((item) => ({ value: stringOf(item, "value"), label: stringOf(item, "label") }));
   const isClassificationReady = Boolean(classification.majorCode && classification.middleCode);
+  const previewSummary = useMemo(() => {
+    const sectionSummaries = sections.map((section) => {
+      const sectionCode = section.sectionCode || "";
+      const activeCase = activeCases[sectionCode] || "CASE_3_1";
+      const fallbackRows = buildDefaultCaseRows(section, activeCase);
+      const currentRows = getCase(sectionCode, activeCase, fallbackRows).rows;
+      const totalEmission = currentRows.reduce((sum, row) => {
+        const amount = decimalValue(row.values.amount);
+        const emissionFactor = decimalValue(row.values.emissionFactor);
+        if (amount <= 0 || emissionFactor <= 0) {
+          return sum;
+        }
+        return sum + amount * emissionFactor;
+      }, 0);
+      const rowCount = isExcludedPreviewSection(sectionCode) ? 0 : currentRows.length;
+      const calculatedRowCount = isExcludedPreviewSection(sectionCode)
+        ? 0
+        : currentRows.filter((row) => decimalValue(row.values.amount) > 0 && decimalValue(row.values.emissionFactor) > 0).length;
+      return {
+        sectionCode,
+        sectionLabel: stripSectionNumber(section.sectionLabel || ""),
+        totalEmission: isExcludedPreviewSection(sectionCode) ? 0 : totalEmission,
+        rowCount,
+        calculatedRowCount
+      };
+    });
+    return {
+      totalEmission: sectionSummaries.reduce((sum, section) => sum + section.totalEmission, 0),
+      rowCount: sectionSummaries.reduce((sum, section) => sum + section.rowCount, 0),
+      calculatedRowCount: sectionSummaries.reduce((sum, section) => sum + section.calculatedRowCount, 0)
+    };
+  }, [activeCases, classificationKey, drafts, sections]);
 
   useEffect(() => {
     const nextSelected = stringOf(page as Record<string, unknown>, "selectedProductName");
@@ -808,11 +653,12 @@ export function EmissionSurveyAdminMigrationPage() {
       const next = { ...current };
       let mutated = false;
       sections.forEach((section) => {
-        const seedRows = buildRowsFromSection(section);
+        const sharedSection = resolveSharedSectionRows(pagePayload, section);
+        const seedRows = sharedSection.rows;
         const case31Key = buildDraftKey(classificationKey, section.sectionCode || "", "CASE_3_1");
         const case32Key = buildDraftKey(classificationKey, section.sectionCode || "", "CASE_3_2");
         if (!next[case31Key]) {
-          next[case31Key] = { rows: seedRows, savedAt: "" };
+          next[case31Key] = { rows: seedRows, savedAt: sharedSection.savedAt };
           mutated = true;
         }
         if (!next[case32Key]) {
@@ -846,7 +692,7 @@ export function EmissionSurveyAdminMigrationPage() {
       });
       return mutated ? next : current;
     });
-  }, [classification.majorCode, classification.middleCode, classification.smallCode, classificationKey, sections]);
+  }, [classification.majorCode, classification.middleCode, classification.smallCode, classificationKey, pagePayload, sections]);
 
   useEffect(() => {
     logGovernanceScope("PAGE", "emission-survey-admin", {
@@ -1030,82 +876,6 @@ export function EmissionSurveyAdminMigrationPage() {
     setCaseRows(sectionCode, currentCaseCode, currentRows);
   }
 
-  function handleOpenGwpMapping(section: EmissionSurveyAdminSection, row: DraftRow) {
-    setMappingTarget({
-      sectionCode: section.sectionCode || "",
-      rowId: row.rowId,
-      materialName: String(row.values.materialName || "")
-    });
-    setMappingSearchKeyword(String(row.values.materialName || ""));
-    setMappingRows([]);
-    setMappingDirectValue(String(row.values.gwpDirectValue || ""));
-  }
-
-  async function handleSearchGwpMapping() {
-    if (!mappingTarget) {
-      return;
-    }
-    setMappingLoading(true);
-    try {
-      const payload = await fetchEmissionGwpValuesPage({ searchKeyword: mappingSearchKeyword });
-      const rows = (((payload.gwpRows || []) as Array<Record<string, string>>))
-        .slice()
-        .sort((left, right) => mapPriority(left, mappingSearchKeyword) - mapPriority(right, mappingSearchKeyword));
-      setMappingRows(rows);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "GWP 검색에 실패했습니다.");
-    } finally {
-      setMappingLoading(false);
-    }
-  }
-
-  function applyGwpMapping(sectionCode: string, rowId: string, updater: (row: DraftRow) => DraftRow) {
-    const currentCaseCode = activeCases[sectionCode] || "CASE_3_1";
-    const section = sections.find((item) => item.sectionCode === sectionCode);
-    if (!section) {
-      return;
-    }
-    const currentRows = getCase(sectionCode, currentCaseCode, buildRowsFromSection(section)).rows.map((row) => row.rowId === rowId ? updater(row) : row);
-    setCaseRows(sectionCode, currentCaseCode, currentRows);
-  }
-
-  function handleApplyCandidateMapping(row: GwpCandidateRow) {
-    if (!mappingTarget) {
-      return;
-    }
-    const selectedValue = String(row[mappingValueType.toLowerCase() === "ar4" ? "ar4Value" : mappingValueType.toLowerCase() === "ar5" ? "ar5Value" : "ar6Value"] || "");
-    applyGwpMapping(mappingTarget.sectionCode, mappingTarget.rowId, (draftRow) => ({
-      ...draftRow,
-      values: {
-        ...draftRow.values,
-        gwpMappedRowId: String(row.rowId || ""),
-        gwpMappedName: String(row.commonName || ""),
-        gwpValueType: mappingValueType,
-        gwpValue: selectedValue,
-        gwpDirectValue: ""
-      }
-    }));
-    setMappingTarget(null);
-  }
-
-  function handleApplyDirectMapping() {
-    if (!mappingTarget) {
-      return;
-    }
-    applyGwpMapping(mappingTarget.sectionCode, mappingTarget.rowId, (draftRow) => ({
-      ...draftRow,
-      values: {
-        ...draftRow.values,
-        gwpMappedRowId: "",
-        gwpMappedName: "",
-        gwpValueType: "DIRECT",
-        gwpValue: mappingDirectValue,
-        gwpDirectValue: mappingDirectValue
-      }
-    }));
-    setMappingTarget(null);
-  }
-
   function handleToggleSection(sectionCode: string) {
     setExpandedSections((current) => ({
       ...current,
@@ -1199,10 +969,36 @@ export function EmissionSurveyAdminMigrationPage() {
       const latestPage = await fetchEmissionSurveyAdminPage({ productName });
       setPageOverride(latestPage);
       setSelectedProductName(productName);
+      setDrafts({});
+      setActiveCases({});
       setMessage(`${productName || "기본"} 제품 기준 DB사용 데이터를 불러올 준비가 되었습니다.`);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "제품 기준 DB 데이터를 불러오지 못했습니다.");
     }
+  }
+
+  function handleChangeProduct(productName: string) {
+    setSelectedProductName(productName);
+    if (!productName) {
+      return;
+    }
+    void handleReloadSharedProduct(productName);
+  }
+
+  function handleMoveToCalculation() {
+    if (!classification.middleCode) {
+      setErrorMessage("탄소배출량 계산 전에 LCI 중분류를 선택하세요.");
+      return;
+    }
+    if (!calculationScope.ready || calculationScope.categoryId <= 0 || calculationScope.tier <= 0) {
+      setErrorMessage(calculationScope.blockingMessage || "배출계수 범위를 확인하지 못해 계산을 진행할 수 없습니다. 관리자에 문의하세요.");
+      return;
+    }
+    const url = new URL(emissionManagementHref, window.location.origin);
+    url.searchParams.set("categoryId", String(calculationScope.categoryId));
+    url.searchParams.set("tier", String(calculationScope.tier));
+    url.searchParams.set("fromSurveyAdmin", "Y");
+    window.location.href = `${url.pathname}${url.search}${url.hash}`;
   }
 
   return (
@@ -1238,16 +1034,6 @@ export function EmissionSurveyAdminMigrationPage() {
           <input accept=".xlsx" className="hidden" onChange={handleUploadChange} ref={fileInputRef} type="file" />
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
             <label className="block">
-              <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">제품 선택</span>
-              <div className="flex gap-2">
-                <AdminSelect value={selectedProductName} onChange={(event) => setSelectedProductName(event.target.value)}>
-                  <option value="">선택</option>
-                  {productRows.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </AdminSelect>
-                <MemberButton disabled={!selectedProductName} onClick={() => { void handleReloadSharedProduct(selectedProductName); }} type="button" variant="secondary">제품 반영</MemberButton>
-              </div>
-            </label>
-            <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">LCI 대분류</span>
               <AdminSelect onChange={(event) => { setMessage(""); classification.setMajorCode(event.target.value); }} value={classification.majorCode}>
                 <option value="">선택</option>
@@ -1268,164 +1054,121 @@ export function EmissionSurveyAdminMigrationPage() {
                   {smallRows.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </AdminSelect>
             </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">제품 선택</span>
+              <AdminSelect value={selectedProductName} onChange={(event) => { setMessage(""); handleChangeProduct(event.target.value); }}>
+                <option value="">선택</option>
+                {productRows.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </AdminSelect>
+            </label>
           </div>
-          <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-4 text-sm text-[var(--kr-gov-text-secondary)]">
-            <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
-              <p>저장 대상: <span className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(page as Record<string, unknown>, "currentActorId") || "공통 데이터셋"}</span></p>
-              <p>선택 제품: <span className="font-bold text-[var(--kr-gov-text-primary)]">{selectedProductName || "-"}</span></p>
-              <p>선택 분류: <span className="font-bold text-[var(--kr-gov-text-primary)]">{classification.majorLabel || "-"} / {classification.middleLabel || "-"} / {classification.smallLabel || "미선택"}</span></p>
-            </div>
+        </section>
+
+        <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-6">
+            <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm" data-help-id="emission-survey-admin-grid">
+              <div className="flex flex-wrap items-center gap-3 text-[var(--kr-gov-blue)]">
+                <span className="text-sm font-black uppercase tracking-[0.2em]">{inputGroup.english}</span>
+                <span className="text-xl font-black">{inputGroup.korean}</span>
+              </div>
+              {!isClassificationReady ? (
+                <div className="mt-5 rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                  LCI 대분류와 중분류를 선택하면 입력 섹션이 렌더링됩니다.
+                </div>
+              ) : (
+                <div className="mt-5 grid grid-cols-1 items-start gap-5">
+                  {inputSections.map((section) => {
+                    const activeCase = activeCases[section.sectionCode || ""] || "CASE_3_1";
+                    const startCase = getCase(section.sectionCode || "", "CASE_3_1", buildDefaultCaseRows(section, "CASE_3_1"));
+                    const dbCase = getCase(section.sectionCode || "", "CASE_3_2", buildDefaultCaseRows(section, "CASE_3_2"));
+                    const current = activeCase === "CASE_3_1" ? startCase : dbCase;
+                    return (
+                      <SectionEditor
+                        activeRows={current.rows}
+                        expanded={Boolean(expandedSections[section.sectionCode || ""])}
+                        key={section.sectionCode}
+                        onAddRow={() => handleAddRow(section)}
+                        onChangeCell={(rowId, key, value) => handleCellChange(section, rowId, key, value)}
+                        onRemoveRow={(rowId) => handleRemoveRow(section, rowId)}
+                        onToggleExpanded={() => handleToggleSection(section.sectionCode || "")}
+                        section={section}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm" data-help-id="emission-survey-admin-grid">
+              <div className="flex flex-wrap items-center gap-3 text-[var(--kr-gov-blue)]">
+                <span className="text-sm font-black uppercase tracking-[0.2em]">{outputGroup.english}</span>
+                <span className="text-xl font-black">{outputGroup.korean}</span>
+              </div>
+              {!isClassificationReady ? (
+                <div className="mt-5 rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                  LCI 대분류와 중분류를 선택하면 출력 섹션이 렌더링됩니다.
+                </div>
+              ) : (
+                <div className="mt-5 grid grid-cols-1 items-start gap-5">
+                  {outputSections.map((section) => {
+                    const activeCase = activeCases[section.sectionCode || ""] || "CASE_3_1";
+                    const startCase = getCase(section.sectionCode || "", "CASE_3_1", buildDefaultCaseRows(section, "CASE_3_1"));
+                    const dbCase = getCase(section.sectionCode || "", "CASE_3_2", buildDefaultCaseRows(section, "CASE_3_2"));
+                    const current = activeCase === "CASE_3_1" ? startCase : dbCase;
+                    return (
+                      <SectionEditor
+                        activeRows={current.rows}
+                        expanded={Boolean(expandedSections[section.sectionCode || ""])}
+                        key={section.sectionCode}
+                        onAddRow={() => handleAddRow(section)}
+                        onChangeCell={(rowId, key, value) => handleCellChange(section, rowId, key, value)}
+                        onRemoveRow={(rowId) => handleRemoveRow(section, rowId)}
+                        onToggleExpanded={() => handleToggleSection(section.sectionCode || "")}
+                        section={section}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <MemberActionBar
+              dataHelpId="emission-survey-admin-bottom-actions"
+              eyebrow={en ? "Final Action" : "최종 실행"}
+              primary={(
+                <div className="flex flex-wrap items-center justify-end gap-3">
+                  <MemberButton onClick={handleMoveToCalculation} type="button">
+                    {en ? "Calculate Carbon Emissions" : "실제 탄소배출량 계산"}
+                  </MemberButton>
+                </div>
+              )}
+              title={en ? "Carbon Emission Calculation" : "탄소배출량 계산"}
+            />
           </div>
-          <div className={`mt-4 rounded-[var(--kr-gov-radius)] border px-4 py-4 text-sm ${
-            calculationScope.ready
-              ? "border-emerald-200 bg-emerald-50"
-              : calculationScope.loading
-                ? "border-sky-200 bg-sky-50"
-                : "border-amber-200 bg-amber-50"
-          }`}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">계산 배출계수 준비 상태</p>
-                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
-                  {calculationScope.loading ? "선택한 분류 기준 계산 카테고리와 배출계수를 확인하는 중입니다." : calculationScope.message || "아직 계산 범위를 확인하지 못했습니다."}
+
+          <aside className="xl:fixed xl:bottom-24 xl:right-6 xl:z-40 xl:w-[320px] xl:self-start">
+            <div className="rounded-[var(--kr-gov-radius)] border border-sky-200 bg-white/95 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.18)] backdrop-blur">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--kr-gov-blue)]">입력 안내</p>
+              <h3 className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">탄소배출량 미리 계산</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                배출 설문 관리 화면의 모든 섹션에서 각 행의 `양`과 `배출계수`를 서로 곱한 뒤, `제품 및 부산물`을 제외한 전체 행 결과를 모두 더해 합계 탄소배출량으로 표시합니다.
+              </p>
+              <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-bold text-slate-500">계산된 행</p>
+                <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">
+                  {previewSummary.calculatedRowCount} / {previewSummary.rowCount} 행
+                </p>
+                <p className="mt-3 text-xs font-bold text-slate-500">합계 탄소배출량</p>
+                <p className="mt-1 text-2xl font-black text-[var(--kr-gov-text-primary)]">
+                  {previewSummary.totalEmission.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                 </p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-bold ${
-                calculationScope.ready
-                  ? "bg-emerald-100 text-emerald-700"
-                  : calculationScope.loading
-                    ? "bg-sky-100 text-sky-700"
-                    : "bg-amber-100 text-amber-700"
-              }`}>
-                {calculationScope.ready ? "준비 완료" : calculationScope.loading ? "확인 중" : "확인 필요"}
-              </span>
-            </div>
-            {(calculationScope.categoryName || calculationScope.tierLabel) ? (
-              <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-3">
-                <p>카테고리: <span className="font-bold text-[var(--kr-gov-text-primary)]">{calculationScope.categoryName || "-"}</span></p>
-                <p>Tier: <span className="font-bold text-[var(--kr-gov-text-primary)]">{calculationScope.tierLabel || "-"}</span></p>
-                <p>배출계수: <span className="font-bold text-[var(--kr-gov-text-primary)]">{calculationScope.factors.length}건</span></p>
-              </div>
-            ) : null}
-            {!calculationScope.ready && calculationScope.blockingMessage ? (
-              <p className="mt-3 text-xs font-bold text-amber-800">{calculationScope.blockingMessage}</p>
-            ) : null}
-          </div>
-        </section>
-
-        <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm" data-help-id="emission-survey-admin-grid">
-          <div className="flex flex-wrap items-center gap-3 text-[var(--kr-gov-blue)]">
-            <span className="text-sm font-black uppercase tracking-[0.2em]">{inputGroup.english}</span>
-            <span className="text-xl font-black">{inputGroup.korean}</span>
-          </div>
-          {!isClassificationReady ? (
-            <div className="mt-5 rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-              LCI 대분류와 중분류를 선택하면 입력 섹션이 렌더링됩니다.
-            </div>
-          ) : (
-            <div className="mt-5 grid grid-cols-1 items-start gap-5">
-              {inputSections.map((section) => {
-                const activeCase = activeCases[section.sectionCode || ""] || "CASE_3_1";
-                const startCase = getCase(section.sectionCode || "", "CASE_3_1", buildDefaultCaseRows(section, "CASE_3_1"));
-                const dbCase = getCase(section.sectionCode || "", "CASE_3_2", buildDefaultCaseRows(section, "CASE_3_2"));
-                const current = activeCase === "CASE_3_1" ? startCase : dbCase;
-                return (
-                  <SectionEditor
-                    activeRows={current.rows}
-                    expanded={Boolean(expandedSections[section.sectionCode || ""])}
-                    key={section.sectionCode}
-                    onAddRow={() => handleAddRow(section)}
-                    onChangeCell={(rowId, key, value) => handleCellChange(section, rowId, key, value)}
-                    onOpenGwpMapping={(row) => handleOpenGwpMapping(section, row)}
-                    onRemoveRow={(rowId) => handleRemoveRow(section, rowId)}
-                    onToggleExpanded={() => handleToggleSection(section.sectionCode || "")}
-                    section={section}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        <section className="mt-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm" data-help-id="emission-survey-admin-grid">
-          <div className="flex flex-wrap items-center gap-3 text-[var(--kr-gov-blue)]">
-            <span className="text-sm font-black uppercase tracking-[0.2em]">{outputGroup.english}</span>
-            <span className="text-xl font-black">{outputGroup.korean}</span>
-          </div>
-          {!isClassificationReady ? (
-            <div className="mt-5 rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-              LCI 대분류와 중분류를 선택하면 출력 섹션이 렌더링됩니다.
-            </div>
-          ) : (
-            <div className="mt-5 grid grid-cols-1 items-start gap-5">
-              {outputSections.map((section) => {
-                const activeCase = activeCases[section.sectionCode || ""] || "CASE_3_1";
-                const startCase = getCase(section.sectionCode || "", "CASE_3_1", buildDefaultCaseRows(section, "CASE_3_1"));
-                const dbCase = getCase(section.sectionCode || "", "CASE_3_2", buildDefaultCaseRows(section, "CASE_3_2"));
-                const current = activeCase === "CASE_3_1" ? startCase : dbCase;
-                return (
-                  <SectionEditor
-                    activeRows={current.rows}
-                    expanded={Boolean(expandedSections[section.sectionCode || ""])}
-                    key={section.sectionCode}
-                    onAddRow={() => handleAddRow(section)}
-                    onChangeCell={(rowId, key, value) => handleCellChange(section, rowId, key, value)}
-                    onOpenGwpMapping={(row) => handleOpenGwpMapping(section, row)}
-                    onRemoveRow={(rowId) => handleRemoveRow(section, rowId)}
-                    onToggleExpanded={() => handleToggleSection(section.sectionCode || "")}
-                    section={section}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </section>
-        <MemberActionBar
-          className="mt-6"
-          dataHelpId="emission-survey-admin-bottom-actions"
-          eyebrow={en ? "Final Action" : "최종 실행"}
-          primary={(
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <MemberButton
-                onClick={() => {
-                  if (!classification.middleCode) {
-                    setErrorMessage("탄소배출량 계산 전에 LCI 중분류를 선택하세요.");
-                    return;
-                  }
-                  if (!calculationScope.ready || calculationScope.categoryId <= 0 || calculationScope.tier <= 0) {
-                    setErrorMessage(calculationScope.blockingMessage || "배출계수 범위를 확인하지 못해 계산을 진행할 수 없습니다. 관리자에 문의하세요.");
-                    return;
-                  }
-                  const url = new URL(emissionManagementHref, window.location.origin);
-                  url.searchParams.set("categoryId", String(calculationScope.categoryId));
-                  url.searchParams.set("tier", String(calculationScope.tier));
-                  url.searchParams.set("fromSurveyAdmin", "Y");
-                  window.location.href = `${url.pathname}${url.search}${url.hash}`;
-                }}
-                type="button"
-              >
-                {en ? "Calculate Carbon Emissions" : "탄소배출량 계산"}
+              <MemberButton className="mt-4 w-full" onClick={handleMoveToCalculation} type="button">
+                {en ? "Calculate Carbon Emissions" : "실제 탄소배출량 계산"}
               </MemberButton>
             </div>
-          )}
-          title={en ? "Carbon Emission Calculation" : "탄소배출량 계산"}
-        />
-        <GwpMappingModal
-          directValue={mappingDirectValue}
-          loading={mappingLoading}
-          materialName={mappingTarget?.materialName || ""}
-          onApplyCandidate={handleApplyCandidateMapping}
-          onApplyDirect={handleApplyDirectMapping}
-          onClose={() => setMappingTarget(null)}
-          onDirectValueChange={setMappingDirectValue}
-          onSearch={() => { void handleSearchGwpMapping(); }}
-          onSearchKeywordChange={setMappingSearchKeyword}
-          onSelectValueType={setMappingValueType}
-          open={Boolean(mappingTarget)}
-          searchKeyword={mappingSearchKeyword}
-          searchRows={mappingRows}
-          valueType={mappingValueType}
-        />
+          </aside>
+        </div>
       </AdminWorkspacePageFrame>
     </AdminPageShell>
   );

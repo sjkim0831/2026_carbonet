@@ -10,22 +10,32 @@ const buildTarget = process.env.VITE_BUILD_TARGET === "classes"
 const mirrorTarget = process.env.VITE_BUILD_TARGET === "classes"
   ? "../src/main/resources/static/react-app"
   : "../target/classes/static/react-app";
+const appResourceTarget = "../apps/carbonet-app/src/main/resources/static/react-app";
+
+async function replaceDirectory(sourceDir: string, targetDir: string) {
+  await rm(targetDir, {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 200
+  });
+  await mkdir(path.dirname(targetDir), { recursive: true });
+  await cp(sourceDir, targetDir, { recursive: true });
+}
 
 function syncBuildOutputPlugin() {
   return {
     name: "sync-build-output",
     async closeBundle() {
       const sourceDir = path.resolve(__dirname, buildTarget);
-      const targetDir = path.resolve(__dirname, mirrorTarget);
+      const targetDirs = [
+        path.resolve(__dirname, mirrorTarget),
+        path.resolve(__dirname, appResourceTarget)
+      ];
 
-      await rm(targetDir, {
-        recursive: true,
-        force: true,
-        maxRetries: 5,
-        retryDelay: 200
-      });
-      await mkdir(path.dirname(targetDir), { recursive: true });
-      await cp(sourceDir, targetDir, { recursive: true });
+      await Promise.all(targetDirs
+        .filter((targetDir) => targetDir !== sourceDir)
+        .map((targetDir) => replaceDirectory(sourceDir, targetDir)));
     }
   };
 }
@@ -83,6 +93,22 @@ export default defineConfig({
             return "platformStudio";
           }
           if (id.includes("/src/features/environment-management/")) {
+            if (id.includes("EnvironmentManagementHubPage")) {
+              return "environmentManagementHub";
+            }
+            if (id.includes("VerificationCenterMigrationPage")) {
+              return "environmentManagementVerificationCenter";
+            }
+            if (id.includes("VerificationAssetManagementMigrationPage")) {
+              return "environmentManagementVerificationAsset";
+            }
+            if (
+              id.includes("environmentManagementFamily")
+              || id.includes("environmentManagementShared")
+              || id.includes("useEnvironmentGovernance")
+            ) {
+              return "environmentManagementShared";
+            }
             return "environmentManagement";
           }
         }

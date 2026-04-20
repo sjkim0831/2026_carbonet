@@ -25,6 +25,7 @@ echo "[build-restart-18000] frontend build started"
 (cd "$ROOT_DIR/frontend" && npm run build)
 
 echo "[build-restart-18000] backend package started"
+rm -rf "$ROOT_DIR/apps/carbonet-app/target/classes/static/react-app"
 (cd "$ROOT_DIR" && mvn -q -pl apps/carbonet-app -am -DskipTests package)
 
 echo "[build-restart-18000] service restart started"

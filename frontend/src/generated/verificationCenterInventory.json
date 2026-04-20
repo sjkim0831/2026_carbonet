@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-17T07:39:28.732Z",
+  "generatedAt": "2026-04-20T13:45:16.371Z",
   "sources": {
     "pageManifest": "frontend/src/platform/screen-registry/pageManifests.ts",
     "apiMap": "docs/ai/40-backend/controller-service-map.csv",

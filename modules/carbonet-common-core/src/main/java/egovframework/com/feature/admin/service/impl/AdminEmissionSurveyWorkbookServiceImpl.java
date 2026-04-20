@@ -268,89 +268,55 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
             new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_WASTE", "폐기물", 0, -1, 0, 0, 52, 1, 1, 11, 53, 55, 56, 67, List.of(), templateFixedColumns("OUTPUT_WASTE", "B"))
     );
     private static final List<SectionConfig> ADMIN_UPLOAD_WORKBOOK_SECTION_CONFIGS = List.of(
-            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_RAW_MATERIALS", "원료 물질 및 보조 물질", 3, 7, 2, 3, 8, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("P"), 9, 11, 12, 18, List.of(), List.of(
+            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_RAW_MATERIALS", "원료 물질 및 보조 물질", 3, 7, 2, 3, 8, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("R"), 9, 11, 12, 18, List.of(), List.of(
                     fixedColumn("group", "구분", "E"),
                     fixedColumn("materialName", "물질명", "F"),
-                    fixedColumn("amount", "양", "G"),
-                    fixedColumn("annualUnit", "단위\n(연간)", "H"),
-                    fixedColumn("usage", "용도", "I"),
-                    fixedColumn("origin", "원산지\n(국가/업체명)", "J", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "원산지\n(국가/업체명)"),
-                    fixedColumn("marineTransport", "해양", "K", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "수송방법", "해양"),
-                    fixedColumn("marineTonKm", "물동량\n(ton · km)", "L", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "수송방법", "물동량\n(ton · km)"),
-                    fixedColumn("roadTransport", "육로", "M", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "수송방법", "육로"),
-                    fixedColumn("roadTonKm", "물동량\n(ton · km)", "N", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "수송방법", "물동량\n(ton · km)"),
-                    fixedColumn("transportRoute", "운송경로", "O", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "운송경로"),
-                    fixedColumn("remark", "비고", "P", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "비고")
+                    fixedColumn("annualUnit", "단위\n(연간)", "I"),
+                    fixedColumn("remark", "비고", "Q", "원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)", "비고")
             )),
-            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_ENERGY", "에너지", 3, 7, 2, 3, 20, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("J"), 21, 21, 22, 25, List.of(), List.of(
+            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_ENERGY", "에너지", 3, 7, 2, 3, 20, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("M"), 21, 21, 22, 25, List.of(), List.of(
                     fixedColumn("group", "구분", "E"),
                     fixedColumn("materialName", "물질명", "F"),
-                    fixedColumn("amount", "양", "G"),
-                    fixedColumn("annualUnit", "단위(연간)", "H"),
-                    fixedColumn("usage", "용도", "I"),
-                    fixedColumn("remark", "비고", "J")
+                    fixedColumn("annualUnit", "단위(연간)", "I"),
+                    fixedColumn("remark", "비고", "M")
             )),
             new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_STEAM", "에너지 스팀", 3, 7, 2, 3, 25, excelColumnIndex("BS"), excelColumnIndex("BT"), excelColumnIndex("CF"), 26, 26, 27, 28, List.of(), List.of(
                     fixedColumn("group", "구분", "BT"),
                     fixedColumn("materialName", "물질명", "BU"),
-                    fixedColumn("amount", "양", "BV"),
                     fixedColumn("annualUnit", "단위(연간)", "BW"),
-                    fixedColumn("usage", "용도", "BX"),
-                    fixedColumn("steamType", "스팀종류\n(포화증기/습증기/과열증기)", "BY"),
-                    fixedColumn("steamMass", "스팀의 질량", "CA"),
-                    fixedColumn("condensateMass", "응축수 질량", "CB"),
-                    fixedColumn("condensateTemperature", "응축수\n온도", "CD"),
-                    fixedColumn("steamCirculation", "스팀순환여부", "CE"),
-                    fixedColumn("externalSteam", "외부스팀 여부", "CF")
+                    fixedColumn("remark", "비고", "CF")
             )),
-            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_MISC", "기타", 3, 7, 2, 3, 30, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("J"), 31, 31, 32, 80, List.of(), List.of(
+            new SectionConfig("투입물 데이터 수집", "INPUT", "3. 투입물 데이터 수집", "INPUT_MISC", "기타", 3, 7, 2, 3, 30, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("L"), 31, 31, 32, 80, List.of(), List.of(
                     fixedColumn("group", "구분", "E"),
                     fixedColumn("materialName", "물질명", "F"),
-                    fixedColumn("amount", "양", "G"),
                     fixedColumn("annualUnit", "단위(연간)", "H"),
-                    fixedColumn("usage", "용도", "I"),
-                    fixedColumn("remark", "비고", "J")
+                    fixedColumn("remark", "비고", "L")
             )),
-            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_PRODUCTS", "제품 및 부산물", 3, 8, 2, 3, 9, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("K"), 10, 10, 11, 13, List.of(), List.of(
+            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_PRODUCTS", "제품 및 부산물", 3, 8, 2, 3, 9, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("M"), 10, 10, 11, 13, List.of(), List.of(
                     fixedColumn("group", "구분", "E"),
                     fixedColumn("materialName", "물질명", "F"),
-                    fixedColumn("amount", "양", "G"),
                     fixedColumn("annualUnit", "단위\n(연간)", "H"),
-                    fixedColumn("productionCost", "생산원가", "I"),
-                    fixedColumn("costUnit", "단위", "J"),
-                    fixedColumn("remark", "비고", "K")
+                    fixedColumn("remark", "비고", "M")
             )),
-            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_AIR", "대기 배출물", 3, 8, 2, 3, 15, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("K"), 16, 16, 17, 23, List.of(), List.of(
+            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_AIR", "대기 배출물", 3, 8, 2, 3, 15, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("R"), 16, 16, 17, 23, List.of(), List.of(
                     fixedColumn("group", "구분", "E"),
                     fixedColumn("materialName", "물질명", "F"),
-                    fixedColumn("amount", "양", "G"),
                     fixedColumn("annualUnit", "단위(연간)", "H"),
-                    fixedColumn("collectionMethod", "데이터 수집 방법", "I"),
-                    fixedColumn("remark", "비고", "K")
+                    fixedColumn("remark", "비고", "M")
             )),
-            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_WATER", "수계 배출물", 3, 8, 2, 3, 25, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("L"), 28, 28, 29, 33, List.of(
+            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_WATER", "수계 배출물", 3, 8, 2, 3, 25, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("R"), 28, 28, 29, 33, List.of(
                     new SectionMetaConfig("wastewaterFacilityInstalled", "사업장 내 1차 하수처리장 설치여부", 26, excelColumnIndex("E"), 27, excelColumnIndex("E"))
             ), List.of(
                     fixedColumn("group", "구분", "E"),
                     fixedColumn("materialName", "물질명", "F"),
-                    fixedColumn("amount", "양", "G"),
                     fixedColumn("annualUnit", "단위(연간)", "H"),
-                    fixedColumn("treatmentRoute", "처리경로", "I"),
-                    fixedColumn("treatmentMethod", "처리방법", "K"),
-                    fixedColumn("remark", "비고", "L")
+                    fixedColumn("remark", "비고", "N")
             )),
-            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_WASTE", "폐기물", 3, 8, 2, 3, 35, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("P"), 36, 38, 39, 120, List.of(), List.of(
+            new SectionConfig("산출물 데이터 수집", "OUTPUT", "4. 산출물 데이터 수집", "OUTPUT_WASTE", "폐기물", 3, 8, 2, 3, 35, excelColumnIndex("D"), excelColumnIndex("E"), excelColumnIndex("R"), 36, 38, 39, 120, List.of(), List.of(
                     fixedColumn("group", "구분", "E"),
                     fixedColumn("materialName", "물질명", "F"),
-                    fixedColumn("amount", "양", "G"),
                     fixedColumn("annualUnit", "단위", "H"),
-                    fixedColumn("wasteType", "구분\n(일반/지정 폐기물)", "I"),
-                    fixedColumn("treatmentMethod", "처리방법\n(매립/소각/재활용/기타)", "K"),
-                    fixedColumn("transportTonKm", "물동량", "L", "재활용 및 최종폐기 과정 수송", "물동량"),
-                    fixedColumn("marineTransport", "해양", "M", "재활용 및 최종폐기 과정 수송", "수송방법", "해양"),
-                    fixedColumn("roadTransport", "육로", "N", "재활용 및 최종폐기 과정 수송", "수송방법", "육로"),
-                    fixedColumn("transportRoute", "운송경로", "O", "재활용 및 최종폐기 과정 수송", "운송경로"),
-                    fixedColumn("remark", "비고", "P", "재활용 및 최종폐기 과정 수송", "비고")
+                    fixedColumn("remark", "비고", "R", "재활용 및 최종폐기 과정 수송", "비고")
             ))
     );
 
@@ -807,6 +773,8 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         request.setProductName(resolvedProductName);
         request.setDatasetId(buildDatasetId(resolvedProductName));
         request.setDatasetName(sharedDatasetName(isEn, resolvedProductName));
+        List<Map<String, Object>> normalizedRows = normalizeRowsForStorage(sectionCode, request.getRows());
+        request.setRows(normalizedRows);
         Map<String, Map<String, Object>> registry = readDraftRegistryFromFile();
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("ownerActorId", resolvedOwnerActorId);
@@ -831,7 +799,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         row.put("columns", request.getColumns() == null ? List.of() : request.getColumns());
         row.put("actorId", safe(actorId));
         row.put("savedAt", LocalDateTime.now().format(TIMESTAMP_FORMATTER));
-        row.put("rows", request.getRows() == null ? List.of() : request.getRows());
+        row.put("rows", normalizedRows);
         registry.put(buildRegistryKey(request), row);
         writeDraftRegistry(registry);
 
@@ -848,6 +816,61 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
             response.put("savedCaseMap", registry);
         }
         return response;
+    }
+
+    private List<Map<String, Object>> normalizeRowsForStorage(String sectionCode, List<Map<String, Object>> rows) {
+        if (rows == null) {
+            return List.of();
+        }
+        List<Map<String, Object>> normalizedRows = new ArrayList<>();
+        for (Map<String, Object> sourceRow : rows) {
+            Map<String, Object> normalizedRow = new LinkedHashMap<>();
+            normalizedRow.put("rowId", sourceRow == null ? "" : safeObject(sourceRow.get("rowId")));
+            Map<String, String> sourceValues = sourceRow == null || !(sourceRow.get("values") instanceof Map<?, ?>)
+                    ? new LinkedHashMap<>()
+                    : toStringMap((Map<?, ?>) sourceRow.get("values"));
+            normalizedRow.put("values", normalizeStoredRowValues(sectionCode, sourceValues));
+            normalizedRows.add(normalizedRow);
+        }
+        return normalizedRows;
+    }
+
+    private Map<String, String> normalizeStoredRowValues(String sectionCode, Map<String, String> values) {
+        Map<String, String> sourceValues = values == null ? new LinkedHashMap<>() : new LinkedHashMap<>(values);
+        if (!"OUTPUT_AIR".equalsIgnoreCase(safe(sectionCode))) {
+            return sourceValues;
+        }
+        Map<String, String> normalizedValues = new LinkedHashMap<>();
+        normalizedValues.put("group", safe(sourceValues.get("group")));
+        normalizedValues.put("materialName", safe(sourceValues.get("materialName")));
+        normalizedValues.put("annualUnit", safe(sourceValues.get("annualUnit")));
+        normalizedValues.put("remark", safe(sourceValues.get("remark")));
+        normalizedValues.put("emissionFactor", resolveStoredEmissionFactor(sourceValues));
+        return normalizedValues;
+    }
+
+    private String resolveStoredEmissionFactor(Map<String, String> values) {
+        if (values == null) {
+            return "";
+        }
+        for (String key : List.of("emissionFactor", "gwpValue", "gwpDirectValue", "gwpReferenceValue")) {
+            String value = safe(values.get(key));
+            if (!value.isEmpty()) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private Map<String, String> toStringMap(Map<?, ?> source) {
+        Map<String, String> result = new LinkedHashMap<>();
+        if (source == null) {
+            return result;
+        }
+        for (Map.Entry<?, ?> entry : source.entrySet()) {
+            result.put(safeObject(entry.getKey()), safeObject(entry.getValue()));
+        }
+        return result;
     }
 
     @Override

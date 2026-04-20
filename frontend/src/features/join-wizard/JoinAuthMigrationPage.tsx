@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { resetJoinSession, saveJoinStep3 } from "../../lib/api/joinSession";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -79,8 +79,10 @@ const AUTH_OPTIONS_EN: AuthOption[] = [
 export function JoinAuthMigrationPage() {
   const en = isEnglish();
   const options = en ? AUTH_OPTIONS_EN : AUTH_OPTIONS_KO;
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [submittingMethod, setSubmittingMethod] = useState("");
   const [error, setError] = useState("");
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   function resolveCertificationGatewayPath(pathname: string) {
     if (typeof window === "undefined") {
@@ -102,13 +104,21 @@ export function JoinAuthMigrationPage() {
   useEffect(() => {
     logGovernanceScope("PAGE", "join-step3", {
       route: window.location.pathname,
-      optionCount: options.length
+      optionCount: options.length,
+      selectedMethod: options[selectedIndex]?.method ?? ""
     });
     logGovernanceScope("COMPONENT", "join-step3-auth-options", {
       component: "join-step3-auth-options",
-      optionCount: options.length
+      optionCount: options.length,
+      selectedMethod: options[selectedIndex]?.method ?? ""
     });
-  }, [options.length]);
+  }, [options, selectedIndex]);
+
+  useEffect(() => {
+    if (selectedIndex >= options.length) {
+      setSelectedIndex(0);
+    }
+  }, [options.length, selectedIndex]);
 
   async function handleHome() {
     await resetJoinSession();
@@ -170,6 +180,78 @@ export function JoinAuthMigrationPage() {
     }
     void proceedToStep4(method);
   }
+
+  function getColumnCount() {
+    if (typeof window === "undefined") {
+      return 3;
+    }
+    if (window.innerWidth >= 1024) {
+      return 3;
+    }
+    if (window.innerWidth >= 640) {
+      return 2;
+    }
+    return 1;
+  }
+
+  function focusOption(nextIndex: number) {
+    setSelectedIndex(nextIndex);
+    window.requestAnimationFrame(() => {
+      optionRefs.current[nextIndex]?.focus();
+    });
+  }
+
+  function handleOptionKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const columns = getColumnCount();
+    let nextIndex = index;
+
+    switch (event.key) {
+      case "ArrowRight":
+        nextIndex = (index + 1) % options.length;
+        break;
+      case "ArrowLeft":
+        nextIndex = (index - 1 + options.length) % options.length;
+        break;
+      case "ArrowDown": {
+        const nextRowIndex = index + columns;
+        if (nextRowIndex < options.length) {
+          nextIndex = nextRowIndex;
+        } else {
+          const remainder = index % columns;
+          if (index < columns) {
+            const lastRowStart = Math.floor((options.length - 1) / columns) * columns;
+            nextIndex = Math.min(lastRowStart + remainder, options.length - 1);
+          } else {
+            nextIndex = remainder;
+          }
+        }
+        break;
+      }
+      case "ArrowUp": {
+        const previousRowIndex = index - columns;
+        if (previousRowIndex >= 0) {
+          nextIndex = previousRowIndex;
+        } else {
+          const remainder = index % columns;
+          const lastRowStart = Math.floor((options.length - 1) / columns) * columns;
+          nextIndex = Math.min(lastRowStart + remainder, options.length - 1);
+        }
+        break;
+      }
+      case " ":
+      case "Enter":
+        event.preventDefault();
+        void handleAuth(options[index].method);
+        return;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    focusOption(nextIndex);
+  }
+
+  const selectedOption = options[selectedIndex] ?? options[0];
 
   return (
     <div className="bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
@@ -273,23 +355,49 @@ export function JoinAuthMigrationPage() {
             </div>
           </div>
 
+          <div className="join-auth-selection-bar max-w-6xl mx-auto mb-6" role="status" aria-live="polite">
+            <div>
+              <p className="join-auth-selection-eyebrow">{en ? "Current selection" : "현재 선택"}</p>
+              <strong className="join-auth-selection-title">{selectedOption.title}</strong>
+              <p className="join-auth-selection-description">{selectedOption.description.replace(/\n/g, " ")}</p>
+            </div>
+            <p className="join-auth-selection-help">
+              {en ? "Use arrow keys to move, then press Enter or Space to continue." : "방향키로 이동한 뒤 Enter 또는 Space로 바로 진행할 수 있습니다."}
+            </p>
+          </div>
+
           <div
+            aria-activedescendant={`join-auth-option-${selectedOption.method}`}
             aria-label={en ? "Select identity verification method" : "본인인증 수단 선택"}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16"
             data-help-id="join-step3-methods"
             id="authForm"
+            role="radiogroup"
           >
-            {options.map((option) => (
+            {options.map((option, index) => (
               <button
-                className="auth-card group"
+                aria-checked={selectedIndex === index}
+                className={`auth-card group ${selectedIndex === index ? "auth-card-selected" : ""}`}
                 disabled={Boolean(submittingMethod)}
+                id={`join-auth-option-${option.method}`}
                 key={option.method}
-                onClick={() => handleAuth(option.method)}
+                onClick={() => {
+                  setSelectedIndex(index);
+                  void handleAuth(option.method);
+                }}
+                onFocus={() => setSelectedIndex(index)}
+                onKeyDown={(event) => handleOptionKeyDown(event, index)}
+                ref={(element) => {
+                  optionRefs.current[index] = element;
+                }}
+                role="radio"
+                tabIndex={selectedIndex === index ? 0 : -1}
                 type="button"
               >
                 <div className="icon-box">
                   <span className="material-symbols-outlined">{option.icon}</span>
                 </div>
+                <span className="auth-card-badge">{en ? "Selected" : "선택됨"}</span>
                 <h3 className="text-lg font-bold mb-3">{option.title}</h3>
                 <p className="text-xs text-[var(--kr-gov-text-secondary)] leading-relaxed whitespace-pre-line">{option.description}</p>
               </button>

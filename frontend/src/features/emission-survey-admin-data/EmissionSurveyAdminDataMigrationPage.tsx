@@ -14,10 +14,11 @@ import type {
   EmissionSurveyAdminSection
 } from "../../lib/api/emissionTypes";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { hasUnitMappingIssue, isMappedUnitValue, normalizeUnitValue, UNIT_OPTIONS } from "../emission-common/unitOptions";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, MemberButton, PageStatusNotice } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
-import { AdminInput, AdminSelect } from "../member/common";
+import { AdminInput, AdminSelect, AdminTable, AdminTextarea } from "../member/common";
 
 type GwpCandidateRow = Record<string, string>;
 type FactorType = "ECOINVENT" | "AR4" | "AR5" | "AR6" | "DIRECT";
@@ -43,6 +44,24 @@ function normalizeText(value: string) {
   return String(value || "").trim().toLowerCase();
 }
 
+function matchesGwpCandidate(row: GwpCandidateRow, keyword: string) {
+  const normalizedKeyword = normalizeText(keyword);
+  if (!normalizedKeyword) {
+    return true;
+  }
+  return [
+    row.commonName,
+    row.formula,
+    row.sectionLabel,
+    row.source,
+    row.note,
+    row.manualInputValue,
+    row.ar4Value,
+    row.ar5Value,
+    row.ar6Value
+  ].some((value) => normalizeText(String(value || "")).includes(normalizedKeyword));
+}
+
 function normalizedValue(value: unknown) {
   return value === null || value === undefined ? "" : String(value).trim();
 }
@@ -52,12 +71,26 @@ function displayValue(value: unknown) {
   return normalized === "" ? "-" : normalized;
 }
 
+function normalizeSectionUnits(sections: EmissionSurveyAdminSection[]) {
+  return sections.map((section) => ({
+    ...section,
+    rows: ((section.rows || []) as EmissionSurveyAdminRow[]).map((row) => ({
+      ...row,
+      values: {
+        ...((row.values || {}) as Record<string, string>),
+        annualUnit: normalizeUnitValue(String(((row.values || {}) as Record<string, string>).annualUnit || ""))
+      }
+    }))
+  }));
+}
+
 function isArFactorType(value: string): value is ArFactorType {
   return value === "AR4" || value === "AR5" || value === "AR6";
 }
 
 function mapPriority(row: GwpCandidateRow, keyword: string) {
   const commonName = normalizeText(String(row.commonName || ""));
+  const formula = normalizeText(String(row.formula || ""));
   const source = normalizeText(String(row.source || ""));
   const note = normalizeText(String(row.note || ""));
   const normalizedKeyword = normalizeText(keyword);
@@ -67,10 +100,29 @@ function mapPriority(row: GwpCandidateRow, keyword: string) {
   if (commonName === normalizedKeyword) {
     return 1;
   }
+  if (formula === normalizedKeyword) {
+    return 1;
+  }
   if (commonName.includes(normalizedKeyword)) {
     return 2;
   }
+  if (formula.includes(normalizedKeyword)) {
+    return 2;
+  }
   return 3;
+}
+
+function filterAndSortGwpCandidates(rows: GwpCandidateRow[], keyword: string) {
+  return rows
+    .filter((row) => matchesGwpCandidate(row, keyword))
+    .slice()
+    .sort((left, right) => {
+      const priority = mapPriority(left, keyword) - mapPriority(right, keyword);
+      if (priority !== 0) {
+        return priority;
+      }
+      return String(left.commonName || "").localeCompare(String(right.commonName || ""));
+    });
 }
 
 function resolveSearchKeyword(values: Record<string, string>) {
@@ -134,6 +186,13 @@ function resolveStoredFactorValue(values: Record<string, string>, factorType: Ar
   return normalizedValue(values.gwpAr6Value);
 }
 
+function resolveStoredEmissionFactor(values: Record<string, string>) {
+  return normalizedValue(values.emissionFactor)
+    || normalizedValue(values.gwpValue)
+    || normalizedValue(values.gwpDirectValue)
+    || normalizedValue(values.gwpReferenceValue);
+}
+
 function factorLabel(factorType: string) {
   if (factorType === "ECOINVENT") {
     return "Ecoinvent";
@@ -165,6 +224,7 @@ function applyMappedValues(values: Record<string, string>, candidate: GwpCandida
   const factorValue = resolveFactorValue(candidate, factorType, directValue);
   return {
     ...values,
+    emissionFactor: factorValue,
     gwpMappedRowId: normalizedValue(candidate.rowId),
     gwpMappedName: normalizedValue(candidate.commonName),
     gwpMappedSource: normalizedValue(candidate.source),
@@ -185,6 +245,63 @@ function applyAutoEcoinventMapping(values: Record<string, string>, candidate: Gw
   return applyMappedValues(values, candidate, "ECOINVENT", "");
 }
 
+const VISIBLE_COLUMN_KEYS = ["group", "materialName", "annualUnit", "remark"] as const;
+const BASE_ALLOWED_VALUE_KEYS = ["group", "materialName", "annualUnit", "remark"] as const;
+const GWP_ALLOWED_VALUE_KEYS = [
+  "emissionFactor",
+  "gwpMappedRowId",
+  "gwpMappedName",
+  "gwpMappedSource",
+  "gwpValueType",
+  "gwpValue",
+  "gwpDirectValue",
+  "gwpReferenceValue",
+  "gwpAr4Value",
+  "gwpAr5Value",
+  "gwpAr6Value"
+] as const;
+
+const VISIBLE_COLUMN_LABELS: Record<(typeof VISIBLE_COLUMN_KEYS)[number], string> = {
+  group: "구분",
+  materialName: "물질명",
+  annualUnit: "단위(연간)",
+  remark: "비고"
+};
+
+function sanitizeRowValues(section: Record<string, unknown> | EmissionSurveyAdminSection, values: Record<string, string>) {
+  const allowedKeys = isAirEmissionSection(section)
+    ? [...BASE_ALLOWED_VALUE_KEYS, ...GWP_ALLOWED_VALUE_KEYS]
+    : [...BASE_ALLOWED_VALUE_KEYS];
+  const nextValues: Record<string, string> = {};
+  allowedKeys.forEach((key) => {
+    nextValues[key] = String(values[key] || "");
+  });
+  nextValues.annualUnit = normalizeUnitValue(String(nextValues.annualUnit || ""));
+  if (isAirEmissionSection(section)) {
+    nextValues.emissionFactor = resolveStoredEmissionFactor(nextValues);
+  }
+  return nextValues;
+}
+
+function sanitizeSectionForSave(section: EmissionSurveyAdminSection) {
+  const columns = VISIBLE_COLUMN_KEYS.map((columnKey) => {
+    const matchedColumn = ((section.columns || []) as Array<Record<string, unknown>>)
+      .find((column) => stringOf(column, "key") === columnKey);
+    return {
+      key: columnKey,
+      label: matchedColumn ? stringOf(matchedColumn, "label") || VISIBLE_COLUMN_LABELS[columnKey] : VISIBLE_COLUMN_LABELS[columnKey]
+    };
+  });
+  return {
+    ...section,
+    columns,
+    rows: ((section.rows || []) as EmissionSurveyAdminRow[]).map((row) => ({
+      ...row,
+      values: sanitizeRowValues(section, (row.values || {}) as Record<string, string>)
+    }))
+  };
+}
+
 function renderSectionTable(
   section: Record<string, unknown> | EmissionSurveyAdminSection,
   key: string,
@@ -192,6 +309,7 @@ function renderSectionTable(
     editable?: boolean;
     sectionIndex?: number;
     onOpenMapping?: (sectionIndex: number, rowIndex: number, row: EmissionSurveyAdminRow) => void;
+    onChangeValue?: (sectionIndex: number, rowIndex: number, rowId: string, columnKey: string, value: string) => void;
   }
 ) {
   const rows = ((section.rows || []) as Array<Record<string, unknown>>);
@@ -200,18 +318,28 @@ function renderSectionTable(
     (item) => stringOf(item, "label") || stringOf(item, "value")
   );
   const editable = Boolean(options?.editable);
+  const showGwpMapping = editable && isAirEmissionSection(section);
+  const visibleColumns = VISIBLE_COLUMN_KEYS.map((columnKey) => {
+    const matchedColumn = columns.find((column) => stringOf(column, "key") === columnKey);
+    return {
+      key: columnKey,
+      label: matchedColumn ? stringOf(matchedColumn, "label") || VISIBLE_COLUMN_LABELS[columnKey] : VISIBLE_COLUMN_LABELS[columnKey]
+    };
+  });
   return (
-    <article className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white p-4" key={key}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--kr-gov-blue)]">{stringOf(section as Record<string, unknown>, "majorCode") || "-"}</p>
-          <h3 className="mt-1 text-xl font-black text-[var(--kr-gov-text-primary)]">{stringOf(section as Record<string, unknown>, "sectionLabel") || stringOf(section as Record<string, unknown>, "sectionCode") || "-"}</h3>
-          <p className="mt-1 text-xs text-slate-500">행 수 {rows.length} / 컬럼 {columns.length} / 저장 {stringOf(section as Record<string, unknown>, "savedAt") || "-"}</p>
+    <article className="gov-card overflow-hidden" key={key}>
+      <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--kr-gov-blue)]">{stringOf(section as Record<string, unknown>, "majorCode") || "-"}</p>
+            <h3 className="mt-1 text-lg font-bold text-[var(--kr-gov-text-primary)]">{stringOf(section as Record<string, unknown>, "sectionLabel") || stringOf(section as Record<string, unknown>, "sectionCode") || "-"}</h3>
+            <p className="mt-1 text-sm text-gray-500">행 수 {rows.length} / 컬럼 {columns.length} / 저장 {stringOf(section as Record<string, unknown>, "savedAt") || "-"}</p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">{stringOf(section as Record<string, unknown>, "caseCode") || "CASE_3_1"}</span>
         </div>
-        <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">{stringOf(section as Record<string, unknown>, "caseCode") || "CASE_3_1"}</span>
       </div>
       {metadata.length ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 border-b border-[var(--kr-gov-border-light)] px-6 py-4">
           {metadata.map((item, index) => (
             <div className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-800" key={`${key}-metadata-${index}`}>
               <span className="font-bold">{stringOf(item, "label") || "-"}</span>
@@ -220,30 +348,78 @@ function renderSectionTable(
           ))}
         </div>
       ) : null}
-      <div className="mt-3 overflow-x-auto">
-        <table className="min-w-full text-xs">
+      <div className="overflow-x-auto">
+        <AdminTable>
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="px-2 py-2">No.</th>
-              {columns.map((column) => (
-                <th className="px-2 py-2" key={stringOf(column, "key")}>{stringOf(column, "label") || stringOf(column, "key")}</th>
+            <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">
+              <th className="px-6 py-4 text-center w-16">번호</th>
+              {visibleColumns.map((column) => (
+                <th className="px-6 py-4" key={column.key}>{column.label}</th>
               ))}
-              {editable ? <th className="px-2 py-2">GWP 매핑</th> : null}
+              {showGwpMapping ? <th className="px-6 py-4">배출계수 매핑</th> : null}
+              {editable ? <th className="px-6 py-4 text-center w-28">상태</th> : null}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-100">
             {rows.map((row, index) => {
               const values = ((row.values || {}) as Record<string, string>);
               const summary = mappingSummary(values);
-              const requiresAttention = editable && needsMappingAttention(values);
+              const requiresAttention = showGwpMapping && needsMappingAttention(values);
+              const rowId = String(row.rowId || "");
+              const annualUnitValue = String(values.annualUnit || "");
+              const hasAnnualUnitIssue = hasUnitMappingIssue(annualUnitValue);
+              const isIncomplete = visibleColumns.some((column) => !normalizedValue(values[column.key])) || hasAnnualUnitIssue || requiresAttention;
               return (
-                <tr className={`border-b border-slate-100 ${requiresAttention ? "bg-rose-50/70" : ""}`} key={`${key}-${index}`}>
-                  <td className="whitespace-nowrap px-2 py-2 font-bold text-slate-500">{index + 1}</td>
-                  {columns.map((column) => (
-                    <td className="px-2 py-2" key={`${key}-${index}-${stringOf(column, "key")}`}>{displayValue(values[stringOf(column, "key")])}</td>
+                <tr className={`hover:bg-gray-50/50 transition-colors ${isIncomplete ? "bg-amber-50/40" : ""}`} key={`${key}-${index}`}>
+                  <td className="px-6 py-4 text-center text-gray-500">{index + 1}</td>
+                  {visibleColumns.map((column) => (
+                    <td className="px-6 py-4 align-top" key={`${key}-${index}-${column.key}`}>
+                      {editable ? (
+                        column.key === "annualUnit" ? (
+                          <AdminSelect
+                            className={
+                              hasAnnualUnitIssue
+                                ? "border-pink-400 bg-pink-50 text-pink-800"
+                                : !normalizedValue(values[column.key])
+                                  ? "border-amber-300 bg-amber-50"
+                                  : ""
+                            }
+                            onChange={(event) => options?.onChangeValue?.(options.sectionIndex || 0, index, rowId, column.key, event.target.value)}
+                            value={normalizeUnitValue(String(values[column.key] || ""))}
+                          >
+                            <option value="">단위를 선택하세요</option>
+                            {hasAnnualUnitIssue ? (
+                              <option value={normalizeUnitValue(annualUnitValue)}>
+                                매핑 필요: {normalizeUnitValue(annualUnitValue)}
+                              </option>
+                            ) : null}
+                            {UNIT_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </AdminSelect>
+                        ) : column.key === "remark" ? (
+                          <AdminTextarea
+                            className={!normalizedValue(values[column.key]) ? "border-amber-300 bg-amber-50" : ""}
+                            onChange={(event) => options?.onChangeValue?.(options.sectionIndex || 0, index, rowId, column.key, event.target.value)}
+                            rows={3}
+                            value={String(values[column.key] || "")}
+                          />
+                        ) : (
+                          <AdminInput
+                            className={!normalizedValue(values[column.key]) ? "border-amber-300 bg-amber-50" : ""}
+                            onChange={(event) => options?.onChangeValue?.(options.sectionIndex || 0, index, rowId, column.key, event.target.value)}
+                            value={String(values[column.key] || "")}
+                          />
+                        )
+                      ) : (
+                        column.key === "annualUnit" && hasAnnualUnitIssue ? `매핑 필요: ${normalizeUnitValue(annualUnitValue)}` : displayValue(values[column.key])
+                      )}
+                    </td>
                   ))}
-                  {editable ? (
-                    <td className="min-w-[220px] px-2 py-2">
+                  {showGwpMapping ? (
+                    <td className="min-w-[240px] px-6 py-4 align-top">
                       <div className="space-y-2">
                         {summary ? (
                           <div className="rounded border border-emerald-200 bg-emerald-50 px-2 py-2 text-[11px] text-emerald-800">
@@ -259,11 +435,18 @@ function renderSectionTable(
                           onClick={() => options?.onOpenMapping?.(options.sectionIndex || 0, index, row as EmissionSurveyAdminRow)}
                           size="sm"
                           type="button"
-                          variant="secondary"
+                          variant={requiresAttention ? "primary" : "secondary"}
                         >
-                          매핑
+                          {summary ? "매핑 수정" : "매핑"}
                         </MemberButton>
                       </div>
+                    </td>
+                  ) : null}
+                  {editable ? (
+                    <td className="px-6 py-4 text-center align-top">
+                      <span className={`inline-flex px-2 py-0.5 text-[11px] font-bold rounded-full ${isIncomplete ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"}`}>
+                        {isIncomplete ? "보정 필요" : "완료"}
+                      </span>
                     </td>
                   ) : null}
                 </tr>
@@ -271,11 +454,11 @@ function renderSectionTable(
             })}
             {rows.length === 0 ? (
               <tr>
-                <td className="px-2 py-6 text-center text-slate-500" colSpan={Math.max(columns.length + (editable ? 2 : 1), 2)}>데이터 행이 없습니다.</td>
+                <td className="px-6 py-6 text-center text-slate-500" colSpan={Math.max(visibleColumns.length + (showGwpMapping ? 2 : 1) + (editable ? 1 : 0), 2)}>데이터 행이 없습니다.</td>
               </tr>
             ) : null}
           </tbody>
-        </table>
+        </AdminTable>
       </div>
     </article>
   );
@@ -338,7 +521,7 @@ function GwpMappingModal({
       <div className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-[var(--kr-gov-radius)] bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div>
-            <h3 className="text-lg font-black text-[var(--kr-gov-text-primary)]">GWP 매핑</h3>
+            <h3 className="text-lg font-black text-[var(--kr-gov-text-primary)]">배출계수 매핑</h3>
             <p className="mt-1 text-sm text-slate-500">대상 물질: {target.materialName || "-"}</p>
           </div>
           <MemberButton onClick={onClose} size="sm" type="button" variant="secondary">닫기</MemberButton>
@@ -348,21 +531,29 @@ function GwpMappingModal({
             <div className="grid gap-3 md:grid-cols-[1fr,120px]">
               <label className="block">
                 <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">물질 검색</span>
-                <AdminInput value={searchKeyword} onChange={(event) => onSearchKeywordChange(event.target.value)} />
+                <AdminInput
+                  value={searchKeyword}
+                  onChange={(event) => onSearchKeywordChange(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      onSearch();
+                    }
+                  }}
+                />
               </label>
               <div className="flex items-end">
                 <MemberButton onClick={onSearch} type="button" variant="primary">{loading ? "검색 중..." : "검색"}</MemberButton>
               </div>
             </div>
             <div className="rounded-[var(--kr-gov-radius)] border border-slate-200">
-              <div className="grid grid-cols-[120px,1.2fr,0.7fr,0.7fr,0.7fr,1fr,1fr,80px] border-b border-slate-200 bg-slate-50 text-xs font-bold text-slate-600">
+              <div className="grid grid-cols-[120px,1.2fr,0.8fr,0.7fr,0.7fr,0.7fr,80px] border-b border-slate-200 bg-slate-50 text-xs font-bold text-slate-600">
                 <div className="px-3 py-2">우선순위</div>
                 <div className="px-3 py-2">물질</div>
+                <div className="px-3 py-2">Ecoinvent</div>
                 <div className="px-3 py-2">AR4</div>
                 <div className="px-3 py-2">AR5</div>
                 <div className="px-3 py-2">AR6</div>
-                <div className="px-3 py-2">출처</div>
-                <div className="px-3 py-2">Ecoinvent/임의값</div>
                 <div className="px-3 py-2 text-center">선택</div>
               </div>
               <div className="max-h-[48vh] overflow-y-auto">
@@ -372,7 +563,7 @@ function GwpMappingModal({
                   rows.map((row) => {
                     const selected = String(row.rowId || "") === selectedCandidateId;
                     return (
-                      <div className={`grid grid-cols-[120px,1.2fr,0.7fr,0.7fr,0.7fr,1fr,1fr,80px] border-b border-slate-100 text-sm ${selected ? "bg-blue-50/70" : ""}`} key={String(row.rowId || row.commonName || Math.random())}>
+                      <div className={`grid grid-cols-[120px,1.2fr,0.8fr,0.7fr,0.7fr,0.7fr,80px] border-b border-slate-100 text-sm ${selected ? "bg-blue-50/70" : ""}`} key={String(row.rowId || row.commonName || Math.random())}>
                         <div className="px-3 py-3 text-[11px] font-bold text-[var(--kr-gov-blue)]">
                           {mapPriority(row, searchKeyword) === 0 ? "1순위 Ecoinvent" : mapPriority(row, searchKeyword) === 1 ? "정확 일치" : "후보"}
                         </div>
@@ -380,11 +571,10 @@ function GwpMappingModal({
                           <p className="font-bold text-slate-900">{displayValue(row.commonName)}</p>
                           <p className="mt-1 text-xs text-slate-500">{displayValue(row.note)}</p>
                         </div>
+                        <div className="px-3 py-3 font-mono text-xs text-slate-600">{displayValue(row.manualInputValue)}</div>
                         <div className="px-3 py-3">{displayValue(row.ar4Value)}</div>
                         <div className="px-3 py-3">{displayValue(row.ar5Value)}</div>
                         <div className="px-3 py-3">{displayValue(row.ar6Value)}</div>
-                        <div className="px-3 py-3 text-xs text-slate-600">{displayValue(row.source)}</div>
-                        <div className="px-3 py-3 font-mono text-xs text-slate-600">{displayValue(row.manualInputValue)}</div>
                         <div className="flex items-center justify-center px-3 py-3">
                           <MemberButton onClick={() => onSelectCandidate(String(row.rowId || ""))} size="sm" type="button" variant={selected ? "primary" : "secondary"}>선택</MemberButton>
                         </div>
@@ -455,8 +645,8 @@ export function EmissionSurveyAdminDataMigrationPage() {
   const en = isEnglish();
   const pageTitle = en ? "Shared Dataset Excel Apply" : "공통 데이터셋 엑셀 반영";
   const pageSubtitle = en
-    ? "Upload a workbook, compare it with the current DB dataset, map GWP rows, and then replace the shared dataset."
-    : "엑셀 파일을 업로드해 현재 DB 데이터와 비교하고, GWP 매핑까지 확정한 뒤 공통 데이터셋에 반영합니다.";
+    ? "Upload a workbook, map emission factors, and then replace the shared dataset."
+    : "엑셀 파일을 업로드하고 배출계수 매핑까지 확정한 뒤 공통 데이터셋에 반영합니다.";
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -468,6 +658,7 @@ export function EmissionSurveyAdminDataMigrationPage() {
   const [mappingTarget, setMappingTarget] = useState<MappingTarget | null>(null);
   const [mappingSearchKeyword, setMappingSearchKeyword] = useState("");
   const [mappingRows, setMappingRows] = useState<GwpCandidateRow[]>([]);
+  const [gwpCatalogRows, setGwpCatalogRows] = useState<GwpCandidateRow[]>([]);
   const [mappingLoading, setMappingLoading] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [datasetArVersion, setDatasetArVersion] = useState<ArFactorType>("AR6");
@@ -517,7 +708,7 @@ export function EmissionSurveyAdminDataMigrationPage() {
         const candidate = candidateMap.get(resolveSearchKeyword(values)) || null;
         return {
           ...row,
-          values: applyAutoEcoinventMapping(values, candidate)
+          values: sanitizeRowValues(section, applyAutoEcoinventMapping(values, candidate))
         };
       })
     }));
@@ -542,15 +733,39 @@ export function EmissionSurveyAdminDataMigrationPage() {
         }
         return {
           ...row,
-          values: {
+          values: sanitizeRowValues(section, {
             ...values,
             gwpValueType: datasetArVersion,
             gwpValue: resolveStoredFactorValue(values, datasetArVersion)
-          }
+          })
         };
       })
     })));
   }, [datasetArVersion]);
+
+  function handlePreviewValueChange(sectionIndex: number, rowIndex: number, rowId: string, columnKey: string, value: string) {
+    const nextValue = columnKey === "annualUnit" ? normalizeUnitValue(value) : value;
+    setEditablePreviewSections((current) => current.map((section, currentSectionIndex) => {
+      if (currentSectionIndex !== sectionIndex) {
+        return section;
+      }
+      return {
+        ...section,
+        rows: ((section.rows || []) as EmissionSurveyAdminRow[]).map((row, currentRowIndex) => {
+          if (currentRowIndex !== rowIndex || String(row.rowId || "") !== rowId) {
+            return row;
+          }
+          return {
+            ...row,
+            values: sanitizeRowValues(section, {
+              ...((row.values || {}) as Record<string, string>),
+              [columnKey]: nextValue
+            })
+          };
+        })
+      };
+    }));
+  }
 
   async function handleUploadChange(event: React.ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0];
@@ -563,7 +778,7 @@ export function EmissionSurveyAdminDataMigrationPage() {
     try {
       const payload = await previewEmissionSurveySharedDataset(nextFile);
       const previewSections = cloneSections(((payload.sections || []) as EmissionSurveyAdminSection[]));
-      const autoMappedSections = await autoMapSectionsWithEcoinvent(previewSections);
+      const autoMappedSections = normalizeSectionUnits(await autoMapSectionsWithEcoinvent(previewSections));
       const totalRows = autoMappedSections.reduce((sum, section) => sum + (((section.rows || []) as EmissionSurveyAdminRow[]).length), 0);
       const unmappedRows = autoMappedSections.reduce(
         (sum, section) =>
@@ -593,6 +808,22 @@ export function EmissionSurveyAdminDataMigrationPage() {
       setErrorMessage("먼저 관리자 업로드 양식을 업로드하세요.");
       return;
     }
+    for (const section of editablePreviewSections) {
+      const sectionLabel = String(section.sectionLabel || section.sectionCode || "섹션");
+      const rows = ((section.rows || []) as EmissionSurveyAdminRow[]);
+      for (let index = 0; index < rows.length; index += 1) {
+        const values = ((rows[index].values || {}) as Record<string, string>);
+        const unitValue = String(values.annualUnit || "");
+        if (!normalizedValue(unitValue)) {
+          setErrorMessage(`${sectionLabel} ${index + 1}행의 단위(연간)를 선택해야 저장할 수 있습니다.`);
+          return;
+        }
+        if (!isMappedUnitValue(unitValue)) {
+          setErrorMessage(`${sectionLabel} ${index + 1}행의 단위(연간) 값 "${normalizeUnitValue(unitValue)}"은(는) 표준 단위와 매핑되지 않아 저장할 수 없습니다.`);
+          return;
+        }
+      }
+    }
     setApplying(true);
     setMessage("");
     setErrorMessage("");
@@ -601,7 +832,7 @@ export function EmissionSurveyAdminDataMigrationPage() {
         sourceFileName: uploadedFile.name,
         sourcePath: stringOf(previewPayload, "sourcePath"),
         targetPath: stringOf(previewPayload, "targetPath"),
-        sections: editablePreviewSections as Array<Record<string, unknown>>
+        sections: editablePreviewSections.map((section) => sanitizeSectionForSave(section)) as Array<Record<string, unknown>>
       });
       setMessage(stringOf((payload as Record<string, unknown>), "message") || "업로드 파일 내용을 DB에 반영했습니다.");
       await pageState.reload();
@@ -618,42 +849,55 @@ export function EmissionSurveyAdminDataMigrationPage() {
   function handleOpenMapping(sectionIndex: number, rowIndex: number, row: EmissionSurveyAdminRow) {
     const section = editablePreviewSections[sectionIndex];
     const values = { ...((row.values || {}) as Record<string, string>) };
-    setMappingTarget({
+    const nextTarget = {
       sectionIndex,
       rowIndex,
       rowId: String(row.rowId || ""),
       materialName: String(values.materialName || ""),
       allowArSelection: isAirEmissionSection(section || {})
-    });
-    setMappingSearchKeyword(String(values.gwpMappedName || values.materialName || ""));
+    };
+    const nextKeyword = String(values.gwpMappedName || values.materialName || "");
+    setMappingTarget(nextTarget);
+    setMappingSearchKeyword(nextKeyword);
     setMappingRows([]);
     setSelectedCandidateId(String(values.gwpMappedRowId || ""));
     setFactorType(isArFactorType(String(values.gwpValueType || "")) ? datasetArVersion : (String(values.gwpValueType || "ECOINVENT") as FactorType));
     setDirectValue(String(values.gwpDirectValue || values.gwpValue || ""));
+    void handleSearchMapping(nextKeyword, nextTarget);
   }
 
-  async function handleSearchMapping() {
-    if (!mappingTarget) {
+  async function loadGwpCatalogRows() {
+    if (gwpCatalogRows.length > 0) {
+      return gwpCatalogRows;
+    }
+    const payload = await fetchEmissionGwpValuesPage();
+    const rows = (((payload.gwpRows || []) as Array<Record<string, string>>)).slice();
+    setGwpCatalogRows(rows);
+    return rows;
+  }
+
+  async function handleSearchMapping(keywordOverride?: string, targetOverride?: MappingTarget | null) {
+    const currentTarget = targetOverride || mappingTarget;
+    if (!currentTarget) {
       return;
     }
+    const keyword = String(keywordOverride ?? mappingSearchKeyword ?? "");
     setMappingLoading(true);
     try {
-      const payload = await fetchEmissionGwpValuesPage({ searchKeyword: mappingSearchKeyword });
-      const rows = (((payload.gwpRows || []) as Array<Record<string, string>>))
-        .slice()
-        .sort((left, right) => mapPriority(left, mappingSearchKeyword) - mapPriority(right, mappingSearchKeyword));
+      const catalog = await loadGwpCatalogRows();
+      const rows = filterAndSortGwpCandidates(catalog, keyword);
       setMappingRows(rows);
       if (rows.length > 0) {
         const nextSelectedCandidateId = String(rows[0].rowId || "");
         setSelectedCandidateId(nextSelectedCandidateId);
         if (normalizedValue(rows[0].manualInputValue)) {
           setFactorType("ECOINVENT");
-        } else if (mappingTarget.allowArSelection && factorType !== "DIRECT") {
+        } else if (currentTarget.allowArSelection && factorType !== "DIRECT") {
           setFactorType(datasetArVersion);
         }
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "GWP 검색에 실패했습니다.");
+      setErrorMessage(error instanceof Error ? error.message : "배출계수 검색에 실패했습니다.");
     } finally {
       setMappingLoading(false);
     }
@@ -689,7 +933,7 @@ export function EmissionSurveyAdminDataMigrationPage() {
           const values = { ...((row.values || {}) as Record<string, string>) };
           return {
             ...row,
-            values: applyMappedValues(values, candidate, factorType, directValue)
+            values: sanitizeRowValues(section, applyMappedValues(values, candidate, factorType, directValue))
           };
         })
       };
@@ -717,8 +961,8 @@ export function EmissionSurveyAdminDataMigrationPage() {
         <CollectionResultPanel
           data-help-id="emission-survey-admin-data-upload"
           description={en
-            ? "Upload the administrator workbook, map each row to a GWP substance plus one of five factor choices, and then apply the edited dataset to DB."
-            : "관리자 업로드 양식을 업로드한 뒤 각 행에 대해 GWP 물질과 5종 배출계수 중 하나를 매핑하고, 수정된 데이터셋을 DB에 반영합니다."}
+            ? "Upload the administrator workbook, map each row to an emission factor option, and then apply the edited dataset to DB."
+            : "관리자 업로드 양식을 업로드한 뒤 각 행에 대해 배출계수를 매핑하고, 수정된 데이터셋을 DB에 반영합니다."}
           title={en ? "Administrator Workbook Upload" : "관리자 양식 업로드"}
         >
           <input accept=".xlsx" className="hidden" onChange={handleUploadChange} ref={fileInputRef} type="file" />
@@ -740,28 +984,12 @@ export function EmissionSurveyAdminDataMigrationPage() {
           </div>
         </CollectionResultPanel>
 
-        <section className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <CollectionResultPanel
-            data-help-id="emission-survey-admin-data-dataset"
-            description={existingSections.length > 0
-              ? "이미 DB에 아래와 같이 있습니다."
-              : "현재 DB에 저장된 공통 데이터가 없습니다."}
-            title={en ? "Current DB Dataset" : "기존 DB 데이터"}
-          >
-            {existingSections.length === 0 ? (
-              <div className="px-3 py-6 text-sm text-slate-500">기존 DB 데이터가 없습니다.</div>
-            ) : (
-              <div className="space-y-4">
-                {existingSections.map((section, index) => renderSectionTable(section, `existing-${stringOf(section, "sectionCode")}-${index}`))}
-              </div>
-            )}
-          </CollectionResultPanel>
-
+        <section className="mt-4 grid grid-cols-1 gap-4">
           <CollectionResultPanel
             data-help-id="emission-survey-admin-data-preview"
             description={previewPayload
-              ? (previewMessage || "업로드한 파일의 내용은 아래와 같습니다. 각 행에서 GWP 물질과 배출계수를 선택한 뒤 반영 버튼을 누르세요.")
-              : "엑셀 파일을 업로드하면 파일에서 읽은 내용을 여기서 미리 보고, 각 행별 GWP 매핑을 추가할 수 있습니다."}
+              ? (previewMessage || "업로드한 파일의 내용은 아래와 같습니다. 각 행에서 배출계수를 선택한 뒤 반영 버튼을 누르세요.")
+              : "엑셀 파일을 업로드하면 파일에서 읽은 내용을 여기서 미리 보고, 각 행별 배출계수 매핑을 추가할 수 있습니다."}
             title={en ? "Uploaded File Preview" : "업로드 파일 미리보기"}
           >
             {!previewPayload ? (
@@ -773,7 +1001,8 @@ export function EmissionSurveyAdminDataMigrationPage() {
                 {editablePreviewSections.map((section, index) => renderSectionTable(section, `preview-${section.sectionCode || index}`, {
                   editable: true,
                   sectionIndex: index,
-                  onOpenMapping: handleOpenMapping
+                  onOpenMapping: handleOpenMapping,
+                  onChangeValue: handlePreviewValueChange
                 }))}
               </div>
             )}

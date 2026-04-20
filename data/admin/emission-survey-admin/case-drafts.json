@@ -3246,123 +3246,51 @@
     "guidance" : [ "◎ 투입물의 데이터 범주는 원료, 에너지, 보조물질", "◎ 제품을 출하할 때 쓰이는 포장재로 사용되는 투입원료는 시스템 경계에서 제외 (KS I 7004 표준 명시사항)", "※", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
-      "label" : "구분",
-      "headerPath" : "[\"구분\"]"
+      "label" : "구분"
     }, {
       "key" : "materialName",
-      "label" : "물질명",
-      "headerPath" : "[\"물질명\"]"
-    }, {
-      "key" : "amount",
-      "label" : "양",
-      "headerPath" : "[\"양\"]"
+      "label" : "물질명"
     }, {
       "key" : "annualUnit",
-      "label" : "단위\n(연간)",
-      "headerPath" : "[\"단위\\n(연간)\"]"
-    }, {
-      "key" : "usage",
-      "label" : "용도",
-      "headerPath" : "[\"용도\"]"
-    }, {
-      "key" : "origin",
-      "label" : "원산지\n(국가/업체명)",
-      "headerPath" : "[\"원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)\",\"원산지\\n(국가/업체명)\"]"
-    }, {
-      "key" : "marineTransport",
-      "label" : "해양",
-      "headerPath" : "[\"원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)\",\"수송방법\",\"해양\"]"
-    }, {
-      "key" : "marineTonKm",
-      "label" : "물동량\n(ton · km)",
-      "headerPath" : "[\"원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)\",\"수송방법\",\"물동량\\n(ton · km)\"]"
-    }, {
-      "key" : "roadTransport",
-      "label" : "육로",
-      "headerPath" : "[\"원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)\",\"수송방법\",\"육로\"]"
-    }, {
-      "key" : "roadTonKm",
-      "label" : "물동량\n(ton · km)",
-      "headerPath" : "[\"원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)\",\"수송방법\",\"물동량\\n(ton · km)\"]"
-    }, {
-      "key" : "transportRoute",
-      "label" : "운송경로",
-      "headerPath" : "[\"원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)\",\"운송경로\"]"
+      "label" : "단위\n(연간)"
     }, {
       "key" : "remark",
-      "label" : "비고",
-      "headerPath" : "[\"원료물질 수송 (원료 물질에만 기입하여 주시기 바랍니다.)\",\"비고\"]"
+      "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-14 15:55:55",
+    "savedAt" : "2026-04-20 21:29:08",
     "rows" : [ {
       "rowId" : "INPUT_RAW_MATERIALS_13",
       "values" : {
         "group" : "원료 물질",
         "materialName" : "월라스턴석/포스터라이트/사문석",
-        "amount" : "1",
-        "annualUnit" : "0.1000",
-        "usage" : "ton",
-        "origin" : "CO2와 반응하여 CaCO3 생성",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
+        "annualUnit" : "t",
+        "remark" : "CaSiO₃ 84.3 wt%, SiO₂ 13.9 wt%, CaCO₃ 1.8 wt% (포스터라이트: Mg2SiO4, 사문석: Mg3Si2O5(OH)4 주원료)"
+      }
     }, {
       "rowId" : "INPUT_RAW_MATERIALS_14",
       "values" : {
         "group" : "원료 물질",
         "materialName" : "제강 슬래그",
-        "amount" : "",
-        "annualUnit" : "0.5000",
-        "usage" : "ton",
-        "origin" : "Ca 공급원이자 광물탄산화 반응의 주체",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
+        "annualUnit" : "t",
+        "remark" : "CaSiO₃ 56.8 wt%, CaCO₃ 7.7 wt%, FeO 35.5 wt%"
+      }
     }, {
       "rowId" : "INPUT_RAW_MATERIALS_15",
       "values" : {
         "group" : "원료 물질",
         "materialName" : "이산화탄소",
-        "amount" : "1",
-        "annualUnit" : "0.7394",
-        "usage" : "ton or Liter",
-        "origin" : "",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
+        "annualUnit" : "t",
+        "remark" : "-"
+      }
     }, {
       "rowId" : "INPUT_RAW_MATERIALS_16",
       "values" : {
         "group" : "보조 물질",
         "materialName" : "물",
-        "amount" : "1",
-        "annualUnit" : "0.01000",
-        "usage" : "ton or Liter",
-        "origin" : "슬러리 형성, Ca 용출 촉진, 반응 매질",
-        "marineTransport" : "",
-        "marineTonKm" : "",
-        "roadTransport" : "",
-        "roadTonKm" : "",
-        "transportRoute" : "",
-        "remark" : ""
-      },
-      "templateRow" : true
+        "annualUnit" : "t",
+        "remark" : "-"
+      }
     } ]
   },
   "COMMON_DATASET:탄산칼슘/탄산마그네슘::::INPUT_ENERGY:CASE_3_1" : {
@@ -3387,53 +3315,35 @@
     "guidance" : [ "◎ 투입물의 데이터 범주는 원료, 에너지, 보조물질", "◎ 제품을 출하할 때 쓰이는 포장재로 사용되는 투입원료는 시스템 경계에서 제외 (KS I 7004 표준 명시사항)", "※", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
-      "label" : "구분",
-      "headerPath" : "[\"구분\"]"
+      "label" : "구분"
     }, {
       "key" : "materialName",
-      "label" : "물질명",
-      "headerPath" : "[\"물질명\"]"
-    }, {
-      "key" : "amount",
-      "label" : "양",
-      "headerPath" : "[\"양\"]"
+      "label" : "물질명"
     }, {
       "key" : "annualUnit",
-      "label" : "단위(연간)",
-      "headerPath" : "[\"단위(연간)\"]"
-    }, {
-      "key" : "usage",
-      "label" : "용도",
-      "headerPath" : "[\"용도\"]"
+      "label" : "단위(연간)"
     }, {
       "key" : "remark",
-      "label" : "비고",
-      "headerPath" : "[\"비고\"]"
+      "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-14 15:55:55",
+    "savedAt" : "2026-04-20 21:29:08",
     "rows" : [ {
       "rowId" : "INPUT_ENERGY_23",
       "values" : {
         "group" : "에너지",
         "materialName" : "전력",
-        "amount" : "",
-        "annualUnit" : "0.3496",
-        "usage" : "kW",
-        "remark" : "원료 분쇄, CO2 압축, 펌핑"
-      },
-      "templateRow" : true
+        "annualUnit" : "kW",
+        "remark" : "한국전력공사 공급"
+      }
     }, {
       "rowId" : "INPUT_ENERGY_24",
       "values" : {
         "group" : "에너지",
         "materialName" : "열(메탄 연소 기반)",
-        "amount" : "",
-        "annualUnit" : "0.0542",
-        "usage" : "MJ",
-        "remark" : "슬러리, CO2 가열"
-      },
-      "templateRow" : true
+        "annualUnit" : "MJ",
+        "remark" : ""
+      }
     } ]
   },
   "COMMON_DATASET:탄산칼슘/탄산마그네슘::::INPUT_STEAM:CASE_3_1" : {
@@ -3458,67 +3368,27 @@
     "guidance" : [ "◎ 투입물의 데이터 범주는 원료, 에너지, 보조물질", "◎ 제품을 출하할 때 쓰이는 포장재로 사용되는 투입원료는 시스템 경계에서 제외 (KS I 7004 표준 명시사항)", "※", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
-      "label" : "구분",
-      "headerPath" : "[\"구분\"]"
+      "label" : "구분"
     }, {
       "key" : "materialName",
-      "label" : "물질명",
-      "headerPath" : "[\"물질명\"]"
-    }, {
-      "key" : "amount",
-      "label" : "양",
-      "headerPath" : "[\"양\"]"
+      "label" : "물질명"
     }, {
       "key" : "annualUnit",
-      "label" : "단위(연간)",
-      "headerPath" : "[\"단위(연간)\"]"
+      "label" : "단위(연간)"
     }, {
-      "key" : "usage",
-      "label" : "용도",
-      "headerPath" : "[\"용도\"]"
-    }, {
-      "key" : "steamType",
-      "label" : "스팀종류\n(포화증기/습증기/과열증기)",
-      "headerPath" : "[\"스팀종류\\n(포화증기/습증기/과열증기)\"]"
-    }, {
-      "key" : "steamMass",
-      "label" : "스팀의 질량",
-      "headerPath" : "[\"스팀의 질량\"]"
-    }, {
-      "key" : "condensateMass",
-      "label" : "응축수 질량",
-      "headerPath" : "[\"응축수 질량\"]"
-    }, {
-      "key" : "condensateTemperature",
-      "label" : "응축수\n온도",
-      "headerPath" : "[\"응축수\\n온도\"]"
-    }, {
-      "key" : "steamCirculation",
-      "label" : "스팀순환여부",
-      "headerPath" : "[\"스팀순환여부\"]"
-    }, {
-      "key" : "externalSteam",
-      "label" : "외부스팀 여부",
-      "headerPath" : "[\"외부스팀 여부\"]"
+      "key" : "remark",
+      "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-14 15:55:55",
+    "savedAt" : "2026-04-20 21:29:08",
     "rows" : [ {
       "rowId" : "INPUT_STEAM_27",
       "values" : {
         "group" : "에너지",
         "materialName" : "스팀",
-        "amount" : "400000",
-        "annualUnit" : "MJ/yr",
-        "usage" : "A공정 에너지 공급용도",
-        "steamType" : "포화증기",
-        "steamMass" : "30kg/yr",
-        "condensateMass" : "30kg/yr",
-        "condensateTemperature" : "60도",
-        "steamCirculation" : "O",
-        "externalSteam" : "X"
-      },
-      "templateRow" : true
+        "annualUnit" : "MJ",
+        "remark" : "X"
+      }
     } ]
   },
   "COMMON_DATASET:탄산칼슘/탄산마그네슘::::INPUT_MISC:CASE_3_1" : {
@@ -3543,32 +3413,28 @@
     "guidance" : [ "◎ 투입물의 데이터 범주는 원료, 에너지, 보조물질", "◎ 제품을 출하할 때 쓰이는 포장재로 사용되는 투입원료는 시스템 경계에서 제외 (KS I 7004 표준 명시사항)", "※", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
-      "label" : "구분",
-      "headerPath" : "[\"구분\"]"
+      "label" : "구분"
     }, {
       "key" : "materialName",
-      "label" : "물질명",
-      "headerPath" : "[\"물질명\"]"
-    }, {
-      "key" : "amount",
-      "label" : "양",
-      "headerPath" : "[\"양\"]"
+      "label" : "물질명"
     }, {
       "key" : "annualUnit",
-      "label" : "단위(연간)",
-      "headerPath" : "[\"단위(연간)\"]"
-    }, {
-      "key" : "usage",
-      "label" : "용도",
-      "headerPath" : "[\"용도\"]"
+      "label" : "단위(연간)"
     }, {
       "key" : "remark",
-      "label" : "비고",
-      "headerPath" : "[\"비고\"]"
+      "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-14 15:55:55",
-    "rows" : [ ]
+    "savedAt" : "2026-04-20 21:29:08",
+    "rows" : [ {
+      "rowId" : "INPUT_MISC_32",
+      "values" : {
+        "group" : "기타",
+        "materialName" : "",
+        "annualUnit" : "t",
+        "remark" : "일부 or 전체 내부 폐수 정화 공정 유출수 사용"
+      }
+    } ]
   },
   "COMMON_DATASET:탄산칼슘/탄산마그네슘::::OUTPUT_PRODUCTS:CASE_3_1" : {
     "ownerActorId" : "COMMON_DATASET",
@@ -3592,59 +3458,35 @@
     "guidance" : [ "◎ 산출물의 데이터 범주는 제품 및 부산물, 폐기물(매립, 소각, 재활용), 환경배출물(대기배출물,수계배출물,토양배출물)을 포함", "◎ 원부자재 생산 공정의 경우 생산품 출하 이후의 과정(제품 수송, 사용, 폐기)은 시스템 경계에서 제외", "(단, 출하 이후 손실이 발생하는 경우에는 손실률 고려, 예: 전력)", "◎ 데이터 수집의 참고자료는 '5. 참고자료'에 기재", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
-      "label" : "구분",
-      "headerPath" : "[\"구분\"]"
+      "label" : "구분"
     }, {
       "key" : "materialName",
-      "label" : "물질명",
-      "headerPath" : "[\"물질명\"]"
-    }, {
-      "key" : "amount",
-      "label" : "양",
-      "headerPath" : "[\"양\"]"
+      "label" : "물질명"
     }, {
       "key" : "annualUnit",
-      "label" : "단위\n(연간)",
-      "headerPath" : "[\"단위\\n(연간)\"]"
-    }, {
-      "key" : "productionCost",
-      "label" : "생산원가",
-      "headerPath" : "[\"생산원가\"]"
-    }, {
-      "key" : "costUnit",
-      "label" : "단위",
-      "headerPath" : "[\"단위\"]"
+      "label" : "단위\n(연간)"
     }, {
       "key" : "remark",
-      "label" : "비고",
-      "headerPath" : "[\"비고\"]"
+      "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-14 15:55:55",
+    "savedAt" : "2026-04-20 21:29:08",
     "rows" : [ {
       "rowId" : "OUTPUT_PRODUCTS_12",
       "values" : {
         "group" : "제품",
         "materialName" : "탄산칼슘/탄산마그네슘",
-        "amount" : "",
-        "annualUnit" : "ton",
-        "productionCost" : "",
-        "costUnit" : "",
+        "annualUnit" : "t",
         "remark" : ""
-      },
-      "templateRow" : true
+      }
     }, {
       "rowId" : "OUTPUT_PRODUCTS_13",
       "values" : {
         "group" : "부산물",
         "materialName" : "이산화규소",
-        "amount" : "",
-        "annualUnit" : "",
-        "productionCost" : "",
-        "costUnit" : "",
+        "annualUnit" : "t",
         "remark" : ""
-      },
-      "templateRow" : true
+      }
     } ]
   },
   "COMMON_DATASET:탄산칼슘/탄산마그네슘::::OUTPUT_AIR:CASE_3_1" : {
@@ -3669,42 +3511,28 @@
     "guidance" : [ "◎ 산출물의 데이터 범주는 제품 및 부산물, 폐기물(매립, 소각, 재활용), 환경배출물(대기배출물,수계배출물,토양배출물)을 포함", "◎ 원부자재 생산 공정의 경우 생산품 출하 이후의 과정(제품 수송, 사용, 폐기)은 시스템 경계에서 제외", "(단, 출하 이후 손실이 발생하는 경우에는 손실률 고려, 예: 전력)", "◎ 데이터 수집의 참고자료는 '5. 참고자료'에 기재", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
-      "label" : "구분",
-      "headerPath" : "[\"구분\"]"
+      "label" : "구분"
     }, {
       "key" : "materialName",
-      "label" : "물질명",
-      "headerPath" : "[\"물질명\"]"
-    }, {
-      "key" : "amount",
-      "label" : "양",
-      "headerPath" : "[\"양\"]"
+      "label" : "물질명"
     }, {
       "key" : "annualUnit",
-      "label" : "단위(연간)",
-      "headerPath" : "[\"단위(연간)\"]"
-    }, {
-      "key" : "collectionMethod",
-      "label" : "데이터 수집 방법",
-      "headerPath" : "[\"데이터 수집 방법\"]"
+      "label" : "단위(연간)"
     }, {
       "key" : "remark",
-      "label" : "비고",
-      "headerPath" : "[\"비고\"]"
+      "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-14 15:55:55",
+    "savedAt" : "2026-04-20 21:29:08",
     "rows" : [ {
       "rowId" : "OUTPUT_AIR_18",
       "values" : {
         "group" : "대기배출물",
         "materialName" : "이산화탄소",
-        "amount" : "",
-        "annualUnit" : "",
-        "collectionMethod" : "",
-        "remark" : "1.0000"
-      },
-      "templateRow" : true
+        "annualUnit" : "t",
+        "remark" : "미반응 및 전력 사용, 열 생산에 따른 간접 배출",
+        "emissionFactor" : "31"
+      }
     } ]
   },
   "COMMON_DATASET:탄산칼슘/탄산마그네슘::::OUTPUT_WATER:CASE_3_1" : {
@@ -3729,47 +3557,27 @@
     "guidance" : [ "◎ 산출물의 데이터 범주는 제품 및 부산물, 폐기물(매립, 소각, 재활용), 환경배출물(대기배출물,수계배출물,토양배출물)을 포함", "◎ 원부자재 생산 공정의 경우 생산품 출하 이후의 과정(제품 수송, 사용, 폐기)은 시스템 경계에서 제외", "(단, 출하 이후 손실이 발생하는 경우에는 손실률 고려, 예: 전력)", "◎ 데이터 수집의 참고자료는 '5. 참고자료'에 기재", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
-      "label" : "구분",
-      "headerPath" : "[\"구분\"]"
+      "label" : "구분"
     }, {
       "key" : "materialName",
-      "label" : "물질명",
-      "headerPath" : "[\"물질명\"]"
-    }, {
-      "key" : "amount",
-      "label" : "양",
-      "headerPath" : "[\"양\"]"
+      "label" : "물질명"
     }, {
       "key" : "annualUnit",
-      "label" : "단위(연간)",
-      "headerPath" : "[\"단위(연간)\"]"
-    }, {
-      "key" : "treatmentRoute",
-      "label" : "처리경로",
-      "headerPath" : "[\"처리경로\"]"
-    }, {
-      "key" : "treatmentMethod",
-      "label" : "처리방법",
-      "headerPath" : "[\"처리방법\"]"
+      "label" : "단위(연간)"
     }, {
       "key" : "remark",
-      "label" : "비고",
-      "headerPath" : "[\"비고\"]"
+      "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-14 15:55:55",
+    "savedAt" : "2026-04-20 21:29:08",
     "rows" : [ {
       "rowId" : "OUTPUT_WATER_26",
       "values" : {
         "group" : "수계 배출물",
         "materialName" : "폐수",
-        "amount" : "",
         "annualUnit" : "m3",
-        "treatmentRoute" : "",
-        "treatmentMethod" : "0.3874",
-        "remark" : "???"
-      },
-      "templateRow" : true
+        "remark" : ""
+      }
     } ]
   },
   "COMMON_DATASET:탄산칼슘/탄산마그네슘::::OUTPUT_WASTE:CASE_3_1" : {
@@ -3794,51 +3602,19 @@
     "guidance" : [ "◎ 산출물의 데이터 범주는 제품 및 부산물, 폐기물(매립, 소각, 재활용), 환경배출물(대기배출물,수계배출물,토양배출물)을 포함", "◎ 원부자재 생산 공정의 경우 생산품 출하 이후의 과정(제품 수송, 사용, 폐기)은 시스템 경계에서 제외", "(단, 출하 이후 손실이 발생하는 경우에는 손실률 고려, 예: 전력)", "◎ 데이터 수집의 참고자료는 '5. 참고자료'에 기재", "◎ 물질명은 IUPAC(International Union of Pure and Applied Chemistry)명 또는 관용명으로 기재" ],
     "columns" : [ {
       "key" : "group",
-      "label" : "구분",
-      "headerPath" : "[\"구분\"]"
+      "label" : "구분"
     }, {
       "key" : "materialName",
-      "label" : "물질명",
-      "headerPath" : "[\"물질명\"]"
-    }, {
-      "key" : "amount",
-      "label" : "양",
-      "headerPath" : "[\"양\"]"
+      "label" : "물질명"
     }, {
       "key" : "annualUnit",
-      "label" : "단위",
-      "headerPath" : "[\"단위\"]"
-    }, {
-      "key" : "wasteType",
-      "label" : "구분\n(일반/지정 폐기물)",
-      "headerPath" : "[\"구분\\n(일반/지정 폐기물)\"]"
-    }, {
-      "key" : "treatmentMethod",
-      "label" : "처리방법\n(매립/소각/재활용/기타)",
-      "headerPath" : "[\"처리방법\\n(매립/소각/재활용/기타)\"]"
-    }, {
-      "key" : "transportTonKm",
-      "label" : "물동량",
-      "headerPath" : "[\"재활용 및 최종폐기 과정 수송\",\"물동량\"]"
-    }, {
-      "key" : "marineTransport",
-      "label" : "해양",
-      "headerPath" : "[\"재활용 및 최종폐기 과정 수송\",\"수송방법\",\"해양\"]"
-    }, {
-      "key" : "roadTransport",
-      "label" : "육로",
-      "headerPath" : "[\"재활용 및 최종폐기 과정 수송\",\"수송방법\",\"육로\"]"
-    }, {
-      "key" : "transportRoute",
-      "label" : "운송경로",
-      "headerPath" : "[\"재활용 및 최종폐기 과정 수송\",\"운송경로\"]"
+      "label" : "단위"
     }, {
       "key" : "remark",
-      "label" : "비고",
-      "headerPath" : "[\"재활용 및 최종폐기 과정 수송\",\"비고\"]"
+      "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-14 15:55:55",
+    "savedAt" : "2026-04-20 21:29:08",
     "rows" : [ ]
   }
 }

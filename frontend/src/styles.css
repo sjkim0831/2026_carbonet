@@ -864,6 +864,7 @@ textarea {
   display: flex;
   height: 100%;
   cursor: pointer;
+  position: relative;
   flex-direction: column;
   align-items: center;
   border: 1px solid var(--kr-gov-border-light);
@@ -878,10 +879,72 @@ textarea {
 .auth-card:hover {
   border-color: var(--kr-gov-blue);
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  transform: translateY(-2px);
 }
 
 .auth-card:focus-visible {
   box-shadow: 0 0 0 4px rgb(219 234 254);
+}
+
+.auth-card-selected {
+  border-color: var(--kr-gov-blue);
+  background: linear-gradient(180deg, #fff 0%, #f4f8ff 100%);
+  box-shadow: 0 18px 40px rgba(0, 55, 139, 0.14);
+}
+
+.auth-card-selected .icon-box {
+  background: rgb(239 246 255);
+}
+
+.auth-card-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: none;
+  border-radius: 999px;
+  background: var(--kr-gov-blue);
+  color: #fff;
+  padding: 0.25rem 0.625rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.auth-card-selected .auth-card-badge {
+  display: inline-flex;
+}
+
+.join-auth-selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border: 1px solid #cfe0ff;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #f7fbff 0%, #eef4ff 100%);
+  padding: 1.25rem 1.5rem;
+}
+
+.join-auth-selection-eyebrow {
+  margin: 0 0 0.375rem;
+  color: var(--kr-gov-blue);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.join-auth-selection-title {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+.join-auth-selection-description,
+.join-auth-selection-help {
+  margin: 0;
+  color: var(--kr-gov-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
 }
 
 .icon-box {
@@ -904,6 +967,13 @@ textarea {
   font-variation-settings: "wght" 300, "opsz" 24;
   font-size: 48px;
   color: var(--kr-gov-blue);
+}
+
+@media (max-width: 768px) {
+  .join-auth-selection-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .form-section-title {

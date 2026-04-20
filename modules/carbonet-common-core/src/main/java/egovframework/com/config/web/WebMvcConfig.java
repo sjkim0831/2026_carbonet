@@ -33,20 +33,20 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .setCacheControl(CacheControl.noStore().mustRevalidate());
         registry.addResourceHandler("/assets/react/index.html")
                 .addResourceLocations("classpath:/static/react-app/index.html")
-                .setCacheControl(CacheControl.noCache());
+                .setCacheControl(CacheControl.noStore().mustRevalidate());
         registry.addResourceHandler("/assets/react/assets/**")
                 .addResourceLocations("classpath:/static/react-app/assets/")
-                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic());
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic().immutable());
         registry.addResourceHandler("/assets/react/.vite/**")
                 .addResourceLocations("classpath:/static/react-app/.vite/")
-                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic());
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic().immutable());
         registry.addResourceHandler("/admin/assets/react/**", "/en/admin/assets/react/**")
                 .addResourceLocations("classpath:/static/react-app/")
-                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic());
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic().immutable());
         registry.addResourceHandler("/admin/**").addResourceLocations("classpath:/static/");
         registry.addResourceHandler("/assets/react/**")
                 .addResourceLocations("classpath:/static/react-app/")
-                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic());
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic().immutable());
     }
 
     @Override
