@@ -56,6 +56,7 @@ load_optional_env() {
   fi
 }
 
+load_optional_env "$CONFIG_DIR/carbonet-${PORT}.defaults.env"
 load_optional_env "$CONFIG_DIR/carbonet-${PORT}.env"
 load_optional_env "$CONFIG_DIR/codex-runner.env"
 carbonet_set_curl_args

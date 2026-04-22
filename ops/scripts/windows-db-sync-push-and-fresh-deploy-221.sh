@@ -2075,6 +2075,7 @@ run_remote_clone_and_restart() {
     "ops/scripts/run-18000-supervised.sh"
     "ops/scripts/codex-verify-18000-freshness.sh"
     "ops/scripts/runtime-url-common.sh"
+    "ops/scripts/apply-carbonet-duckdns-nginx-backend-tls.sh"
   )
 
   require_env "MAIN_REMOTE_PASSWORD"
@@ -2118,6 +2119,9 @@ if [ -d "\$BACKUP_ROOT/ops-config" ]; then
   cp -a "\$BACKUP_ROOT/ops-config/." "\$REMOTE_ROOT/ops/config/"
 fi
 cd "\$REMOTE_ROOT"
+if [[ "\${REMOTE_APPLY_NGINX_BACKEND_TLS:-true}" == "true" ]]; then
+  bash ops/scripts/apply-carbonet-duckdns-nginx-backend-tls.sh
+fi
 if command -v npm >/dev/null 2>&1; then
   bash ops/scripts/build-restart-18000.sh
 else
@@ -2159,6 +2163,9 @@ else
   git reset --hard "origin/\$BRANCH"
 fi
 cd "\$REMOTE_ROOT"
+if [[ "\${REMOTE_APPLY_NGINX_BACKEND_TLS:-true}" == "true" ]]; then
+  bash ops/scripts/apply-carbonet-duckdns-nginx-backend-tls.sh
+fi
 if command -v npm >/dev/null 2>&1; then
   bash ops/scripts/build-restart-18000.sh
 else
@@ -2208,6 +2215,9 @@ set -euo pipefail
 cd '$MAIN_REMOTE_ROOT'
 if [ -f ops/config/deploy-automation.env ]; then
   chmod 600 ops/config/deploy-automation.env
+fi
+if [[ "\${REMOTE_APPLY_NGINX_BACKEND_TLS:-true}" == "true" ]]; then
+  bash ops/scripts/apply-carbonet-duckdns-nginx-backend-tls.sh
 fi
 bash ops/scripts/restart-18000-runtime.sh
 VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-180}" bash ops/scripts/codex-verify-18000-freshness.sh

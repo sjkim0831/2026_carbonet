@@ -42,6 +42,7 @@ source "$ROOT_DIR/ops/scripts/runtime-url-common.sh"
 PORT="${PORT:-18000}"
 CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
 ENV_FILE="${ENV_FILE:-$CONFIG_DIR/carbonet-${PORT}.env}"
+DEFAULT_ENV_FILE="${DEFAULT_ENV_FILE:-$CONFIG_DIR/carbonet-${PORT}.defaults.env}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
 LOG_DIR="${LOG_DIR:-$ROOT_DIR/var/logs}"
 APP_TARGET_JAR_PATH="$ROOT_DIR/apps/carbonet-app/target/carbonet.jar"
@@ -49,7 +50,6 @@ TARGET_JAR_PATH="${TARGET_JAR_PATH:-$APP_TARGET_JAR_PATH}"
 RUNTIME_JAR_PATH="${RUNTIME_JAR_PATH:-$RUN_DIR/carbonet-${PORT}.jar}"
 PID_FILE="${PID_FILE:-$RUN_DIR/carbonet-${PORT}.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/carbonet-${PORT}.log}"
-HEALTH_URL="${HEALTH_URL:-$(carbonet_runtime_health_url)}"
 STARTUP_MARKER="${STARTUP_MARKER:-Tomcat started on port ${PORT}}"
 FRONTEND_RESOURCE_DIR="${FRONTEND_RESOURCE_DIR:-$ROOT_DIR/src/main/resources/static/react-app}"
 FRONTEND_APP_RESOURCE_DIR="${FRONTEND_APP_RESOURCE_DIR:-$ROOT_DIR/apps/carbonet-app/src/main/resources/static/react-app}"
@@ -66,6 +66,13 @@ VERIFY_BLOCKLIST_FALLBACK_LOGS="${VERIFY_BLOCKLIST_FALLBACK_LOGS:-true}"
 BLOCKLIST_FALLBACK_LOG_PATTERN="${BLOCKLIST_FALLBACK_LOG_PATTERN:-Failed to load persisted blocklist rows|Failed to load persisted blocklist action history|Unknown class \"dba[.]comtnblocklistentry\"|Unknown class \"dba[.]comtnblocklistactionhist\"}"
 VERIFY_REACT_FS_OVERRIDE_HTTP="${VERIFY_REACT_FS_OVERRIDE_HTTP:-true}"
 
+if [[ -f "$DEFAULT_ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$DEFAULT_ENV_FILE"
+  set +a
+fi
+
 if [[ -f "$ENV_FILE" ]]; then
   set -a
   # shellcheck disable=SC1090
@@ -73,6 +80,7 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
+HEALTH_URL="${HEALTH_URL:-$(carbonet_runtime_health_url)}"
 carbonet_set_curl_args
 
 fail() {
