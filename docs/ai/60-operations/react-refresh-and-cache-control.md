@@ -69,6 +69,12 @@ Reason:
 - both commands rebuild frontend assets and package the backend jar before the runtime restart
 - if you intentionally bypass that with `RESTART_MODE=runtime-only`, the runtime jar can still contain older React assets
 
+When `CARBONET_REACT_APP_FS_OVERRIDE_ENABLED=true` is enabled for local `:18000`, the fast frontend-only path is:
+
+- `bash ops/scripts/frontend-refresh-18000.sh`
+
+That mode keeps Java runtime ownership in the packaged jar, but serves React assets from `src/main/resources/static/react-app` first. Verification must therefore compare the served manifest and asset responses against the filesystem override path, not just the jar contents.
+
 ## Verification Checklist
 
 - shell response includes `Cache-Control: no-store`

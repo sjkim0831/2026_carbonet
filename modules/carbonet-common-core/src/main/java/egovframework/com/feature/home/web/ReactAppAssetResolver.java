@@ -3,12 +3,15 @@ package egovframework.com.feature.home.web;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,21 +27,27 @@ public class ReactAppAssetResolver {
     private final ResourceLoader resourceLoader;
     private final String fallbackJs;
     private final String fallbackCss;
+    private final boolean filesystemOverrideEnabled;
+    private final String filesystemOverridePath;
     private volatile CachedAssets cachedAssets;
 
     public ReactAppAssetResolver(
             ObjectMapper objectMapper,
             ResourceLoader resourceLoader,
+            @Value("${CARBONET_REACT_APP_FS_OVERRIDE_ENABLED:false}") boolean filesystemOverrideEnabled,
+            @Value("${CARBONET_REACT_APP_FS_OVERRIDE_PATH:}") String filesystemOverridePath,
             @Value("${carbonet.react-app.prod-js:/assets/react/assets/index.js}") String fallbackJs,
             @Value("${carbonet.react-app.prod-css:/assets/react/assets/index.css}") String fallbackCss) {
         this.objectMapper = objectMapper;
         this.resourceLoader = resourceLoader;
+        this.filesystemOverrideEnabled = filesystemOverrideEnabled;
+        this.filesystemOverridePath = filesystemOverridePath == null ? "" : filesystemOverridePath.trim();
         this.fallbackJs = fallbackJs;
         this.fallbackCss = fallbackCss;
     }
 
     public ReactAppAssets resolveAssets() {
-        Resource manifestResource = resourceLoader.getResource(MANIFEST_RESOURCE);
+        Resource manifestResource = resolveManifestResource();
         if (!manifestResource.exists()) {
             return versionedAssets(fallbackJs, fallbackCss, "fallback");
         }
@@ -73,6 +82,25 @@ public class ReactAppAssetResolver {
     private String toPublicAssetPath(String relativePath) {
         String normalized = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
         return "/assets/react/" + normalized;
+    }
+
+    private Resource resolveManifestResource() {
+        Resource filesystemManifest = resolveFilesystemManifestResource();
+        if (filesystemManifest != null && filesystemManifest.exists()) {
+            return filesystemManifest;
+        }
+        return resourceLoader.getResource(MANIFEST_RESOURCE);
+    }
+
+    private Resource resolveFilesystemManifestResource() {
+        if (!filesystemOverrideEnabled || isBlank(filesystemOverridePath)) {
+            return null;
+        }
+        Path manifestPath = Path.of(filesystemOverridePath, ".vite", "manifest.json");
+        if (!Files.exists(manifestPath)) {
+            return null;
+        }
+        return new FileSystemResource(manifestPath);
     }
 
     private String appendVersion(String path, String versionToken) {

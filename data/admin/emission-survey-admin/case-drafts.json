@@ -3258,7 +3258,7 @@
       "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-20 21:29:08",
+    "savedAt" : "2026-04-21 15:41:10",
     "rows" : [ {
       "rowId" : "INPUT_RAW_MATERIALS_13",
       "values" : {
@@ -3290,6 +3290,22 @@
         "materialName" : "물",
         "annualUnit" : "t",
         "remark" : "-"
+      }
+    }, {
+      "rowId" : "NEW_ROW_1776749981165_1",
+      "values" : {
+        "group" : "보조 물질",
+        "materialName" : "물",
+        "annualUnit" : "t",
+        "remark" : ""
+      }
+    }, {
+      "rowId" : "NEW_ROW_1776749988125_2",
+      "values" : {
+        "group" : "보조 물질",
+        "materialName" : "물",
+        "annualUnit" : "t",
+        "remark" : ""
       }
     } ]
   },
@@ -3327,7 +3343,7 @@
       "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-20 21:29:08",
+    "savedAt" : "2026-04-21 15:41:10",
     "rows" : [ {
       "rowId" : "INPUT_ENERGY_23",
       "values" : {
@@ -3380,7 +3396,7 @@
       "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-20 21:29:08",
+    "savedAt" : "2026-04-21 15:41:10",
     "rows" : [ {
       "rowId" : "INPUT_STEAM_27",
       "values" : {
@@ -3425,12 +3441,12 @@
       "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-20 21:29:08",
+    "savedAt" : "2026-04-21 15:41:10",
     "rows" : [ {
       "rowId" : "INPUT_MISC_32",
       "values" : {
         "group" : "기타",
-        "materialName" : "",
+        "materialName" : "물",
         "annualUnit" : "t",
         "remark" : "일부 or 전체 내부 폐수 정화 공정 유출수 사용"
       }
@@ -3470,7 +3486,7 @@
       "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-20 21:29:08",
+    "savedAt" : "2026-04-21 15:41:10",
     "rows" : [ {
       "rowId" : "OUTPUT_PRODUCTS_12",
       "values" : {
@@ -3523,7 +3539,7 @@
       "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-20 21:29:08",
+    "savedAt" : "2026-04-21 15:41:10",
     "rows" : [ {
       "rowId" : "OUTPUT_AIR_18",
       "values" : {
@@ -3531,7 +3547,7 @@
         "materialName" : "이산화탄소",
         "annualUnit" : "t",
         "remark" : "미반응 및 전력 사용, 열 생산에 따른 간접 배출",
-        "emissionFactor" : "31"
+        "emissionFactor" : ""
       }
     } ]
   },
@@ -3569,7 +3585,7 @@
       "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-20 21:29:08",
+    "savedAt" : "2026-04-21 15:41:10",
     "rows" : [ {
       "rowId" : "OUTPUT_WATER_26",
       "values" : {
@@ -3614,7 +3630,7 @@
       "label" : "비고"
     } ],
     "actorId" : "COMMON_DATASET",
-    "savedAt" : "2026-04-20 21:29:08",
+    "savedAt" : "2026-04-21 15:41:10",
     "rows" : [ ]
   }
 }

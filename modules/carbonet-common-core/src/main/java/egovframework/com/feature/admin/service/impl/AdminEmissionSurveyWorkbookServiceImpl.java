@@ -433,7 +433,9 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                     isEn,
                     mergedRegionsMap
             );
-            List<Map<String, Object>> existingRows = readDatasetSections(storageActorId(), buildDatasetId(""));
+            String selectedProductName = resolveSelectedProductName(payload.get("sections"));
+            List<Map<String, Object>> existingRows = readDatasetSections(storageActorId(), buildDatasetId(selectedProductName));
+            payload.put("selectedProductName", selectedProductName);
             payload.put("existingDatasetSectionRows", existingRows);
             payload.put("hasExistingDataset", !existingRows.isEmpty());
             payload.put("previewMessage", !existingRows.isEmpty()
@@ -471,7 +473,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                     isEn,
                     mergedRegionsMap
             );
-            clearSharedDataset();
+            clearSharedDatasetProducts(resolveTargetProductNames((List<Map<String, Object>>) (List<?>) (payload.get("sections") instanceof List<?> ? payload.get("sections") : List.of())));
             Map<String, Object> uploadAudit = saveUploadedWorkbookDataset(
                     payload,
                     storageActorId(),
@@ -484,8 +486,10 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                     "",
                     isEn
             );
+            String selectedProductName = resolveSelectedProductName(payload.get("sections"));
+            payload.put("selectedProductName", selectedProductName);
             payload.put("uploadAudit", uploadAudit);
-            payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId(), buildDatasetId("")));
+            payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId(), buildDatasetId(selectedProductName)));
             payload.put("message", isEn ? "Uploaded file has been applied to the shared DB dataset." : "업로드 파일 내용을 공통 데이터셋에 반영했습니다.");
             return payload;
         } catch (IllegalArgumentException e) {
@@ -508,7 +512,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         payload.put("sections", request.getSections());
         payload.put("sourcePath", safe(request.getSourcePath()));
         payload.put("targetPath", safe(request.getTargetPath()));
-        clearSharedDataset();
+        clearSharedDatasetProducts(resolveTargetProductNames(request.getSections()));
         Map<String, Object> uploadAudit = saveUploadedWorkbookDataset(
                 payload,
                 storageActorId(),
@@ -521,8 +525,10 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                 "",
                 isEn
         );
+        String selectedProductName = resolveSelectedProductName(request.getSections());
+        payload.put("selectedProductName", selectedProductName);
         payload.put("uploadAudit", uploadAudit);
-        payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId(), buildDatasetId("")));
+        payload.put("selectedDatasetSectionRows", readDatasetSections(storageActorId(), buildDatasetId(selectedProductName)));
         payload.put("message", isEn ? "Mapped dataset sections have been applied to the shared DB dataset." : "매핑된 데이터셋 섹션을 공통 데이터셋에 반영했습니다.");
         return payload;
     }
@@ -701,9 +707,6 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         }
         List<Map<String, Object>> uploadLogRows = paginateRows(allUploadLogRows, resolvedPageIndex, resolvedPageSize);
         String selectedDatasetId = resolvedDatasetId;
-        if (selectedDatasetId.isEmpty() && !datasetRows.isEmpty()) {
-            selectedDatasetId = safeObject(datasetRows.get(0).get("datasetId"));
-        }
         String selectedLogId = resolvedLogId;
         if (selectedLogId.isEmpty() && !allUploadLogRows.isEmpty()) {
             selectedLogId = safeObject(allUploadLogRows.get(0).get("logId"));
@@ -2638,6 +2641,7 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                                                            String lciMiddleCode,
                                                            String lciSmallCode) {
         String resolvedActorId = storageActorId();
+        List<Map<String, Object>> fileRows = buildDatasetSummariesFromRegistry(resolvedActorId, lciMajorCode, lciMiddleCode, lciSmallCode);
         if (isDraftTableReady()) {
             try {
                 Map<String, Object> params = new LinkedHashMap<>();
@@ -2645,13 +2649,21 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
                 params.put("lciMajorCode", safe(lciMajorCode));
                 params.put("lciMiddleCode", safe(lciMiddleCode));
                 params.put("lciSmallCode", safe(lciSmallCode));
-                return adminEmissionSurveyDraftMapper.selectDatasetSummaries(params);
+                List<Map<String, Object>> databaseRows = adminEmissionSurveyDraftMapper.selectDatasetSummaries(params);
+                return mergeDatasetSummaries(databaseRows, fileRows);
             } catch (Exception ignored) {
                 // Fall through to file registry lookup.
             }
         }
+        return fileRows;
+    }
+
+    private List<Map<String, Object>> buildDatasetSummariesFromRegistry(String actorId,
+                                                                        String lciMajorCode,
+                                                                        String lciMiddleCode,
+                                                                        String lciSmallCode) {
         Map<String, Map<String, Object>> grouped = new LinkedHashMap<>();
-        for (Map<String, Object> row : readDraftRegistry(resolvedActorId).values()) {
+        for (Map<String, Object> row : readDraftRegistry(actorId).values()) {
             String datasetId = safeObject(row.get("datasetId"));
             if (datasetId.isEmpty()) {
                 continue;
@@ -2692,6 +2704,46 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         return grouped.values().stream()
                 .sorted(Comparator.comparing(row -> safeObject(row.get("savedAt")), Comparator.reverseOrder()))
                 .collect(Collectors.toList());
+    }
+
+    private List<Map<String, Object>> mergeDatasetSummaries(List<Map<String, Object>> databaseRows, List<Map<String, Object>> fileRows) {
+        if ((databaseRows == null || databaseRows.isEmpty()) && (fileRows == null || fileRows.isEmpty())) {
+            return List.of();
+        }
+        Map<String, Map<String, Object>> merged = new LinkedHashMap<>();
+        for (Map<String, Object> row : databaseRows == null ? List.<Map<String, Object>>of() : databaseRows) {
+            merged.put(safeObject(row.get("datasetId")), new LinkedHashMap<>(row));
+        }
+        for (Map<String, Object> row : fileRows == null ? List.<Map<String, Object>>of() : fileRows) {
+            String datasetId = safeObject(row.get("datasetId"));
+            if (datasetId.isEmpty()) {
+                continue;
+            }
+            Map<String, Object> current = merged.get(datasetId);
+            if (current == null || shouldPreferDatasetSummary(row, current)) {
+                merged.put(datasetId, new LinkedHashMap<>(row));
+            }
+        }
+        return merged.values().stream()
+                .sorted(Comparator.comparing(row -> safeObject(row.get("savedAt")), Comparator.reverseOrder()))
+                .collect(Collectors.toList());
+    }
+
+    private boolean shouldPreferDatasetSummary(Map<String, Object> candidate, Map<String, Object> current) {
+        String candidateSavedAt = safeObject(candidate.get("savedAt"));
+        String currentSavedAt = safeObject(current.get("savedAt"));
+        if (!candidateSavedAt.isEmpty() && candidateSavedAt.compareTo(currentSavedAt) > 0) {
+            return true;
+        }
+        if (candidateSavedAt.equals(currentSavedAt)) {
+            int candidateRowCount = parseInteger(candidate.get("rowCount"));
+            int currentRowCount = parseInteger(current.get("rowCount"));
+            if (candidateRowCount != currentRowCount) {
+                return candidateRowCount > currentRowCount;
+            }
+            return parseInteger(candidate.get("sectionCount")) > parseInteger(current.get("sectionCount"));
+        }
+        return parseInteger(candidate.get("rowCount")) > 0 && parseInteger(current.get("rowCount")) == 0;
     }
 
     private List<Map<String, Object>> readDatasetSections(String actorId, String datasetId) {
@@ -2893,6 +2945,20 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         return new ArrayList<>(products);
     }
 
+    private List<String> resolveTargetProductNames(List<Map<String, Object>> sections) {
+        List<String> productNames = extractProductNames(sections);
+        return productNames.isEmpty() ? List.of("") : productNames;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String resolveSelectedProductName(Object sections) {
+        if (!(sections instanceof List<?>)) {
+            return "";
+        }
+        List<String> productNames = extractProductNames((List<Map<String, Object>>) (List<?>) sections);
+        return productNames.isEmpty() ? "" : normalizeProductName(productNames.get(0));
+    }
+
     private List<Map<String, Object>> filterSectionsForProduct(List<Map<String, Object>> sections, String productName) {
         String resolvedProductName = normalizeProductName(productName);
         if (resolvedProductName.isEmpty()) {
@@ -2991,6 +3057,43 @@ public class AdminEmissionSurveyWorkbookServiceImpl extends EgovAbstractServiceI
         }
         try {
             adminEmissionSurveyDraftMapper.deleteUploadLogsByOwnerActorId(storageActorId());
+        } catch (Exception ignored) {
+            // Keep file-backed cleanup even when DB cleanup is unavailable.
+        }
+    }
+
+    private void clearSharedDatasetProducts(List<String> productNames) {
+        LinkedHashSet<String> targets = new LinkedHashSet<>();
+        if (productNames == null || productNames.isEmpty()) {
+            targets.add("");
+        } else {
+            for (String productName : productNames) {
+                targets.add(normalizeProductName(productName));
+            }
+        }
+
+        Map<String, Map<String, Object>> draftRegistry = readDraftRegistryFromFile();
+        draftRegistry.entrySet().removeIf(entry -> matchesOwner(entry.getValue(), storageActorId())
+                && targets.stream().anyMatch(productName -> matchesProduct(entry.getValue(), productName)));
+        writeDraftRegistry(draftRegistry);
+
+        if (!isDraftTableReady()) {
+            return;
+        }
+        try {
+            List<Map<String, Object>> headers = adminEmissionSurveyDraftMapper.selectCaseHeaders();
+            for (Map<String, Object> header : headers) {
+                if (!matchesOwner(header, storageActorId())) {
+                    continue;
+                }
+                boolean matched = targets.stream().anyMatch(productName -> matchesProduct(header, productName));
+                if (!matched) {
+                    continue;
+                }
+                String caseId = safeObject(header.get("caseId"));
+                adminEmissionSurveyDraftMapper.deleteCaseRows(caseId);
+                adminEmissionSurveyDraftMapper.deleteCaseHeader(caseId);
+            }
         } catch (Exception ignored) {
             // Keep file-backed cleanup even when DB cleanup is unavailable.
         }

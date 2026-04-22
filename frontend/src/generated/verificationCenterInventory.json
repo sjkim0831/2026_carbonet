@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-20T13:45:16.371Z",
+  "generatedAt": "2026-04-22T05:53:44.525Z",
   "sources": {
     "pageManifest": "frontend/src/platform/screen-registry/pageManifests.ts",
     "apiMap": "docs/ai/40-backend/controller-service-map.csv",
@@ -10,12 +10,12 @@
     "governancePlan": "docs/architecture/verification-center-and-baseline-governance-plan.md"
   },
   "summary": {
-    "pageCount": 219,
-    "menuBoundPageCount": 219,
-    "staticMenuBoundPageCount": 218,
+    "pageCount": 220,
+    "menuBoundPageCount": 220,
+    "staticMenuBoundPageCount": 219,
     "dynamicMenuBoundPageCount": 1,
     "unmanagedPageCount": 0,
-    "routeBoundPageCount": 219,
+    "routeBoundPageCount": 220,
     "apiCount": 13,
     "uniqueRouteCount": 13,
     "functionCount": 59,
@@ -606,6 +606,13 @@
       "pageId": "emission-survey-admin-data",
       "routePath": "/admin/emission/survey-admin-data",
       "menuCode": "AMENU_EMISSION_SURVEY_ADMIN_DATA",
+      "menuBindingType": "static"
+    },
+    {
+      "manifestKey": "emission-survey-report",
+      "pageId": "emission-survey-report",
+      "routePath": "/admin/emission/survey-report",
+      "menuCode": "AMENU_EMISSION_SURVEY_ADMIN",
       "menuBindingType": "static"
     },
     {

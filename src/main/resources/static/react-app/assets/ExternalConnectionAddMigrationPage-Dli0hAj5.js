@@ -1,1 +1,0 @@
-import{j as o}from"./vendor-react-DQCpd17N.js";import{ExternalConnectionFormMigrationPage as r}from"./ExternalConnectionEditMigrationPage-D2MFPuAT.js";import"./environmentManagementHub-bVnQ-P3u.js";import"./environmentManagementShared-CpIYHOw0.js";import"./index-BHmEfasf.js";function a(){return o.jsx(r,{mode:"add"})}export{a as ExternalConnectionAddMigrationPage};

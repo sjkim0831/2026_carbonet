@@ -2954,6 +2954,19 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "EmissionSurveyAdminBottomActions", instanceKey: "emission-survey-admin-bottom-actions", layoutZone: "actions", propsSummary: ["canSave", "canPublish", "draftState"] }
     ]
   },
+  "emission-survey-report": {
+    pageId: "emission-survey-report",
+    routePath: "/admin/emission/survey-report",
+    menuCode: "AMENU_EMISSION_SURVEY_ADMIN",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionSurveyReportHero", instanceKey: "emission-survey-report-hero", layoutZone: "header", propsSummary: ["productName", "totalEmission", "dataConfidence"] },
+      { componentId: "EmissionSurveyReportContributionChart", instanceKey: "emission-survey-report-contribution-chart", layoutZone: "content", propsSummary: ["sectionCount", "topContributorLabel", "warningCount"] },
+      { componentId: "EmissionSurveyReportInventory", instanceKey: "emission-survey-report-inventory", layoutZone: "content", propsSummary: ["rowCount", "sectionCount", "scenarioCount"] }
+    ]
+  },
   "emission-survey-admin-data": {
     pageId: "emission-survey-admin-data",
     routePath: "/admin/emission/survey-admin-data",

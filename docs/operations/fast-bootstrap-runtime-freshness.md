@@ -44,6 +44,12 @@ That script already enforces:
 2. backend package
 3. restart
 
+If `CARBONET_REACT_APP_FS_OVERRIDE_ENABLED=true` is active for local `:18000`, frontend-only reflection can also use:
+
+1. `bash ops/scripts/frontend-refresh-18000.sh`
+
+That path rebuilds `src/main/resources/static/react-app/**` and the running app serves those assets directly from the filesystem override path without repackaging the backend jar.
+
 ## Why Restart Alone Is Not Enough
 
 `ops/scripts/restart-18000.sh` now defaults to a freshness-safe restart.
@@ -72,6 +78,22 @@ The latest user-visible output reaches the running server through this chain:
 7. Java process started by `ops/scripts/start-18000.sh`
 
 If any earlier stage is stale, later stages can also be stale.
+
+## Filesystem Override Mode
+
+Local `:18000` can run with React asset filesystem override enabled through:
+
+- `CARBONET_REACT_APP_FS_OVERRIDE_ENABLED=true`
+- `CARBONET_REACT_APP_FS_OVERRIDE_PATH=/opt/projects/carbonet/src/main/resources/static/react-app`
+
+In that mode:
+
+- runtime jar freshness is still required for Java, Spring resources, and startup proof
+- React asset freshness is served from the filesystem override path first
+- `codex-verify-18000-freshness.sh` must prove override freshness from the override manifest and actual HTTP responses, not only from jar-internal assets
+
+Do not force a backend package just to prove a frontend-only rebuild when override mode is intentionally active.
+Use `bash ops/scripts/frontend-refresh-18000.sh` for the fast path, and keep the full build-package-restart flow for backend or bootstrap changes.
 
 ## Script Ownership
 

@@ -27,6 +27,9 @@ Environment overrides:
   FRONTEND_APP_RESOURCE_DIR
   VERIFY_WAIT_SECONDS
   VERIFY_EXTENDED_WAIT_SECONDS
+  CARBONET_REACT_APP_FS_OVERRIDE_ENABLED
+  CARBONET_REACT_APP_FS_OVERRIDE_PATH
+  VERIFY_REACT_FS_OVERRIDE_HTTP=true
   VERIFY_EXTERNAL_MONITORING_BOOTSTRAP=true
   VERIFY_CLOB_FALLBACK_LOGS=true
   VERIFY_BLOCKLIST_FALLBACK_LOGS=true
@@ -55,11 +58,13 @@ FRONTEND_APP_MANIFEST_PATH="$FRONTEND_APP_RESOURCE_DIR/.vite/manifest.json"
 VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-60}"
 VERIFY_EXTENDED_WAIT_SECONDS="${VERIFY_EXTENDED_WAIT_SECONDS:-180}"
 VERIFY_LOG_TAIL_LINES="${VERIFY_LOG_TAIL_LINES:-20000}"
+VERIFY_LOG_TAIL_BYTES="${VERIFY_LOG_TAIL_BYTES:-67108864}"
 VERIFY_EXTERNAL_MONITORING_BOOTSTRAP="${VERIFY_EXTERNAL_MONITORING_BOOTSTRAP:-false}"
 VERIFY_CLOB_FALLBACK_LOGS="${VERIFY_CLOB_FALLBACK_LOGS:-true}"
 CLOB_FALLBACK_LOG_PATTERN="${CLOB_FALLBACK_LOG_PATTERN:-Access event persistence failed due to CLOB binding|Audit event persistence failed due to CLOB binding|Error event persistence failed due to CLOB binding|Trace payload persistence failed due to CLOB binding|Failed to persist access event after compact retry|Failed to persist audit event after compact retry|Failed to persist error event after compact retry|Failed to persist trace event after retry without payload}"
 VERIFY_BLOCKLIST_FALLBACK_LOGS="${VERIFY_BLOCKLIST_FALLBACK_LOGS:-true}"
 BLOCKLIST_FALLBACK_LOG_PATTERN="${BLOCKLIST_FALLBACK_LOG_PATTERN:-Failed to load persisted blocklist rows|Failed to load persisted blocklist action history|Unknown class \"dba[.]comtnblocklistentry\"|Unknown class \"dba[.]comtnblocklistactionhist\"}"
+VERIFY_REACT_FS_OVERRIDE_HTTP="${VERIFY_REACT_FS_OVERRIDE_HTTP:-true}"
 
 if [[ -f "$ENV_FILE" ]]; then
   set -a
@@ -84,16 +89,48 @@ port_is_listening() {
 }
 
 log_has_startup_marker() {
-  [[ -f "$LOG_FILE" ]] && grep -a -F -q "$STARTUP_MARKER" < <(tail -n "$VERIFY_LOG_TAIL_LINES" "$LOG_FILE")
+  [[ -f "$LOG_FILE" ]] || return 1
+  if grep -a -F -q "$STARTUP_MARKER" < <(tail -n "$VERIFY_LOG_TAIL_LINES" "$LOG_FILE"); then
+    return 0
+  fi
+  grep -a -F -q "$STARTUP_MARKER" < <(tail -c "$VERIFY_LOG_TAIL_BYTES" "$LOG_FILE")
+}
+
+latest_startup_line_number() {
+  [[ -f "$LOG_FILE" ]] || return 1
+  local latest_startup_line=""
+  latest_startup_line="$(grep -a -nF "$STARTUP_MARKER" < <(tail -n "$VERIFY_LOG_TAIL_LINES" "$LOG_FILE") | tail -n 1 | cut -d: -f1 || true)"
+  if [[ -n "$latest_startup_line" ]]; then
+    printf '%s\n' "$latest_startup_line"
+    return 0
+  fi
+  latest_startup_line="$(tail -c "$VERIFY_LOG_TAIL_BYTES" "$LOG_FILE" | grep -a -nF "$STARTUP_MARKER" | tail -n 1 | cut -d: -f1 || true)"
+  [[ -n "$latest_startup_line" ]] || return 1
+  printf '%s\n' "$latest_startup_line"
 }
 
 log_since_latest_startup_has() {
   local pattern="$1"
   [[ -f "$LOG_FILE" ]] || return 1
   local latest_startup_line=""
-  latest_startup_line="$(grep -a -nF "$STARTUP_MARKER" < <(tail -n "$VERIFY_LOG_TAIL_LINES" "$LOG_FILE") | tail -n 1 | cut -d: -f1 || true)"
-  [[ -n "$latest_startup_line" ]] || return 1
-  grep -a -Eq "$pattern" < <(tail -n "$VERIFY_LOG_TAIL_LINES" "$LOG_FILE" | tail -n "+$latest_startup_line")
+  latest_startup_line="$(latest_startup_line_number || true)"
+  local recent_log=""
+  recent_log="$(mktemp)"
+  tail -c "$VERIFY_LOG_TAIL_BYTES" "$LOG_FILE" > "$recent_log"
+  if [[ -n "$latest_startup_line" ]]; then
+    local tail_startup_line=""
+    tail_startup_line="$(grep -a -nF "$STARTUP_MARKER" "$recent_log" | tail -n 1 | cut -d: -f1 || true)"
+    if [[ -n "$tail_startup_line" ]]; then
+      grep -a -Eq "$pattern" < <(tail -n "+$tail_startup_line" "$recent_log")
+      local status=$?
+      rm -f "$recent_log"
+      return $status
+    fi
+  fi
+  grep -a -Eq "$pattern" "$recent_log"
+  local status=$?
+  rm -f "$recent_log"
+  return $status
 }
 
 health_is_up() {
@@ -107,6 +144,15 @@ health_is_up() {
     *"UP"*) HEALTH_BODY="$body"; return 0 ;;
   esac
   return 1
+}
+
+is_true() {
+  carbonet_bool_true "${1:-false}"
+}
+
+react_fs_override_enabled() {
+  is_true "${CARBONET_REACT_APP_FS_OVERRIDE_ENABLED:-false}" \
+    && [[ -n "${CARBONET_REACT_APP_FS_OVERRIDE_PATH:-}" ]]
 }
 
 resolve_running_pid() {
@@ -177,6 +223,14 @@ compute_stream_hash() {
   cksum | awk '{print $1 ":" $2}'
 }
 
+http_body_hash() {
+  local url="$1"
+  if ! command -v curl >/dev/null 2>&1; then
+    return 1
+  fi
+  curl "${CARBONET_CURL_ARGS[@]}" -fsS --max-time 10 "$url" 2>/dev/null | compute_stream_hash
+}
+
 jar_entry_hash() {
   local jar_path="$1"
   local entry_path=""
@@ -224,6 +278,40 @@ verify_frontend_file_list() {
     diff -u "$app_files" "$jar_files" | sed -n '1,80p' >&2 || true
     rm -rf "$tmp_dir"
     fail "runtime jar frontend file list differs from carbonet-app resources"
+  fi
+
+  rm -rf "$tmp_dir"
+}
+
+verify_override_manifest_http() {
+  local expected_manifest_hash="$1"
+  local manifest_url="$2"
+  local actual_manifest_hash=""
+  actual_manifest_hash="$(http_body_hash "$manifest_url" || true)"
+  [[ -n "$actual_manifest_hash" ]] || fail "unable to fetch runtime manifest: $manifest_url"
+  [[ "$actual_manifest_hash" == "$expected_manifest_hash" ]] || fail "runtime manifest differs from filesystem override manifest: $manifest_url"
+}
+
+verify_override_file_list() {
+  local override_root="$1"
+  [[ -d "$override_root" ]] || fail "missing filesystem override directory: $override_root"
+  local tmp_dir=""
+  local override_files=""
+  local served_files=""
+  command -v find >/dev/null 2>&1 || fail "find command is required to verify filesystem override assets"
+  tmp_dir="$(mktemp -d)"
+  override_files="$tmp_dir/override-files.txt"
+  served_files="$tmp_dir/served-files.txt"
+
+  (cd "$override_root" && find . -type f | sed 's#^\./##' | sort) > "$override_files"
+  (
+    cd "$FRONTEND_RESOURCE_DIR" && find . -type f | sed 's#^\./##' | sort
+  ) > "$served_files"
+
+  if ! cmp -s "$override_files" "$served_files"; then
+    diff -u "$override_files" "$served_files" | sed -n '1,80p' >&2 || true
+    rm -rf "$tmp_dir"
+    fail "filesystem override file list differs from root frontend resources"
   fi
 
   rm -rf "$tmp_dir"
@@ -295,10 +383,25 @@ require_file "$FRONTEND_APP_MANIFEST_PATH"
 FRONTEND_MANIFEST_HASH="$(compute_hash "$FRONTEND_MANIFEST_PATH")"
 FRONTEND_APP_MANIFEST_HASH="$(compute_hash "$FRONTEND_APP_MANIFEST_PATH")"
 [[ "$FRONTEND_APP_MANIFEST_HASH" == "$FRONTEND_MANIFEST_HASH" ]] || fail "frontend manifest differs between root resources and carbonet-app resources"
-RUNTIME_FRONTEND_MANIFEST_HASH="$(jar_entry_hash "$RUNTIME_JAR_PATH" || true)"
-[[ -n "$RUNTIME_FRONTEND_MANIFEST_HASH" ]] || fail "frontend manifest not found inside runtime jar"
-[[ "$RUNTIME_FRONTEND_MANIFEST_HASH" == "$FRONTEND_APP_MANIFEST_HASH" ]] || fail "runtime jar contains stale frontend manifest"
-verify_frontend_file_list
+REACT_FS_OVERRIDE_ACTIVE="false"
+if react_fs_override_enabled; then
+  REACT_FS_OVERRIDE_ACTIVE="true"
+  FRONTEND_OVERRIDE_RESOURCE_DIR="${CARBONET_REACT_APP_FS_OVERRIDE_PATH%/}"
+  FRONTEND_OVERRIDE_MANIFEST_PATH="$FRONTEND_OVERRIDE_RESOURCE_DIR/.vite/manifest.json"
+  require_file "$FRONTEND_OVERRIDE_MANIFEST_PATH"
+  FRONTEND_OVERRIDE_MANIFEST_HASH="$(compute_hash "$FRONTEND_OVERRIDE_MANIFEST_PATH")"
+  [[ "$FRONTEND_OVERRIDE_MANIFEST_HASH" == "$FRONTEND_MANIFEST_HASH" ]] || fail "filesystem override manifest differs from root frontend resources"
+  verify_override_file_list "$FRONTEND_OVERRIDE_RESOURCE_DIR"
+  if is_true "$VERIFY_REACT_FS_OVERRIDE_HTTP"; then
+    BASE_URL="$(carbonet_runtime_base_url)"
+    verify_override_manifest_http "$FRONTEND_OVERRIDE_MANIFEST_HASH" "$BASE_URL/assets/react/.vite/manifest.json"
+  fi
+else
+  RUNTIME_FRONTEND_MANIFEST_HASH="$(jar_entry_hash "$RUNTIME_JAR_PATH" || true)"
+  [[ -n "$RUNTIME_FRONTEND_MANIFEST_HASH" ]] || fail "frontend manifest not found inside runtime jar"
+  [[ "$RUNTIME_FRONTEND_MANIFEST_HASH" == "$FRONTEND_APP_MANIFEST_HASH" ]] || fail "runtime jar contains stale frontend manifest"
+  verify_frontend_file_list
+fi
 
 TARGET_MTIME="$(stat -c %Y "$TARGET_JAR_PATH" 2>/dev/null || true)"
 RUNTIME_MTIME="$(stat -c %Y "$RUNTIME_JAR_PATH" 2>/dev/null || true)"
@@ -359,8 +462,17 @@ info "port OK: $PORT"
 info "target jar: $TARGET_JAR_PATH"
 info "runtime jar: $RUNTIME_JAR_PATH"
 info "jar hash OK: $TARGET_HASH"
-info "frontend manifest hash OK: $FRONTEND_APP_MANIFEST_HASH"
-info "frontend file list OK"
+if [[ "$REACT_FS_OVERRIDE_ACTIVE" == "true" ]]; then
+  info "frontend filesystem override active: $FRONTEND_OVERRIDE_RESOURCE_DIR"
+  info "override manifest hash OK: $FRONTEND_OVERRIDE_MANIFEST_HASH"
+  info "override file list OK"
+  if is_true "$VERIFY_REACT_FS_OVERRIDE_HTTP"; then
+    info "override manifest HTTP response OK: /assets/react/.vite/manifest.json"
+  fi
+else
+  info "frontend manifest hash OK: $FRONTEND_APP_MANIFEST_HASH"
+  info "frontend file list OK"
+fi
 info "startup marker OK: $STARTUP_MARKER"
 if [[ "$VERIFY_CLOB_FALLBACK_LOGS" == "true" ]]; then
   info "CLOB fallback logs OK since latest startup"

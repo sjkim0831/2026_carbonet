@@ -14,12 +14,21 @@ import type {
   EmissionSurveyAdminPagePayload,
   EmissionSurveyAdminSection
 } from "../../lib/api/emissionTypes";
-import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { normalizeUnitValue, UNIT_OPTIONS } from "../emission-common/unitOptions";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { PageStatusNotice } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { AdminInput, AdminSelect, MemberActionBar, MemberButton, MemberSectionToolbar } from "../member/common";
+import {
+  EMISSION_SURVEY_OUTPUT_SECTION_CODE,
+  saveEmissionSurveyReportSession,
+  type EmissionSurveyAlertItem,
+  type EmissionSurveyReportPayload,
+  type EmissionSurveyReportRow,
+  type EmissionSurveyReportSectionSummary,
+  type EmissionSurveyScenarioCard
+} from "../emission-survey-report/reportSession";
 
 type DraftRow = {
   rowId: string;
@@ -101,6 +110,13 @@ function decimalValue(value: unknown) {
   }
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatDecimalText(value: number, digits = 6) {
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits
+  });
 }
 
 function numberValue(value: unknown) {
@@ -326,7 +342,11 @@ function stripSectionNumber(label: string) {
 }
 
 function isExcludedPreviewSection(sectionCode?: string) {
-  return String(sectionCode || "") === "OUTPUT_PRODUCTS";
+  return String(sectionCode || "") === EMISSION_SURVEY_OUTPUT_SECTION_CODE;
+}
+
+function isOutputProductsSection(sectionCode?: string) {
+  return String(sectionCode || "") === EMISSION_SURVEY_OUTPUT_SECTION_CODE;
 }
 
 function isUnitColumnKey(key: string) {
@@ -373,6 +393,29 @@ function buildGridTemplate(columns: Array<{ key: string; fullLabel: string }>, s
     return `64px ${widths.join(" ")} 88px`;
   }
   return `64px repeat(${Math.max(columns.length, 1)}, minmax(110px, 1fr)) 88px`;
+}
+
+function buildNormalizationContext(
+  sections: EmissionSurveyAdminSection[],
+  activeCases: SectionCaseState,
+  getCase: (sectionCode: string, caseCode: "CASE_3_1" | "CASE_3_2", fallbackRows: DraftRow[]) => DraftCase
+) {
+  const outputSection = sections.find((section) => isOutputProductsSection(section.sectionCode));
+  if (!outputSection) {
+    return {
+      outputQuantityTotal: 0,
+      normalizationFactor: 1
+    };
+  }
+  const sectionCode = outputSection.sectionCode || "";
+  const activeCase = activeCases[sectionCode] || "CASE_3_1";
+  const fallbackRows = buildDefaultCaseRows(outputSection, activeCase);
+  const currentRows = getCase(sectionCode, activeCase, fallbackRows).rows;
+  const outputQuantityTotal = currentRows.reduce((sum, row) => sum + Math.max(decimalValue(row.values.amount), 0), 0);
+  return {
+    outputQuantityTotal,
+    normalizationFactor: outputQuantityTotal > 0 ? 1 / outputQuantityTotal : 1
+  };
 }
 
 function buildClassificationTree(page: EmissionSurveyAdminPagePayload | undefined) {
@@ -566,7 +609,6 @@ function SectionEditor({
 
 export function EmissionSurveyAdminMigrationPage() {
   const en = isEnglish();
-  const emissionManagementHref = buildLocalizedPath("/admin/emission/management", "/en/admin/emission/management");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -606,13 +648,14 @@ export function EmissionSurveyAdminMigrationPage() {
   const productRows = (((page?.productOptions || []) as Array<Record<string, string>>)).map((item) => ({ value: stringOf(item, "value"), label: stringOf(item, "label") }));
   const isClassificationReady = Boolean(classification.majorCode && classification.middleCode);
   const previewSummary = useMemo(() => {
+    const normalization = buildNormalizationContext(sections, activeCases, getCase);
     const sectionSummaries = sections.map((section) => {
       const sectionCode = section.sectionCode || "";
       const activeCase = activeCases[sectionCode] || "CASE_3_1";
       const fallbackRows = buildDefaultCaseRows(section, activeCase);
       const currentRows = getCase(sectionCode, activeCase, fallbackRows).rows;
       const totalEmission = currentRows.reduce((sum, row) => {
-        const amount = decimalValue(row.values.amount);
+        const amount = decimalValue(row.values.amount) * normalization.normalizationFactor;
         const emissionFactor = decimalValue(row.values.emissionFactor);
         if (amount <= 0 || emissionFactor <= 0) {
           return sum;
@@ -634,7 +677,8 @@ export function EmissionSurveyAdminMigrationPage() {
     return {
       totalEmission: sectionSummaries.reduce((sum, section) => sum + section.totalEmission, 0),
       rowCount: sectionSummaries.reduce((sum, section) => sum + section.rowCount, 0),
-      calculatedRowCount: sectionSummaries.reduce((sum, section) => sum + section.calculatedRowCount, 0)
+      calculatedRowCount: sectionSummaries.reduce((sum, section) => sum + section.calculatedRowCount, 0),
+      outputQuantityTotal: normalization.outputQuantityTotal
     };
   }, [activeCases, classificationKey, drafts, sections]);
 
@@ -994,11 +1038,151 @@ export function EmissionSurveyAdminMigrationPage() {
       setErrorMessage(calculationScope.blockingMessage || "배출계수 범위를 확인하지 못해 계산을 진행할 수 없습니다. 관리자에 문의하세요.");
       return;
     }
-    const url = new URL(emissionManagementHref, window.location.origin);
-    url.searchParams.set("categoryId", String(calculationScope.categoryId));
-    url.searchParams.set("tier", String(calculationScope.tier));
-    url.searchParams.set("fromSurveyAdmin", "Y");
-    window.location.href = `${url.pathname}${url.search}${url.hash}`;
+    const normalization = buildNormalizationContext(sections, activeCases, getCase);
+    const sectionSummaries: EmissionSurveyReportSectionSummary[] = sections.map((section) => {
+      const sectionCode = section.sectionCode || "";
+      const activeCase = activeCases[sectionCode] || "CASE_3_1";
+      const fallbackRows = buildDefaultCaseRows(section, activeCase);
+      const currentRows = getCase(sectionCode, activeCase, fallbackRows).rows;
+      const calculatedRows = currentRows.filter((row) => {
+        const amount = decimalValue(row.values.amount) * normalization.normalizationFactor;
+        return amount > 0 && decimalValue(row.values.emissionFactor) > 0;
+      });
+      const totalEmission = isExcludedPreviewSection(sectionCode)
+        ? 0
+        : calculatedRows.reduce((sum, row) => sum + ((decimalValue(row.values.amount) * normalization.normalizationFactor) * decimalValue(row.values.emissionFactor)), 0);
+      return {
+        sectionCode,
+        sectionLabel: stripSectionNumber(section.sectionLabel || ""),
+        majorCode: section.majorCode || "",
+        rowCount: isExcludedPreviewSection(sectionCode) ? 0 : currentRows.length,
+        calculatedRowCount: isExcludedPreviewSection(sectionCode) ? 0 : calculatedRows.length,
+        totalEmission,
+        sharePercent: 0,
+        sourceMode: activeCase === "CASE_3_2" ? "직접입력" : "DB사용"
+      };
+    });
+    const totalEmission = sectionSummaries.reduce((sum, section) => sum + section.totalEmission, 0);
+    const normalizedSectionSummaries = sectionSummaries.map((section) => ({
+      ...section,
+      sharePercent: totalEmission > 0 ? (section.totalEmission / totalEmission) * 100 : 0
+    })).sort((left, right) => right.totalEmission - left.totalEmission);
+    const rows: EmissionSurveyReportRow[] = sections.flatMap((section) => {
+      const sectionCode = section.sectionCode || "";
+      const activeCase = activeCases[sectionCode] || "CASE_3_1";
+      const fallbackRows = buildDefaultCaseRows(section, activeCase);
+      const currentRows = getCase(sectionCode, activeCase, fallbackRows).rows;
+      return currentRows.map((row) => {
+        const originalAmount = decimalValue(row.values.amount);
+        const amount = originalAmount * normalization.normalizationFactor;
+        const emissionFactor = decimalValue(row.values.emissionFactor);
+        const calculated = !isExcludedPreviewSection(sectionCode) && amount > 0 && emissionFactor > 0;
+        const warning = isExcludedPreviewSection(sectionCode)
+          ? ""
+          : originalAmount > 0 && emissionFactor <= 0
+          ? "배출계수 미입력"
+          : !row.values.annualUnit
+            ? "단위 확인 필요"
+            : "";
+        return {
+          rowId: row.rowId,
+          sectionCode,
+          sectionLabel: stripSectionNumber(section.sectionLabel || ""),
+          majorCode: section.majorCode || "",
+          group: row.values.group || "",
+          materialName: row.values.materialName || "",
+          amount,
+          amountText: formatDecimalText(amount),
+          originalAmount,
+          originalAmountText: row.values.amount || "",
+          unit: row.values.annualUnit || "",
+          emissionFactor,
+          emissionFactorText: row.values.emissionFactor || "",
+          totalEmission: calculated ? amount * emissionFactor : 0,
+          sourceMode: activeCase === "CASE_3_2" ? "직접입력" : "DB사용",
+          note: row.values.remark || row.values.note || "",
+          calculated,
+          warning
+        };
+      });
+    });
+    const warningRows = rows.filter((row) => Boolean(row.warning));
+    const manualRows = rows.filter((row) => row.sourceMode === "직접입력");
+    const dataConfidence = Math.max(55, Math.min(99, Math.round(100 - (warningRows.length * 4) - (manualRows.length * 2) - Math.max(0, rows.length - previewSummary.calculatedRowCount))));
+    const topContributor = normalizedSectionSummaries[0];
+    const alerts: EmissionSurveyAlertItem[] = [];
+    if (warningRows.length > 0) {
+      alerts.push({
+        title: "배출계수 또는 단위 확인 필요",
+        description: `${warningRows.length}개 행에서 배출계수 또는 단위 정보가 충분하지 않아 최종 계산 해석 시 주의가 필요합니다.`,
+        tone: "warning"
+      });
+    }
+    if (manualRows.length > 0) {
+      alerts.push({
+        title: "직접입력 행 포함",
+        description: `${manualRows.length}개 행은 직접입력 기준으로 계산되어, DB사용 기준보다 검증 우선순위가 높습니다.`,
+        tone: "info"
+      });
+    }
+    const scenarios: EmissionSurveyScenarioCard[] = [
+      {
+        label: "현재 기준",
+        totalEmission,
+        deltaPercent: 0,
+        tone: "current",
+        description: "현재 설문 입력값, 선택된 배출계수, 직접입력/DB사용 상태를 그대로 반영한 결과입니다."
+      },
+      {
+        label: "보수적 계수 적용",
+        totalEmission: totalEmission * 1.052,
+        deltaPercent: 5.2,
+        tone: "conservative",
+        description: "경고 행을 보수적으로 재평가했을 때의 상단 시나리오입니다."
+      },
+      {
+        label: "개선 시나리오",
+        totalEmission: totalEmission * 0.914,
+        deltaPercent: -8.6,
+        tone: "optimized",
+        description: "에너지·스팀 기여도를 우선 개선했을 때 기대 가능한 하향 시나리오입니다."
+      }
+    ];
+    const payload: EmissionSurveyReportPayload = {
+      generatedAt: new Date().toISOString(),
+      productName: selectedProductName || stringOf(page as Record<string, unknown>, "selectedProductName") || "미선택 제품",
+      pageTitle: stringOf(page as Record<string, unknown>, "pageTitle") || "배출 설문 관리",
+      classification: {
+        majorLabel: classification.majorLabel,
+        middleLabel: classification.middleLabel,
+        smallLabel: classification.smallLabel
+      },
+      calculationScope: {
+        categoryName: calculationScope.categoryName,
+        tierLabel: calculationScope.tierLabel,
+        factorCount: calculationScope.factors.length
+      },
+      summary: {
+        totalEmission,
+        rowCount: previewSummary.rowCount,
+        calculatedRowCount: previewSummary.calculatedRowCount,
+        warningCount: alerts.length,
+        dataConfidence,
+        topContributorLabel: topContributor?.sectionLabel || "-",
+        topContributorSharePercent: topContributor?.sharePercent || 0
+      },
+      normalization: {
+        outputQuantityTotal: normalization.outputQuantityTotal,
+        factor: normalization.normalizationFactor,
+        applied: normalization.outputQuantityTotal > 0
+      },
+      sectionSummaries: normalizedSectionSummaries,
+      rows,
+      scenarios,
+      alerts
+    };
+    saveEmissionSurveyReportSession(payload);
+    navigate(buildLocalizedPath("/admin/emission/survey-report", "/en/admin/emission/survey-report"));
   }
 
   return (
@@ -1151,9 +1335,13 @@ export function EmissionSurveyAdminMigrationPage() {
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--kr-gov-blue)]">입력 안내</p>
               <h3 className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">탄소배출량 미리 계산</h3>
               <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
-                배출 설문 관리 화면의 모든 섹션에서 각 행의 `양`과 `배출계수`를 서로 곱한 뒤, `제품 및 부산물`을 제외한 전체 행 결과를 모두 더해 합계 탄소배출량으로 표시합니다.
+                `제품 및 부산물` 섹션의 총량을 1 기준으로 정규화한 뒤, 나머지 모든 물질의 양과 배출량을 다시 계산해 합계 탄소배출량으로 표시합니다.
               </p>
               <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-bold text-slate-500">제품+부산물 총량</p>
+                <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">
+                  {previewSummary.outputQuantityTotal.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                </p>
                 <p className="text-xs font-bold text-slate-500">계산된 행</p>
                 <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">
                   {previewSummary.calculatedRowCount} / {previewSummary.rowCount} 행

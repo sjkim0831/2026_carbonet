@@ -284,8 +284,8 @@
     "sectionResultJson" : "[{\"sectionCode\":\"INPUT_RAW_MATERIALS\",\"sectionLabel\":\"원료 물질 및 보조 물질\",\"rowCount\":12,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"INPUT_ENERGY\",\"sectionLabel\":\"에너지\",\"rowCount\":12,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"INPUT_STEAM\",\"sectionLabel\":\"에너지 스팀\",\"rowCount\":12,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"INPUT_MISC\",\"sectionLabel\":\"기타\",\"rowCount\":12,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"OUTPUT_PRODUCTS\",\"sectionLabel\":\"제품 및 부산물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"OUTPUT_AIR\",\"sectionLabel\":\"대기 배출물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"OUTPUT_WATER\",\"sectionLabel\":\"수계 배출물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"},{\"sectionCode\":\"OUTPUT_WASTE\",\"sectionLabel\":\"폐기물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-07 16:52:14\"}]",
     "uploadedAt" : "2026-04-07 16:52:14"
   },
-  "ESL_B06F2D83667D495A" : {
-    "logId" : "ESL_B06F2D83667D495A",
+  "ESL_19BAA3BBB27A4B9C" : {
+    "logId" : "ESL_19BAA3BBB27A4B9C",
     "datasetId" : "EMISSION_SURVEY_SHARED",
     "ownerActorId" : "COMMON_DATASET",
     "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
@@ -300,7 +300,64 @@
     "sectionCount" : 8,
     "rowCount" : 12,
     "storageMode" : "file",
-    "sectionResultJson" : "[{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_RAW_MATERIALS\",\"sectionLabel\":\"원료 물질 및 보조 물질\",\"rowCount\":4,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-20 21:29:08\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_ENERGY\",\"sectionLabel\":\"에너지\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-20 21:29:08\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_STEAM\",\"sectionLabel\":\"에너지 스팀\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-20 21:29:08\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_MISC\",\"sectionLabel\":\"기타\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-20 21:29:08\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_PRODUCTS\",\"sectionLabel\":\"제품 및 부산물\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-20 21:29:08\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_AIR\",\"sectionLabel\":\"대기 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-20 21:29:08\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WATER\",\"sectionLabel\":\"수계 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-20 21:29:08\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WASTE\",\"sectionLabel\":\"폐기물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-20 21:29:08\"}]",
-    "uploadedAt" : "2026-04-20 21:29:08"
+    "sectionResultJson" : "[{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_RAW_MATERIALS\",\"sectionLabel\":\"원료 물질 및 보조 물질\",\"rowCount\":4,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:04:28\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_ENERGY\",\"sectionLabel\":\"에너지\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:04:28\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_STEAM\",\"sectionLabel\":\"에너지 스팀\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:04:28\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_MISC\",\"sectionLabel\":\"기타\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:04:28\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_PRODUCTS\",\"sectionLabel\":\"제품 및 부산물\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:04:28\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_AIR\",\"sectionLabel\":\"대기 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:04:28\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WATER\",\"sectionLabel\":\"수계 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:04:28\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WASTE\",\"sectionLabel\":\"폐기물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:04:28\"}]",
+    "uploadedAt" : "2026-04-21 12:04:28"
+  },
+  "ESL_7C358573226B488B" : {
+    "logId" : "ESL_7C358573226B488B",
+    "datasetId" : "EMISSION_SURVEY_SHARED",
+    "ownerActorId" : "COMMON_DATASET",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
+    "lciMajorCode" : "",
+    "lciMajorLabel" : "",
+    "lciMiddleCode" : "",
+    "lciMiddleLabel" : "",
+    "lciSmallCode" : "",
+    "lciSmallLabel" : "",
+    "resultStatus" : "SUCCESS",
+    "message" : "엑셀 업로드 내용을 공통 데이터셋으로 저장했습니다.",
+    "sectionCount" : 8,
+    "rowCount" : 12,
+    "storageMode" : "file",
+    "sectionResultJson" : "[{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_RAW_MATERIALS\",\"sectionLabel\":\"원료 물질 및 보조 물질\",\"rowCount\":4,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:52:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_ENERGY\",\"sectionLabel\":\"에너지\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:52:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_STEAM\",\"sectionLabel\":\"에너지 스팀\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:52:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_MISC\",\"sectionLabel\":\"기타\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:52:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_PRODUCTS\",\"sectionLabel\":\"제품 및 부산물\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:52:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_AIR\",\"sectionLabel\":\"대기 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:52:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WATER\",\"sectionLabel\":\"수계 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:52:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WASTE\",\"sectionLabel\":\"폐기물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 12:52:10\"}]",
+    "uploadedAt" : "2026-04-21 12:52:10"
+  },
+  "ESL_4C0FF68E80134775" : {
+    "logId" : "ESL_4C0FF68E80134775",
+    "datasetId" : "EMISSION_SURVEY_SHARED",
+    "ownerActorId" : "COMMON_DATASET",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
+    "lciMajorCode" : "",
+    "lciMajorLabel" : "",
+    "lciMiddleCode" : "",
+    "lciMiddleLabel" : "",
+    "lciSmallCode" : "",
+    "lciSmallLabel" : "",
+    "resultStatus" : "SUCCESS",
+    "message" : "엑셀 업로드 내용을 공통 데이터셋으로 저장했습니다.",
+    "sectionCount" : 8,
+    "rowCount" : 14,
+    "storageMode" : "file",
+    "sectionResultJson" : "[{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_RAW_MATERIALS\",\"sectionLabel\":\"원료 물질 및 보조 물질\",\"rowCount\":6,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 14:41:26\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_ENERGY\",\"sectionLabel\":\"에너지\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 14:41:26\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_STEAM\",\"sectionLabel\":\"에너지 스팀\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 14:41:26\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_MISC\",\"sectionLabel\":\"기타\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 14:41:26\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_PRODUCTS\",\"sectionLabel\":\"제품 및 부산물\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 14:41:26\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_AIR\",\"sectionLabel\":\"대기 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 14:41:26\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WATER\",\"sectionLabel\":\"수계 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 14:41:26\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WASTE\",\"sectionLabel\":\"폐기물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 14:41:26\"}]",
+    "uploadedAt" : "2026-04-21 14:41:26"
+  },
+  "ESL_10CF183CD292471B" : {
+    "logId" : "ESL_10CF183CD292471B",
+    "datasetId" : "EMISSION_SURVEY_SHARED",
+    "ownerActorId" : "COMMON_DATASET",
+    "sourceFileName" : "dh_LCI DB 예시_광물탄산화 1 (1).xlsx",
+    "lciMajorCode" : "",
+    "lciMajorLabel" : "",
+    "lciMiddleCode" : "",
+    "lciMiddleLabel" : "",
+    "lciSmallCode" : "",
+    "lciSmallLabel" : "",
+    "resultStatus" : "SUCCESS",
+    "message" : "엑셀 업로드 내용을 공통 데이터셋으로 저장했습니다.",
+    "sectionCount" : 8,
+    "rowCount" : 14,
+    "storageMode" : "file",
+    "sectionResultJson" : "[{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_RAW_MATERIALS\",\"sectionLabel\":\"원료 물질 및 보조 물질\",\"rowCount\":6,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 15:41:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_ENERGY\",\"sectionLabel\":\"에너지\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 15:41:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_STEAM\",\"sectionLabel\":\"에너지 스팀\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 15:41:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"INPUT_MISC\",\"sectionLabel\":\"기타\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 15:41:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_PRODUCTS\",\"sectionLabel\":\"제품 및 부산물\",\"rowCount\":2,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 15:41:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_AIR\",\"sectionLabel\":\"대기 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 15:41:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WATER\",\"sectionLabel\":\"수계 배출물\",\"rowCount\":1,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 15:41:10\"},{\"datasetId\":\"EMISSION_SURVEY_SHARED::PRODUCT::탄산칼슘_탄산마그네슘\",\"productName\":\"탄산칼슘/탄산마그네슘\",\"sectionCode\":\"OUTPUT_WASTE\",\"sectionLabel\":\"폐기물\",\"rowCount\":0,\"caseCode\":\"CASE_3_1\",\"savedAt\":\"2026-04-21 15:41:10\"}]",
+    "uploadedAt" : "2026-04-21 15:41:10"
   }
 }

@@ -20,7 +20,7 @@
     <dependencies>
         <dependency>
             <groupId>egovframework</groupId>
-            <artifactId>p004-runtime-adapter</artifactId>
+            <artifactId>p004-adapter</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
